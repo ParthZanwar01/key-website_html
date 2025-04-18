@@ -7,7 +7,7 @@ export default function LandingScreen({ navigation }) {
       <Text style={styles.title}>Cypress Ranch Key Club</Text>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('AdminLogin')}
+        onPress={() => navigation.navigate('AdminScreen')}
       >
         <Text style={styles.buttonText}>Admin Login</Text>
       </TouchableOpacity>
