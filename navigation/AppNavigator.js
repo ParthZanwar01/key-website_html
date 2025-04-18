@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { TouchableOpacity } from 'react-native';
 
 // Import screens
 import CalendarScreen from '../screens/CalendarScreen';
@@ -35,8 +36,18 @@ function MainTabNavigator() {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="Officers" component={OfficersScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ headerRight: () => (
+      <TouchableOpacity onPress={logout} style={{ marginRight: 15 }}>
+        <Text style={{ color: '#1fca3b' }}>Logout</Text>
+      </TouchableOpacity>
+    ),
+    headerShown: true, }} />
+      <Tab.Screen name="Officers" component={OfficersScreen} options={{ headerRight: () => (
+      <TouchableOpacity onPress={logout} style={{ marginRight: 15 }}>
+        <Text style={{ color: '#1fca3b' }}>Logout</Text>
+      </TouchableOpacity>
+    ),
+    headerShown: true, }} />
     </Tab.Navigator>
   );
 }
@@ -57,6 +68,9 @@ export default function AppNavigator() {
           {currentUser.role === 'admin' && (
             <Stack.Screen name="Admin" component={AdminScreen} />
           )}
+           <Stack.Screen name="Landing" component={LandingScreen} options={{ headerShown: false }} />
+           <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
+           <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
         </>
       ) : (
         <Stack.Screen
