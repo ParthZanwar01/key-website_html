@@ -11,19 +11,22 @@
       "backgroundColor": "#94cfec"
     },
     "updates": {
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/keyclubapp"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.keyclubapp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#94cfec"
-      }
+      },
+      "package": "com.anonymous.keyclubapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
