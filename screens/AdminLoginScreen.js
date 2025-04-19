@@ -1,34 +1,41 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 
-export default function StudentLoginScreen({ navigation }) {
+export default function AdminLoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    if (email.endsWith('@stu.cfisd.net')) {
+  const handleAdminLogin = () => {
+    if (email === 'admin@example.com' && password === 'password') {
       navigation.reset({
         index: 0,
         routes: [{ name: 'Main' }],
       });
     } else {
-      Alert.alert('Invalid Email', 'Please use a @stu.cfisd.net email to log in.');
+      Alert.alert('Login Failed', 'Invalid credentials');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Student Login</Text>
+      <Text style={styles.title}>Admin Login</Text>
       <TextInput
-        placeholder="Your school email"
+        placeholder="Email"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
-        autoCapitalize="none"
-        keyboardType="email-address"
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+      <TextInput
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        style={styles.input}
+        secureTextEntry
+      />
+      <TouchableOpacity style={styles.button} onPress={handleAdminLogin}>
         <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
+      <Text style={styles.hint}>Demo credentials: admin@example.com / password</Text>
     </View>
   );
 }
@@ -61,8 +68,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
+    marginBottom: 10,
   },
   buttonText: {
     fontWeight: 'bold',
+  },
+  hint: {
+    fontSize: 12,
+    marginTop: 10,
   },
 });
