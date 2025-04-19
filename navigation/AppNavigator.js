@@ -15,6 +15,8 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabNavigator({ navigation }) {
+  const { logout } = useAuth(); // ✅ Moved to the top of component
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -36,8 +38,7 @@ function MainTabNavigator({ navigation }) {
             color="black"
             style={{ marginRight: 15 }}
             onPress={() => {
-              const { logout } = useAuth();
-              logout();
+              logout(); // ✅ Call the hook function here
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Landing' }],
