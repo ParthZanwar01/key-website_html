@@ -1,75 +1,49 @@
-import React, { useContext, useState, useEffect, createContext } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useState } from 'react';
 
-// Create the Auth Context
 const AuthContext = createContext();
 
-// Custom hook to use the Auth Context
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
-// Auth Provider Component
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Load user from AsyncStorage on component mount
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userString = await AsyncStorage.getItem('currentUser');
-        if (userString) {
-          setCurrentUser(JSON.parse(userString));
-        }
-      } catch (error) {
-        console.error('Failed to load user from storage', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadUser();
-  }, []);
-
-  // Login function - in a real app, this would validate credentials with a backend
-  async function login(email, password) {
-    try {
-      // This is a simple demo - in a real app, you would verify credentials with a server
-      if (email === 'admin@example.com' || email === 'Admin@example.com' && password === 'password') {
-        const user = { email, role: 'admin' };
-        setCurrentUser(user);
-        await AsyncStorage.setItem('currentUser', JSON.stringify(user));
-        return user;
-      } else {
-        throw new Error('Invalid credentials');
-      }
-    } catch (error) {
-      console.error('Login error', error);
-      throw error;
+  const loginAsAdmin = (email, password) => {
+    if (email === 'admin@example.com' && password === 'password') {
+      setIsAuthenticated(true);
+      setIsAdmin(true);
+      return true;
     }
-  }
+    return false;
+  };
 
-  // Logout function
-  async function logout() {
-    try {
-      setCurrentUser(null);
-      await AsyncStorage.removeItem('currentUser');
-    } catch (error) {
-      console.error('Logout error', error);
-      throw error;
+  const loginAsStudent = (email, password) => {
+    if (email.endsWith('@stu.cfisd.net') && password) {
+      setIsAuthenticated(true);
+      setIsAdmin(false);
+      return true;
     }
-  }
+    return false;
+  };
 
-  const value = {
-    currentUser,
-    login,
-    logout
+  const logout = () => {
+    setIsAuthenticated(false);
+    setIsAdmin(false);
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isAdmin,
+        loginAsAdmin,
+        loginAsStudent,
+        logout,
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }

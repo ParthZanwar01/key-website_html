@@ -58,7 +58,7 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Landing" component={LandingScreen} />
-      <Stack.Screen name="AdminLoginScreen" component={AdminLoginScreen} />
+      <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
       <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
       <Stack.Screen name="Main" component={MainTabNavigator} />
     </Stack.Navigator>
