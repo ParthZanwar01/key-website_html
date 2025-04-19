@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     try {
       // This is a simple demo - in a real app, you would verify credentials with a server
-      if (email === 'admin@example.com' && password === 'password') {
+      if (email === 'admin@example.com' || email === 'Admin@example.com' && password === 'password') {
         const user = { email, role: 'admin' };
         setCurrentUser(user);
         await AsyncStorage.setItem('currentUser', JSON.stringify(user));
