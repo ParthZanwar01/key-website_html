@@ -8,9 +8,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CalendarScreen({ navigation }) {
   const { events } = useEvents();
+  const { isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
 
@@ -128,6 +131,16 @@ export default function CalendarScreen({ navigation }) {
           numColumns={7}
           scrollEnabled={false}
         />
+        
+        {/* Floating Action Button for admins to create events */}
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => navigation.navigate('EventCreation')}
+          >
+            <Ionicons name="add" size={24} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -216,5 +229,21 @@ const styles = StyleSheet.create({
   eventTime: {
     color: 'white',
     fontSize: 10,
+  },
+  fab: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#f1ca3b',
+    borderRadius: 28,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });

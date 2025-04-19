@@ -2,6 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
 // Screens
@@ -9,13 +10,48 @@ import LandingScreen from '../screens/LandingScreen';
 import AdminLoginScreen from '../screens/AdminLoginScreen';
 import StudentLoginScreen from '../screens/StudentLoginScreen';
 import CalendarScreen from '../screens/CalendarScreen';
+import EventScreen from '../screens/EventScreen';
+import EventCreationScreen from '../screens/EventCreationScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function MainTabNavigator({ navigation }) {
-  const { logout } = useAuth(); // ✅ Moved to the top of component
+function CalendarStack({ navigation }) {
+  // We need to access the parent navigation for logout
+  const { logout } = useAuth();
+  
+  const handleLogout = () => {
+    logout();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Landing' }],
+    });
+  };
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerRight: () => (
+          <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
+            <Ionicons name="log-out-outline" size={24} color="black" />
+          </TouchableOpacity>
+        ),
+      }}
+    >
+      <Stack.Screen 
+        name="CalendarMain" 
+        component={CalendarScreen} 
+        options={{ title: "Calendar" }}
+      />
+      <Stack.Screen name="Event" component={EventScreen} options={{ title: "Event Details" }} />
+      <Stack.Screen name="EventCreation" component={EventCreationScreen} options={{ title: "Create Event" }} />
+    </Stack.Navigator>
+  );
+}
+
+function MainTabNavigator() {
+  const { logout, isAdmin } = useAuth();
 
   return (
     <Tab.Navigator
@@ -26,30 +62,71 @@ function MainTabNavigator({ navigation }) {
             iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'Officers') {
             iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Create Event') {
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#ffca3b',
         tabBarInactiveTintColor: 'gray',
-        headerRight: () => (
-          <Ionicons
-            name="log-out-outline"
-            size={24}
-            color="black"
-            style={{ marginRight: 15 }}
-            onPress={() => {
-              logout(); // ✅ Call the hook function here
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Landing' }],
-              });
-            }}
-          />
-        ),
       })}
     >
-      <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="Officers" component={OfficersScreen} />
+      <Tab.Screen 
+        name="Calendar" 
+        component={CalendarStack} 
+        options={{ headerShown: false }}
+      />
+      <Tab.Screen 
+        name="Officers" 
+        component={OfficersScreen}
+        options={({ navigation }) => ({
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={() => {
+                logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Landing' }],
+                });
+              }} 
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="black" />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+      
+      {/* Only show Create Event tab for admins */}
+      {isAdmin && (
+        <Tab.Screen 
+          name="Create Event" 
+          component={EventCreationScreen}
+          options={({ navigation }) => ({
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons 
+                name={focused ? "add-circle" : "add-circle-outline"} 
+                size={size} 
+                color={color} 
+              />
+            ),
+            headerRight: () => (
+              <TouchableOpacity 
+                onPress={() => {
+                  logout();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Landing' }],
+                  });
+                }} 
+                style={{ marginRight: 15 }}
+              >
+                <Ionicons name="log-out-outline" size={24} color="black" />
+              </TouchableOpacity>
+            ),
+          })}
+        />
+      )}
     </Tab.Navigator>
   );
 }
