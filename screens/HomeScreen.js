@@ -6,7 +6,15 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Image source={require('../assets/images/keyclublogo.png')} style={styles.logo} />
       <Text style={styles.title}>Welcome to Cypress Ranch Key Club</Text>
-      <Text style={styles.subtitle}>Developing leaders through service since 2008</Text>
+      <Text style={styles.subtitle}>I pledge on my honor
+        To uphold the objects of Key Club
+        International;
+        To build my home, school and
+        community;
+        To serve my nation and God;
+        And combat all forces which tend to
+        undermine these instituions.
+      </Text>
     </View>
   );
 }
@@ -20,13 +28,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 250,
+    height: 250,
     marginBottom: 30,
     resizeMode: 'contain',
   },
   title: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
