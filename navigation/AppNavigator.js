@@ -59,14 +59,14 @@ function MainTabNavigator() {
   screenOptions={({ route }) => ({
     tabBarIcon: ({ focused, color, size }) => {
       let iconName;
-      if (route.name === 'Calendar') {
+      if (route.name === 'Home') {
+        iconName = focused ? 'home' : 'home-outline';
+      } else if (route.name === 'Calendar') {
         iconName = focused ? 'calendar' : 'calendar-outline';
       } else if (route.name === 'Officers') {
         iconName = focused ? 'people' : 'people-outline';
       } else if (route.name === 'Create Event') {
         iconName = focused ? 'add-circle' : 'add-circle-outline';
-      } else if (route.name === 'Home') {
-        iconName = focused ? 'home' : 'home-outline';
       }
       return <Ionicons name={iconName} size={size} color={color} />;
     },

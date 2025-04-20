@@ -23,7 +23,7 @@ export default function StudentLoginScreen({ navigation }) {
     if (success) {
       navigation.reset({
         index: 0,
-        routes: [{ name: 'Main' }],
+        routes: [{ name: 'Main', params: { screen: 'Home' } }],
       });
     } else {
       Alert.alert('Login Failed', 'Invalid credentials');
