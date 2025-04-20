@@ -13,6 +13,7 @@ import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
 import OfficersScreen from '../screens/OfficersScreen';
+import HomeScreen from '../screens/HomeScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -55,79 +56,106 @@ function MainTabNavigator() {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Calendar') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
-          } else if (route.name === 'Officers') {
-            iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'Create Event') {
-            iconName = focused ? 'add-circle' : 'add-circle-outline';
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#ffca3b',
-        tabBarInactiveTintColor: 'gray',
+  screenOptions={({ route }) => ({
+    tabBarIcon: ({ focused, color, size }) => {
+      let iconName;
+      if (route.name === 'Calendar') {
+        iconName = focused ? 'calendar' : 'calendar-outline';
+      } else if (route.name === 'Officers') {
+        iconName = focused ? 'people' : 'people-outline';
+      } else if (route.name === 'Create Event') {
+        iconName = focused ? 'add-circle' : 'add-circle-outline';
+      } else if (route.name === 'Home') {
+        iconName = focused ? 'home' : 'home-outline';
+      }
+      return <Ionicons name={iconName} size={size} color={color} />;
+    },
+    tabBarActiveTintColor: '#ffca3b',
+    tabBarInactiveTintColor: 'gray',
+  })}
+>
+  {/* Left tab */}
+  <Tab.Screen
+    name="Calendar"
+    component={CalendarStack}
+    options={{ headerShown: false }}
+  />
+
+  {/* Middle tab */}
+  <Tab.Screen
+  name="Home"
+  component={HomeScreen}
+  options={({ navigation }) => ({
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={() => {
+          logout();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Landing' }],
+          });
+        }}
+        style={{ marginRight: 15 }}
+      >
+        <Ionicons name="log-out-outline" size={24} color="black" />
+      </TouchableOpacity>
+    ),
+  })}
+/>
+
+  {/* Right tab */}
+  <Tab.Screen
+    name="Officers"
+    component={OfficersScreen}
+    options={{
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => {
+            logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Landing' }],
+            });
+          }}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="log-out-outline" size={24} color="black" />
+        </TouchableOpacity>
+      ),
+    }}
+  />
+
+  {/* Only visible to admin */}
+  {isAdmin && (
+    <Tab.Screen
+      name="Create Event"
+      component={EventCreationScreen}
+      options={({ navigation }) => ({
+        tabBarIcon: ({ focused, size, color }) => (
+          <Ionicons
+            name={focused ? 'add-circle' : 'add-circle-outline'}
+            size={size}
+            color={color}
+          />
+        ),
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => {
+              logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Landing' }],
+              });
+            }}
+            style={{ marginRight: 15 }}
+          >
+            <Ionicons name="log-out-outline" size={24} color="black" />
+          </TouchableOpacity>
+        ),
       })}
-    >
-      <Tab.Screen 
-        name="Calendar" 
-        component={CalendarStack} 
-        options={{ headerShown: false }}
-      />
-      <Tab.Screen 
-        name="Officers" 
-        component={OfficersScreen}
-        options={({ navigation }) => ({
-          headerRight: () => (
-            <TouchableOpacity 
-              onPress={() => {
-                logout();
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Landing' }],
-                });
-              }} 
-              style={{ marginRight: 15 }}
-            >
-              <Ionicons name="log-out-outline" size={24} color="black" />
-            </TouchableOpacity>
-          ),
-        })}
-      />
-      
-      {/* Only show Create Event tab for admins */}
-      {isAdmin && (
-        <Tab.Screen 
-          name="Create Event" 
-          component={EventCreationScreen}
-          options={({ navigation }) => ({
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons 
-                name={focused ? "add-circle" : "add-circle-outline"} 
-                size={size} 
-                color={color} 
-              />
-            ),
-            headerRight: () => (
-              <TouchableOpacity 
-                onPress={() => {
-                  logout();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Landing' }],
-                  });
-                }} 
-                style={{ marginRight: 15 }}
-              >
-                <Ionicons name="log-out-outline" size={24} color="black" />
-              </TouchableOpacity>
-            ),
-          })}
-        />
-      )}
-    </Tab.Navigator>
+    />
+  )}
+  </Tab.Navigator>
   );
 }
 
