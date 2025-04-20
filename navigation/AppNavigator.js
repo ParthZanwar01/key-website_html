@@ -73,15 +73,8 @@ function MainTabNavigator() {
     tabBarActiveTintColor: '#ffca3b',
     tabBarInactiveTintColor: 'gray',
   })}
->
-  {/* Left tab */}
-  <Tab.Screen
-    name="Calendar"
-    component={CalendarStack}
-    options={{ headerShown: false }}
-  />
-
-  {/* Middle tab */}
+>  
+{/* Middle tab */}
   <Tab.Screen
   name="Home"
   component={HomeScreen}
@@ -102,6 +95,14 @@ function MainTabNavigator() {
     ),
   })}
 />
+
+  {/* Left tab */}
+  <Tab.Screen
+    name="Calendar"
+    component={CalendarStack}
+    options={{ headerShown: false }}
+  />
+
 
   {/* Right tab */}
   <Tab.Screen

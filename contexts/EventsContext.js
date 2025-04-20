@@ -49,7 +49,14 @@ export function EventsProvider({ children }) {
 
   // Add a new event
   function addEvent(newEvent) {
-    setEvents(prevEvents => [...prevEvents, newEvent]);
+    // Ensure default values for required fields
+    const eventWithDefaults = {
+      ...newEvent,
+      attendees: newEvent.attendees || [],
+      createdAt: newEvent.createdAt || new Date().toISOString()
+    };
+    
+    setEvents(prevEvents => [...prevEvents, eventWithDefaults]);
   }
 
   // Get event by ID
@@ -61,7 +68,16 @@ export function EventsProvider({ children }) {
   function updateEvent(updatedEvent) {
     setEvents(prevEvents =>
       prevEvents.map(event =>
-        event.id === updatedEvent.id ? updatedEvent : event
+        event.id === updatedEvent.id 
+          ? { 
+              ...updatedEvent,
+              // Preserve createdAt and createdBy if they exist
+              createdAt: event.createdAt || updatedEvent.createdAt || new Date().toISOString(),
+              createdBy: event.createdBy || updatedEvent.createdBy,
+              // Add lastUpdated timestamp
+              lastUpdated: new Date().toISOString()
+            } 
+          : event
       )
     );
   }
@@ -76,6 +92,15 @@ export function EventsProvider({ children }) {
     setEvents(prevEvents =>
       prevEvents.map(event => {
         if (event.id === eventId) {
+          // Check if attendee already exists
+          const alreadyRegistered = event.attendees.some(
+            existing => existing.email === attendee.email
+          );
+          
+          if (alreadyRegistered) {
+            return event; // Don't modify if already registered
+          }
+          
           return {
             ...event,
             attendees: [...event.attendees, attendee]
@@ -86,13 +111,43 @@ export function EventsProvider({ children }) {
     );
   }
 
+  // Get all upcoming events
+  function getUpcomingEvents() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+    
+    return events.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate >= today;
+    }).sort((a, b) => {
+      // Sort by date (ascending)
+      return new Date(a.date) - new Date(b.date);
+    });
+  }
+
+  // Get all past events
+  function getPastEvents() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+    
+    return events.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate < today;
+    }).sort((a, b) => {
+      // Sort by date (descending for past events)
+      return new Date(b.date) - new Date(a.date);
+    });
+  }
+
   const value = {
     events,
     addEvent,
     getEventById,
     updateEvent,
     deleteEvent,
-    signupForEvent
+    signupForEvent,
+    getUpcomingEvents,
+    getPastEvents
   };
 
   return (
