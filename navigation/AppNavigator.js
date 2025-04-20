@@ -14,6 +14,7 @@ import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
+import ContactScreen from '../screens/ContactScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -156,6 +157,37 @@ function MainTabNavigator() {
       })}
     />
   )}
+
+  {/* Only visible to student logins */}
+{!isAdmin && (
+  <Tab.Screen
+    name="Contact"
+    component={ContactScreen}
+    options={({ navigation }) => ({
+      tabBarIcon: ({ focused, color, size }) => (
+        <Ionicons
+          name={focused ? 'mail' : 'mail-outline'}
+          size={size}
+          color={color}
+        />
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => {
+            logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Landing' }],
+            });
+          }}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="log-out-outline" size={24} color="black" />
+        </TouchableOpacity>
+      ),
+    })}
+  />
+)}
   </Tab.Navigator>
   );
 }
