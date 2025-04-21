@@ -8,9 +8,9 @@ export default function ContactScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Need Help or Have Questions?</Text>
+      <Text style={styles.title}>🗒️ Have a question, suggestion, or issue? Fill out this contact form and an officer will get back to you soon!</Text>
       <TouchableOpacity onPress={handleContactPress} style={styles.button}>
-        <Text style={styles.buttonText}>Fill Out the Contact Form</Text>
+        <Text style={styles.buttonText}>Key Club Contact Form</Text>
       </TouchableOpacity>
     </View>
   );
