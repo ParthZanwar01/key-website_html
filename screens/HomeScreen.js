@@ -1,22 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Image source={require('../assets/images/keyclublogo.png')} style={styles.logo} />
-      <Text style={styles.title}>Welcome to Cypress Ranch Key Club</Text>
-      <Text style={styles.subtitle}>I pledge on my honor
-        To uphold the objects of Key Club
-        International;
-        To build my home, school and
-        community;
-        To serve my nation and God;
-        And combat all forces which tend to
-        undermine these instituions.
-      </Text>
-    </View>
-  );
+return (
+  <View style={styles.container}>
+  <Image source={require('../assets/images/keyclublogo.png')} style={styles.logo} />
+  <Text style={styles.title}>Welcome to Cypress Ranch Key Club</Text>
+  <Text style={styles.subtitle}>
+    I pledge on my honor{'\n'}
+    To uphold the objects of Key Club International;{'\n'}
+    To build my home, school and community;{'\n'}
+    To serve my nation and God;{'\n'}
+    And combat all forces which tend to undermine these institutions.
+  </Text>
+</View>
+);
 }
 
 const styles = StyleSheet.create({

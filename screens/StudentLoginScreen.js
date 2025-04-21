@@ -7,19 +7,19 @@ export default function StudentLoginScreen({ navigation }) {
   const [password, setPassword] = useState(''); // Added password field
   const [loading, setLoading] = useState(false);
   const { loginAsStudent } = useAuth();
+  const [fullName, setFullName] = useState('');
 
   const handleLogin = () => {
     setLoading(true);
-    
+
     if (!email.endsWith('@stu.cfisd.net')) {
       Alert.alert('Invalid Email', 'Please use a @stu.cfisd.net email to log in.');
       setLoading(false);
       return;
     }
-    
-    // Use the auth context for login
+
     const success = loginAsStudent(email, password);
-    
+
     if (success) {
       navigation.reset({
         index: 0,
@@ -28,7 +28,7 @@ export default function StudentLoginScreen({ navigation }) {
     } else {
       Alert.alert('Login Failed', 'Invalid credentials');
     }
-    
+
     setLoading(false);
   };
 
@@ -36,12 +36,12 @@ export default function StudentLoginScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.title}>Student Login</Text>
       <TextInput
-        placeholder="Your school email (@stu.cfisd.net)"
+        placeholder="Your school email address (@stu.cfisd.net)"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
-        autoCapitalize="none"
         keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TextInput
         placeholder="Password"
@@ -50,16 +50,9 @@ export default function StudentLoginScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.disabledButton]} 
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Log In'}
-        </Text>
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
-      <Text style={styles.hint}>Use your school email address to login</Text>
     </View>
   );
 }

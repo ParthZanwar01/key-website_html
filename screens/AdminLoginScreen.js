@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
+
 export default function AdminLoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,10 +11,9 @@ export default function AdminLoginScreen({ navigation }) {
 
   const handleAdminLogin = () => {
     setLoading(true);
-    
-    // Use the auth context for login
+
     const success = loginAsAdmin(email, password);
-    
+
     if (success) {
       navigation.reset({
         index: 0,
@@ -22,7 +22,7 @@ export default function AdminLoginScreen({ navigation }) {
     } else {
       Alert.alert('Login Failed', 'Invalid credentials');
     }
-    
+
     setLoading(false);
   };
 
@@ -44,16 +44,9 @@ export default function AdminLoginScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.disabledButton]} 
-        onPress={handleAdminLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Log In'}
-        </Text>
+      <TouchableOpacity style={styles.button} onPress={handleAdminLogin} disabled={loading}>
+        <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
-      <Text style={styles.hint}>Demo credentials: admin@example.com / password</Text>
     </View>
   );
 }
