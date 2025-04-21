@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Linking, TouchableOpacity } from 'react-native'
 
 export default function ContactScreen() {
   const handleContactPress = () => {
-    Linking.openURL('https://forms.gle/rN9F3tDwdALtjnU17'); // Replace this with your actual Google Form link
+    Linking.openURL('https://forms.gle/fvSSchptcLwB9uYy6'); // Replace this with your actual Google Form link
   };
 
   return (
