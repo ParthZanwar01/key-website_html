@@ -15,6 +15,9 @@ import EventCreationScreen from '../screens/EventCreationScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ContactScreen from '../screens/ContactScreen';
+import CheckInScreen from '../screens/CheckInScreen';
+
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -158,6 +161,7 @@ function MainTabNavigator() {
     />
   )}
 
+
   {/* Only visible to student logins */}
 {!isAdmin && (
   <Tab.Screen
@@ -170,6 +174,31 @@ function MainTabNavigator() {
           size={size}
           color={color}
         />
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => {
+            logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Landing' }],
+            });
+          }}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="log-out-outline" size={24} color="black" />
+        </TouchableOpacity>
+      ),
+    })}
+  />
+)}
+{!isAdmin && (
+  <Tab.Screen
+    name="CheckIn"
+    component={CheckInScreen}
+    options={({ navigation }) => ({
+      tabBarIcon: ({ focused, color, size }) => (
+        <Ionicons name={focused ? 'location' : 'location-outline'} size={size} color={color} />
       ),
       headerRight: () => (
         <TouchableOpacity
