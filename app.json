@@ -29,7 +29,8 @@
       "package": "com.anonymous.keyclubapp"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "serviceWorker": false
     }
   }
 }
