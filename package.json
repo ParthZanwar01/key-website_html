@@ -41,8 +41,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@expo/webpack-config": "^0.17.4",
-    "webpack": "^5.99.6",
+    "@expo/webpack-config": "^19.0.1",
+    "webpack": "5.68.0",
     "webpack-dev-server": "^4.15.2"
   },
   "private": true
