@@ -83,8 +83,33 @@ export function EventsProvider({ children }) {
   }
 
   // Delete an event
-  function deleteEvent(id) {
-    setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
+  async function deleteEvent(id) {
+    console.log('deleteEvent called with id:', id);
+    
+    // Make sure id is a string (converting if needed)
+    const eventId = String(id);
+    
+    try {
+      // Update state
+      setEvents(prevEvents => {
+        const newEvents = prevEvents.filter(event => String(event.id) !== eventId);
+        console.log('Events after deletion:', newEvents);
+        
+        // Update AsyncStorage
+        (async () => {
+          try {
+            await AsyncStorage.setItem('events', JSON.stringify(newEvents));
+            console.log('AsyncStorage updated after deletion');
+          } catch (error) {
+            console.error('Failed to update AsyncStorage after deletion:', error);
+          }
+        })();
+        
+        return newEvents;
+      });
+    } catch (error) {
+      console.error('Error in deleteEvent function:', error);
+    }
   }
 
   // Sign up for an event
@@ -104,6 +129,23 @@ export function EventsProvider({ children }) {
           return {
             ...event,
             attendees: [...event.attendees, attendee]
+          };
+        }
+        return event;
+      })
+    );
+  }
+
+  // Remove an attendee from an event
+  function removeAttendee(eventId, attendeeEmail) {
+    setEvents(prevEvents =>
+      prevEvents.map(event => {
+        if (event.id === eventId) {
+          return {
+            ...event,
+            attendees: event.attendees.filter(
+              attendee => attendee.email !== attendeeEmail
+            )
           };
         }
         return event;
@@ -139,6 +181,27 @@ export function EventsProvider({ children }) {
     });
   }
 
+  // Get event attendees
+  function getEventAttendees(eventId) {
+    const event = getEventById(eventId);
+    return event ? event.attendees : [];
+  }
+
+  // Force a refresh of events from storage
+  const refreshEvents = async () => {
+    try {
+      setLoading(true);
+      const storedEvents = await AsyncStorage.getItem('events');
+      if (storedEvents) {
+        setEvents(JSON.parse(storedEvents));
+      }
+    } catch (error) {
+      console.error('Failed to refresh events from storage', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     events,
     addEvent,
@@ -146,8 +209,11 @@ export function EventsProvider({ children }) {
     updateEvent,
     deleteEvent,
     signupForEvent,
+    removeAttendee,
     getUpcomingEvents,
-    getPastEvents
+    getPastEvents,
+    getEventAttendees,
+    refreshEvents
   };
 
   return (

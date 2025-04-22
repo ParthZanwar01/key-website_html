@@ -8,14 +8,20 @@ import {
   ScrollView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEvents } from '../contexts/EventsContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
-  const { getEventById, signupForEvent } = useEvents();
+  const { getEventById, signupForEvent, deleteEvent, refreshEvents } = useEvents();
+  const { isAdmin } = useAuth();
   const [event, setEvent] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -65,6 +71,51 @@ export default function EventScreen({ route, navigation }) {
     }
   };
 
+  const handleDeleteEvent = () => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this event? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            try {
+              setLoading(true);
+              
+              // Directly navigate back - we'll delete in the background
+              navigation.goBack();
+              
+              // Then delete the event
+              deleteEvent(eventId);
+              
+              // Show success toast or alert if desired
+              setTimeout(() => {
+                // This will show after navigation has happened
+                Alert.alert('Success', 'Event deleted successfully');
+              }, 500);
+            } catch (error) {
+              setLoading(false);
+              console.error('Error deleting event:', error);
+              Alert.alert('Error', 'Failed to delete event. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const renderAttendee = ({ item }) => (
+    <View style={styles.attendeeItem}>
+      <Text style={styles.attendeeName}>{item.name}</Text>
+      <Text style={styles.attendeeEmail}>{item.email}</Text>
+    </View>
+  );
+
   if (!event) {
     return (
       <View style={styles.loadingContainer}>
@@ -86,6 +137,29 @@ export default function EventScreen({ route, navigation }) {
       >
         <ScrollView>
           <View style={styles.eventDetails}>
+            {isAdmin && (
+              <View style={styles.adminControls}>
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => navigation.navigate('EventCreation', { 
+                    eventId: event.id, 
+                    isEditing: true 
+                  })}
+                >
+                  <Ionicons name="create-outline" size={22} color="white" />
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.deleteButton}
+                  onPress={handleDeleteEvent}
+                >
+                  <Ionicons name="trash-outline" size={22} color="white" />
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <Text style={styles.eventTitle}>{event.title}</Text>
             
             <View style={styles.metadataContainer}>
@@ -126,63 +200,102 @@ export default function EventScreen({ route, navigation }) {
               <Text style={styles.descriptionTitle}>Description</Text>
               <Text style={styles.descriptionText}>{event.description}</Text>
             </View>
+
+            {/* Attendees section for admins */}
+            {isAdmin && (
+              <View style={styles.attendeesContainer}>
+                <View style={styles.attendeesHeaderRow}>
+                  <Text style={styles.attendeesTitle}>Attendees ({event.attendees.length})</Text>
+                  <TouchableOpacity 
+                    style={styles.viewAllButton}
+                    onPress={() => navigation.navigate('AttendeeList', { eventId: event.id })}
+                  >
+                    <Text style={styles.viewAllButtonText}>View All</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#59a2f0" />
+                  </TouchableOpacity>
+                </View>
+                
+                {event.attendees.length > 0 ? (
+                  <>
+                    {/* Show max 3 attendees in this screen */}
+                    <FlatList
+                      data={event.attendees.slice(0, 3)}
+                      renderItem={renderAttendee}
+                      keyExtractor={(item, index) => index.toString()}
+                      scrollEnabled={false}
+                      ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    />
+                    
+                    {event.attendees.length > 3 && (
+                      <Text style={styles.moreAttendeesText}>
+                        +{event.attendees.length - 3} more attendees
+                      </Text>
+                    )}
+                  </>
+                ) : (
+                  <Text style={styles.noAttendeesText}>No one has signed up yet</Text>
+                )}
+              </View>
+            )}
           </View>
 
-          {isFullyBooked ? (
-            <View style={styles.fullyBookedContainer}>
-              <Text style={styles.fullyBookedText}>This event is fully booked</Text>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Text style={styles.buttonText}>Back to Calendar</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.signupContainer}>
-              <Text style={styles.signupTitle}>Sign Up for This Event</Text>
-              
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Enter your name"
-                />
-              </View>
-              
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Enter your email"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-              
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.signupButton, loading && styles.disabledButton]}
-                  onPress={handleSignup}
-                  disabled={loading}
-                >
-                  <Text style={styles.buttonText}>
-                    {loading ? 'Signing up...' : 'Sign Up'}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.cancelButton}
+          {!isAdmin && (
+            isFullyBooked ? (
+              <View style={styles.fullyBookedContainer}>
+                <Text style={styles.fullyBookedText}>This event is fully booked</Text>
+                <TouchableOpacity 
+                  style={styles.backButton}
                   onPress={() => navigation.goBack()}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.buttonText}>Back to Calendar</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            ) : (
+              <View style={styles.signupContainer}>
+                <Text style={styles.signupTitle}>Sign Up for This Event</Text>
+                
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Enter your name"
+                  />
+                </View>
+                
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+                
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={[styles.signupButton, loading && styles.disabledButton]}
+                    onPress={handleSignup}
+                    disabled={loading}
+                  >
+                    <Text style={styles.buttonText}>
+                      {loading ? 'Signing up...' : 'Sign Up'}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => navigation.goBack()}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -213,6 +326,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+  },
+  adminControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+  },
+  editButton: {
+    backgroundColor: '#59a2f0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  editButtonText: {
+    color: 'white',
+    marginLeft: 5,
+  },
+  deleteButton: {
+    backgroundColor: '#ff6b6b',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+  },
+  deleteButtonText: {
+    color: 'white',
+    marginLeft: 5,
   },
   eventTitle: {
     fontSize: 22,
@@ -250,6 +393,59 @@ const styles = StyleSheet.create({
   descriptionText: {
     color: '#333',
     lineHeight: 20,
+  },
+  attendeesContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingTop: 15,
+    marginTop: 15,
+  },
+  attendeesHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  attendeesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewAllButtonText: {
+    color: '#59a2f0',
+    fontWeight: 'bold',
+    marginRight: 3,
+  },
+  attendeeItem: {
+    paddingVertical: 8,
+  },
+  attendeeName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  attendeeEmail: {
+    fontSize: 14,
+    color: '#666',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+  },
+  moreAttendeesText: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 10,
+    fontStyle: 'italic',
+  },
+  noAttendeesText: {
+    color: '#666',
+    fontStyle: 'italic',
+    marginVertical: 10,
   },
   fullyBookedContainer: {
     backgroundColor: 'white',

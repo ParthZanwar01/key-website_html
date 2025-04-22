@@ -1,21 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  FlatList 
+  FlatList,
+  Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function CalendarScreen({ navigation }) {
-  const { events } = useEvents();
+export default function CalendarScreen({ navigation, route }) {
+  const { events, deleteEvent } = useEvents();
   const { isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0); // Used to force re-render
+  
+  // State for context menu
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    eventId: null
+  });
+  
+  // Listen for focus events to refresh the calendar when navigating back
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Force refresh of the calendar when screen comes into focus
+      setRefreshKey(prevKey => prevKey + 1);
+    });
+    
+    return unsubscribe;
+  }, [navigation]);
 
   // Generate calendar days for the current month
   useEffect(() => {
@@ -41,7 +62,7 @@ export default function CalendarScreen({ navigation }) {
     }
 
     setCalendarDays(calendarArr);
-  }, [currentDate]);
+  }, [currentDate, refreshKey, events]); // Add refreshKey and events as dependencies
 
   // Navigate to previous month
   const prevMonth = () => {
@@ -65,6 +86,73 @@ export default function CalendarScreen({ navigation }) {
     });
   };
 
+  // Handle event press
+  const handleEventPress = (eventId) => {
+    navigation.navigate('Event', { eventId });
+  };
+
+  // Handle event long press (for admin context menu)
+  const handleEventLongPress = (eventId, event) => {
+    if (isAdmin) {
+      // Prevent opening context menu if not an admin
+      setContextMenu({
+        visible: true,
+        eventId
+      });
+    }
+  };
+
+  // Handle context menu options
+  const handleMenuOption = (option) => {
+    const eventId = contextMenu.eventId;
+    
+    // Close the menu first
+    setContextMenu({ visible: false, eventId: null });
+    
+    switch (option) {
+      case 'view':
+        navigation.navigate('Event', { eventId });
+        break;
+      case 'edit':
+        navigation.navigate('EventCreation', { eventId, isEditing: true });
+        break;
+      case 'attendees':
+        navigation.navigate('AttendeeList', { eventId });
+        break;
+      case 'delete':
+        Alert.alert(
+          'Confirm Delete',
+          'Are you sure you want to delete this event? This action cannot be undone.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => {
+                try {
+                  // Delete the event
+                  deleteEvent(eventId);
+                  
+                  // Force refresh the calendar by updating the refresh key
+                  setRefreshKey(prev => prev + 1);
+                  
+                  // Show success message
+                  Alert.alert('Success', 'Event deleted successfully');
+                } catch (error) {
+                  console.error('Error deleting event:', error);
+                  Alert.alert('Error', 'Failed to delete event. Please try again.');
+                }
+              }
+            }
+          ]
+        );
+        break;
+    }
+  };
+
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
 
@@ -85,7 +173,9 @@ export default function CalendarScreen({ navigation }) {
               <TouchableOpacity
                 key={event.id}
                 style={[styles.eventItem, { backgroundColor: event.color || '#4287f5' }]}
-                onPress={() => navigation.navigate('Event', { eventId: event.id })}
+                onPress={() => handleEventPress(event.id)}
+                onLongPress={() => handleEventLongPress(event.id, event)}
+                delayLongPress={500}
               >
                 <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
                 <Text style={styles.eventTime}>
@@ -125,11 +215,13 @@ export default function CalendarScreen({ navigation }) {
         </View>
 
         <FlatList
+          key={`calendar-${refreshKey}`}
           data={calendarDays}
           renderItem={renderDay}
           keyExtractor={(_, index) => index.toString()}
           numColumns={7}
           scrollEnabled={false}
+          extraData={events} // Add this to make sure it updates when events change
         />
         
         {/* Floating Action Button for admins to create events */}
@@ -141,6 +233,54 @@ export default function CalendarScreen({ navigation }) {
             <Ionicons name="add" size={24} color="white" />
           </TouchableOpacity>
         )}
+        
+        {/* Context Menu Modal */}
+        <Modal
+          transparent={true}
+          visible={contextMenu.visible}
+          animationType="fade"
+          onRequestClose={() => setContextMenu({ visible: false, eventId: null })}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setContextMenu({ visible: false, eventId: null })}
+          >
+            <View style={styles.contextMenuContainer}>
+              <TouchableOpacity 
+                style={styles.contextMenuItem}
+                onPress={() => handleMenuOption('view')}
+              >
+                <Ionicons name="eye-outline" size={20} color="#333" />
+                <Text style={styles.contextMenuText}>View Event</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.contextMenuItem}
+                onPress={() => handleMenuOption('edit')}
+              >
+                <Ionicons name="create-outline" size={20} color="#333" />
+                <Text style={styles.contextMenuText}>Edit Event</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.contextMenuItem}
+                onPress={() => handleMenuOption('attendees')}
+              >
+                <Ionicons name="people-outline" size={20} color="#333" />
+                <Text style={styles.contextMenuText}>View Attendees</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.contextMenuItem, styles.deleteMenuItem]}
+                onPress={() => handleMenuOption('delete')}
+              >
+                <Ionicons name="trash-outline" size={20} color="#ff4d4d" />
+                <Text style={[styles.contextMenuText, styles.deleteMenuText]}>Delete Event</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -245,5 +385,41 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contextMenuContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    width: '80%',
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  contextMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  deleteMenuItem: {
+    borderBottomWidth: 0,
+  },
+  contextMenuText: {
+    fontSize: 16,
+    marginLeft: 10,
+    color: '#333',
+  },
+  deleteMenuText: {
+    color: '#ff4d4d',
   },
 });

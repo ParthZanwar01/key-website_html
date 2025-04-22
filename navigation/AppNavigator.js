@@ -12,12 +12,11 @@ import StudentLoginScreen from '../screens/StudentLoginScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
+import AttendeeListScreen from '../screens/AttendeeListScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ContactScreen from '../screens/ContactScreen';
 import CheckInScreen from '../screens/CheckInScreen';
-
-
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -51,6 +50,7 @@ function CalendarStack({ navigation }) {
       />
       <Stack.Screen name="Event" component={EventScreen} options={{ title: "Event Details" }} />
       <Stack.Screen name="EventCreation" component={EventCreationScreen} options={{ title: "Create Event" }} />
+      <Stack.Screen name="AttendeeList" component={AttendeeListScreen} options={{ title: "Attendees" }} />
     </Stack.Navigator>
   );
 }
