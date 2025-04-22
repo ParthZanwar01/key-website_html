@@ -38,10 +38,10 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@expo/webpack-config": "^19.0.1",
-    "webpack": "^5.88.0",
-    "webpack-dev-server": "^4.15.1"
+    "@babel/core": "^7.25.2",
+    "@expo/webpack-config": "^0.12.52",
+    "webpack": "^5.99.6",
+    "webpack-dev-server": "^4.0.0"
   },
   "private": true
 }
