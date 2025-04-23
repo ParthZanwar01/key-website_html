@@ -19,11 +19,12 @@ module.exports = async function (env, argv) {
     '@': path.resolve(__dirname),
     // Add aliases for React Native components on web
     'react-native$': 'react-native-web',
-    '@react-native-async-storage/async-storage': 'react-native-web/dist/exports/AsyncStorage',
-    'react-native-safe-area-context': 'react-native-web/dist/exports/SafeAreaContext',
+    // Use the correct paths for these packages
+    '@react-native-async-storage/async-storage': require.resolve('@react-native-async-storage/async-storage/lib/module/index.js'),
+    'react-native-safe-area-context': require.resolve('react-native-safe-area-context/lib/module/index.js'),
   };
 
-  // Add support for path aliases in tsconfig.json
+  // Make sure the proper extensions are resolved
   config.resolve.extensions = [
     '.web.js',
     '.web.jsx',
