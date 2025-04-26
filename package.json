@@ -46,6 +46,7 @@
     "@babel/preset-react": "^7.26.3",
     "@expo/webpack-config": "^19.0.1",
     "@react-native-community/cli": "latest",
+    "@react-native-community/cli-platform-ios": "^18.0.0",
     "@svgr/webpack": "^8.1.0",
     "babel-loader": "^10.0.0",
     "file-loader": "^6.2.0",

@@ -1,4 +1,4 @@
-package com.keyclubapp;
+package com.anonymous.keyclubapp;
 
 import android.app.Application;
 import android.content.res.Configuration;
