@@ -9,12 +9,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Switch
+  Switch,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EventCreationScreen({ route, navigation }) {
@@ -56,15 +57,19 @@ export default function EventCreationScreen({ route, navigation }) {
         setDate(eventDate);
         
         // Parse time strings
-        const startTimeArr = existingEvent.startTime.split(':');
-        const startDateTime = new Date();
-        startDateTime.setHours(parseInt(startTimeArr[0]), parseInt(startTimeArr[1]));
-        setStartTime(startDateTime);
+        if (existingEvent.startTime) {
+          const startTimeArr = existingEvent.startTime.split(':');
+          const startDateTime = new Date();
+          startDateTime.setHours(parseInt(startTimeArr[0]), parseInt(startTimeArr[1]));
+          setStartTime(startDateTime);
+        }
         
-        const endTimeArr = existingEvent.endTime.split(':');
-        const endDateTime = new Date();
-        endDateTime.setHours(parseInt(endTimeArr[0]), parseInt(endTimeArr[1]));
-        setEndTime(endDateTime);
+        if (existingEvent.endTime) {
+          const endTimeArr = existingEvent.endTime.split(':');
+          const endDateTime = new Date();
+          endDateTime.setHours(parseInt(endTimeArr[0]), parseInt(endTimeArr[1]));
+          setEndTime(endDateTime);
+        }
         
         setColor(existingEvent.color || '#4287f5');
         setAttendees(existingEvent.attendees || []);
@@ -83,27 +88,6 @@ export default function EventCreationScreen({ route, navigation }) {
 
   const formatTime = (time) => {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
-  };
-
-  const onStartTimeChange = (event, selectedTime) => {
-    setShowStartTimePicker(false);
-    if (selectedTime) {
-      setStartTime(selectedTime);
-    }
-  };
-
-  const onEndTimeChange = (event, selectedTime) => {
-    setShowEndTimePicker(false);
-    if (selectedTime) {
-      setEndTime(selectedTime);
-    }
   };
 
   const handleCreateEvent = () => {
@@ -125,8 +109,8 @@ export default function EventCreationScreen({ route, navigation }) {
           location,
           capacity: parseInt(capacity) || 20,
           date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-          startTime: startTime.toTimeString().split(' ')[0], // Format as HH:MM:SS
-          endTime: endTime.toTimeString().split(' ')[0], // Format as HH:MM:SS
+          startTime: `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}:00`,
+          endTime: `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}:00`,
           color,
           attendees: attendees, // Maintain existing attendees
           lastUpdated: new Date().toISOString()
@@ -147,8 +131,8 @@ export default function EventCreationScreen({ route, navigation }) {
           location,
           capacity: parseInt(capacity) || 20,
           date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-          startTime: startTime.toTimeString().split(' ')[0], // Format as HH:MM:SS
-          endTime: endTime.toTimeString().split(' ')[0], // Format as HH:MM:SS
+          startTime: `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}:00`,
+          endTime: `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}:00`,
           color,
           attendees: [], // Start with empty attendees
           createdBy: 'Admin', // Mark that an admin created this
@@ -165,6 +149,7 @@ export default function EventCreationScreen({ route, navigation }) {
       }
     } catch (err) {
       Alert.alert('Error', isEditing ? 'Failed to update event' : 'Failed to create event');
+      console.error('Event creation error:', err);
     } finally {
       setLoading(false);
     }
@@ -178,6 +163,234 @@ export default function EventCreationScreen({ route, navigation }) {
     '#f5a742', // Orange
     '#a442f5'  // Purple
   ];
+  
+  // Date picker component
+  const renderDatePicker = () => {
+    if (!showDatePicker) return null;
+    
+    // Generate arrays for day, month, year options
+    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i);
+    
+    return (
+      <Modal
+        transparent={true}
+        visible={showDatePicker}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.pickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.pickerTitle}>Select Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.pickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.pickerRow}>
+              {/* Month picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={date.getMonth()}
+                onValueChange={(itemValue) => {
+                  const newDate = new Date(date);
+                  newDate.setMonth(itemValue);
+                  setDate(newDate);
+                }}
+              >
+                {months.map((month, index) => (
+                  <Picker.Item key={month} label={month} value={index} />
+                ))}
+              </Picker>
+              
+              {/* Day picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={date.getDate()}
+                onValueChange={(itemValue) => {
+                  const newDate = new Date(date);
+                  newDate.setDate(itemValue);
+                  setDate(newDate);
+                }}
+              >
+                {days.map(day => (
+                  <Picker.Item key={day} label={day.toString()} value={day} />
+                ))}
+              </Picker>
+              
+              {/* Year picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={date.getFullYear()}
+                onValueChange={(itemValue) => {
+                  const newDate = new Date(date);
+                  newDate.setFullYear(itemValue);
+                  setDate(newDate);
+                }}
+              >
+                {years.map(year => (
+                  <Picker.Item key={year} label={year.toString()} value={year} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+  
+  // Time picker component for start time
+  const renderStartTimePicker = () => {
+    if (!showStartTimePicker) return null;
+    
+    // Generate arrays for hour and minute options
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+    
+    return (
+      <Modal
+        transparent={true}
+        visible={showStartTimePicker}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
+                <Text style={styles.pickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.pickerTitle}>Start Time</Text>
+              <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
+                <Text style={styles.pickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.pickerRow}>
+              {/* Hour picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={startTime.getHours()}
+                onValueChange={(itemValue) => {
+                  const newTime = new Date(startTime);
+                  newTime.setHours(itemValue);
+                  setStartTime(newTime);
+                }}
+              >
+                {hours.map(hour => (
+                  <Picker.Item 
+                    key={hour} 
+                    label={hour < 10 ? `0${hour}` : `${hour}`}
+                    value={hour} 
+                  />
+                ))}
+              </Picker>
+              
+              <Text style={styles.pickerSeparator}>:</Text>
+              
+              {/* Minute picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={startTime.getMinutes()}
+                onValueChange={(itemValue) => {
+                  const newTime = new Date(startTime);
+                  newTime.setMinutes(itemValue);
+                  setStartTime(newTime);
+                }}
+              >
+                {minutes.map(minute => (
+                  <Picker.Item 
+                    key={minute} 
+                    label={minute < 10 ? `0${minute}` : `${minute}`}
+                    value={minute} 
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+  
+  // Time picker component for end time
+  const renderEndTimePicker = () => {
+    if (!showEndTimePicker) return null;
+    
+    // Generate arrays for hour and minute options
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+    
+    return (
+      <Modal
+        transparent={true}
+        visible={showEndTimePicker}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <TouchableOpacity onPress={() => setShowEndTimePicker(false)}>
+                <Text style={styles.pickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.pickerTitle}>End Time</Text>
+              <TouchableOpacity onPress={() => setShowEndTimePicker(false)}>
+                <Text style={styles.pickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.pickerRow}>
+              {/* Hour picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={endTime.getHours()}
+                onValueChange={(itemValue) => {
+                  const newTime = new Date(endTime);
+                  newTime.setHours(itemValue);
+                  setEndTime(newTime);
+                }}
+              >
+                {hours.map(hour => (
+                  <Picker.Item 
+                    key={hour} 
+                    label={hour < 10 ? `0${hour}` : `${hour}`}
+                    value={hour} 
+                  />
+                ))}
+              </Picker>
+              
+              <Text style={styles.pickerSeparator}>:</Text>
+              
+              {/* Minute picker */}
+              <Picker
+                style={styles.picker}
+                selectedValue={endTime.getMinutes()}
+                onValueChange={(itemValue) => {
+                  const newTime = new Date(endTime);
+                  newTime.setMinutes(itemValue);
+                  setEndTime(newTime);
+                }}
+              >
+                {minutes.map(minute => (
+                  <Picker.Item 
+                    key={minute} 
+                    label={minute < 10 ? `0${minute}` : `${minute}`}
+                    value={minute} 
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -251,14 +464,7 @@ export default function EventCreationScreen({ route, navigation }) {
                 <Text>{formatDate(date)}</Text>
                 <Ionicons name="calendar" size={20} color="#666" />
               </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={date}
-                  mode="date"
-                  display="default"
-                  onChange={onDateChange}
-                />
-              )}
+              {renderDatePicker()}
             </View>
             
             <View style={styles.timeContainer}>
@@ -271,14 +477,7 @@ export default function EventCreationScreen({ route, navigation }) {
                   <Text>{formatTime(startTime)}</Text>
                   <Ionicons name="time" size={20} color="#666" />
                 </TouchableOpacity>
-                {showStartTimePicker && (
-                  <DateTimePicker
-                    value={startTime}
-                    mode="time"
-                    display="default"
-                    onChange={onStartTimeChange}
-                  />
-                )}
+                {renderStartTimePicker()}
               </View>
               
               <View style={styles.timeInputGroup}>
@@ -290,14 +489,7 @@ export default function EventCreationScreen({ route, navigation }) {
                   <Text>{formatTime(endTime)}</Text>
                   <Ionicons name="time" size={20} color="#666" />
                 </TouchableOpacity>
-                {showEndTimePicker && (
-                  <DateTimePicker
-                    value={endTime}
-                    mode="time"
-                    display="default"
-                    onChange={onEndTimeChange}
-                  />
-                )}
+                {renderEndTimePicker()}
               </View>
             </View>
             
@@ -434,4 +626,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  // Modal Picker Styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    paddingBottom: 20,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  pickerCancel: {
+    color: '#f54242',
+    fontSize: 16,
+  },
+  pickerDone: {
+    color: '#4287f5',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  picker: {
+    flex: 1,
+    height: 200,
+  },
+  pickerSeparator: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginHorizontal: 5,
+  }
 });
