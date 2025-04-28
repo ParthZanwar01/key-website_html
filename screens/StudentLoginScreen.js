@@ -4,37 +4,48 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentLoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(''); // Added password field
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { loginAsStudent } = useAuth();
-  const [fullName, setFullName] = useState('');
+  const { loginAsStudent, signInWithGoogle } = useAuth();
 
-  const handleLogin = () => {
-    setLoading(true);
-
+  const handleLogin = async () => {
     if (!email.endsWith('@stu.cfisd.net')) {
       Alert.alert('Invalid Email', 'Please use a @stu.cfisd.net email to log in.');
-      setLoading(false);
       return;
     }
 
-    const success = loginAsStudent(email, password);
-
-    if (success) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main', params: { screen: 'Home' } }],
-      });
-    } else {
+    setLoading(true);
+    const success = await loginAsStudent(email, password);
+    setLoading(false);
+    
+    if (!success) {
       Alert.alert('Login Failed', 'Invalid credentials');
     }
+    // Navigation will be handled by the AuthProvider's onAuthStateChanged listener
+  };
 
-    setLoading(false);
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      const result = await signInWithGoogle();
+      
+      if (!result.success) {
+        Alert.alert('Sign In Failed', result.error || 'Could not sign in with Google');
+      }
+      // Navigation will be handled by the AuthProvider's onAuthStateChanged listener
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Student Login</Text>
+      
+      {/* Email/Password Login */}
       <TextInput
         placeholder="Your school email address (@stu.cfisd.net)"
         value={email}
@@ -50,9 +61,33 @@ export default function StudentLoginScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.disabledButton]} 
+        onPress={handleLogin} 
+        disabled={loading}
+      >
         <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
+      
+      {/* Divider */}
+      <View style={styles.divider}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.dividerLine} />
+      </View>
+      
+      {/* Google Sign-In Button */}
+      <TouchableOpacity 
+        style={styles.googleButton} 
+        onPress={handleGoogleSignIn}
+        disabled={loading}
+      >
+        <Text style={styles.googleButtonText}>Sign in with Google</Text>
+      </TouchableOpacity>
+      
+      <Text style={styles.hint}>
+        Use your @stu.cfisd.net school account
+      </Text>
     </View>
   );
 }
@@ -87,6 +122,38 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#666',
+  },
+  googleButton: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginBottom: 10,
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  googleButtonText: {
+    fontWeight: 'bold',
+    color: '#757575',
+    marginLeft: 10,
+  },
   disabledButton: {
     backgroundColor: '#cccccc',
   },
@@ -97,4 +164,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 10,
   },
-});
+ });
+ 
+ 
