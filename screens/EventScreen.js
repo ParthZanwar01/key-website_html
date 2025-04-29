@@ -18,9 +18,10 @@ import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
+// This is the simplified solution focused on the web version
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
-  const { getEventById, signupForEvent, deleteEvent, refreshEvents } = useEvents();
+  const { getEventById, signupForEvent, deleteEvent } = useEvents();
   const { isAdmin } = useAuth();
   const [event, setEvent] = useState(null);
   const [name, setName] = useState('');
@@ -71,6 +72,7 @@ export default function EventScreen({ route, navigation }) {
     }
   };
 
+  // Simplified delete function specifically for web
   const handleDeleteEvent = () => {
     Alert.alert(
       'Confirm Delete',
@@ -84,38 +86,54 @@ export default function EventScreen({ route, navigation }) {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            try {
-              setLoading(true);
-              
-              // Directly navigate back - we'll delete in the background
-              navigation.goBack();
-              
-              // Then delete the event
-              deleteEvent(eventId);
-              
-              // Show success toast or alert if desired
-              setTimeout(() => {
-                // This will show after navigation has happened
-                Alert.alert('Success', 'Event deleted successfully');
-              }, 500);
-            } catch (error) {
-              setLoading(false);
-              console.error('Error deleting event:', error);
-              Alert.alert('Error', 'Failed to delete event. Please try again.');
-            }
+            // Web-specific direct delete approach
+            setLoading(true);
+            
+            // Get current events from storage first
+            AsyncStorage.getItem('events')
+              .then(storedEvents => {
+                if (storedEvents) {
+                  // Parse the events
+                  const allEvents = JSON.parse(storedEvents);
+                  
+                  // Filter out the event to delete
+                  const updatedEvents = allEvents.filter(event => 
+                    String(event.id) !== String(eventId)
+                  );
+                  
+                  // Save back to storage
+                  return AsyncStorage.setItem('events', JSON.stringify(updatedEvents))
+                    .then(() => {
+                      console.log('Event deleted from storage directly');
+                      
+                      // Navigate back immediately on web platform
+                      if (Platform.OS === 'web') {
+                        navigation.navigate('Calendar');
+                      } else {
+                        navigation.goBack();
+                      }
+                      
+                      // Show success message
+                      setTimeout(() => {
+                        Alert.alert('Success', 'Event deleted successfully');
+                      }, 500);
+                    });
+                }
+              })
+              .catch(error => {
+                console.error('Error during delete:', error);
+                Alert.alert('Error', 'Failed to delete event. Please try again.');
+              })
+              .finally(() => {
+                setLoading(false);
+              });
           }
         }
       ]
     );
   };
 
-  const renderAttendee = ({ item }) => (
-    <View style={styles.attendeeItem}>
-      <Text style={styles.attendeeName}>{item.name}</Text>
-      <Text style={styles.attendeeEmail}>{item.email}</Text>
-    </View>
-  );
-
+  // The rest of your render code remains the same
   if (!event) {
     return (
       <View style={styles.loadingContainer}>
@@ -220,7 +238,12 @@ export default function EventScreen({ route, navigation }) {
                     {/* Show max 3 attendees in this screen */}
                     <FlatList
                       data={event.attendees.slice(0, 3)}
-                      renderItem={renderAttendee}
+                      renderItem={({ item }) => (
+                        <View style={styles.attendeeItem}>
+                          <Text style={styles.attendeeName}>{item.name}</Text>
+                          <Text style={styles.attendeeEmail}>{item.email}</Text>
+                        </View>
+                      )}
                       keyExtractor={(item, index) => index.toString()}
                       scrollEnabled={false}
                       ItemSeparatorComponent={() => <View style={styles.separator} />}

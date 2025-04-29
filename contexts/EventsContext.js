@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, createContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Create the Events Context
 const EventsContext = createContext();
@@ -7,6 +8,30 @@ const EventsContext = createContext();
 // Custom hook to use the Events Context
 export function useEvents() {
   return useContext(EventsContext);
+}
+
+// Add this function to directly manipulate events storage - useful for web
+export async function deleteEventDirectly(eventId) {
+  try {
+    // Get the current events
+    const storedEvents = await AsyncStorage.getItem('events');
+    if (storedEvents) {
+      // Parse the events
+      const events = JSON.parse(storedEvents);
+      
+      // Filter out the event to delete
+      const updatedEvents = events.filter(event => String(event.id) !== String(eventId));
+      
+      // Save back to storage
+      await AsyncStorage.setItem('events', JSON.stringify(updatedEvents));
+      
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error in direct event deletion:', error);
+    return false;
+  }
 }
 
 // Events Provider Component
@@ -37,6 +62,7 @@ export function EventsProvider({ children }) {
     const saveEvents = async () => {
       try {
         await AsyncStorage.setItem('events', JSON.stringify(events));
+        console.log('Events saved to AsyncStorage:', events.length);
       } catch (error) {
         console.error('Failed to save events to storage', error);
       }
@@ -82,33 +108,44 @@ export function EventsProvider({ children }) {
     );
   }
 
-  // Delete an event
+  // Web-specific DELETE function that operates on storage directly
   async function deleteEvent(id) {
     console.log('deleteEvent called with id:', id);
     
-    // Make sure id is a string (converting if needed)
-    const eventId = String(id);
-    
-    try {
-      // Update state
-      setEvents(prevEvents => {
-        const newEvents = prevEvents.filter(event => String(event.id) !== eventId);
-        console.log('Events after deletion:', newEvents);
+    if (Platform.OS === 'web') {
+      console.log('Using web-specific delete implementation');
+      
+      // On web, directly manipulate the storage
+      const success = await deleteEventDirectly(id);
+      
+      if (success) {
+        // Update the state to reflect the change
+        setEvents(prevEvents => 
+          prevEvents.filter(event => String(event.id) !== String(id))
+        );
+      }
+      
+      return success;
+    } else {
+      // Mobile implementation
+      try {
+        // Update state
+        setEvents(prevEvents => {
+          const newEvents = prevEvents.filter(event => String(event.id) !== String(id));
+          
+          // Update AsyncStorage (fire and forget)
+          AsyncStorage.setItem('events', JSON.stringify(newEvents))
+            .then(() => console.log('AsyncStorage updated after deletion'))
+            .catch(err => console.error('Failed to update AsyncStorage:', err));
+          
+          return newEvents;
+        });
         
-        // Update AsyncStorage
-        (async () => {
-          try {
-            await AsyncStorage.setItem('events', JSON.stringify(newEvents));
-            console.log('AsyncStorage updated after deletion');
-          } catch (error) {
-            console.error('Failed to update AsyncStorage after deletion:', error);
-          }
-        })();
-        
-        return newEvents;
-      });
-    } catch (error) {
-      console.error('Error in deleteEvent function:', error);
+        return true;
+      } catch (error) {
+        console.error('Error in deleteEvent function:', error);
+        return false;
+      }
     }
   }
 
@@ -187,7 +224,7 @@ export function EventsProvider({ children }) {
     return event ? event.attendees : [];
   }
 
-  // Force a refresh of events from storage
+  // Force a refresh of events from storage - enhanced for web
   const refreshEvents = async () => {
     try {
       setLoading(true);
@@ -195,8 +232,10 @@ export function EventsProvider({ children }) {
       if (storedEvents) {
         setEvents(JSON.parse(storedEvents));
       }
+      return true;
     } catch (error) {
       console.error('Failed to refresh events from storage', error);
+      return false;
     } finally {
       setLoading(false);
     }
