@@ -2,28 +2,40 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
-
 export default function AdminLoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@example.com'); // Pre-fill for testing
+  const [password, setPassword] = useState('password'); // Pre-fill for testing
   const [loading, setLoading] = useState(false);
   const { loginAsAdmin } = useAuth();
 
-  const handleAdminLogin = () => {
-    setLoading(true);
-
-    const success = loginAsAdmin(email, password);
-
-    if (success) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main', params: { screen: 'Home' } }],
-      });
-    } else {
-      Alert.alert('Login Failed', 'Invalid credentials');
+  const handleAdminLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
     }
 
-    setLoading(false);
+    setLoading(true);
+    try {
+      console.log("Calling loginAsAdmin");
+      const success = await loginAsAdmin(email, password);
+      console.log("LoginAsAdmin result:", success);
+      
+      if (success) {
+        // Explicitly navigate to Main screen on success
+        console.log("Navigating to Main screen");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main', params: { screen: 'Home' } }],
+        });
+      } else {
+        Alert.alert('Login Failed', 'Invalid credentials or account creation failed');
+      }
+    } catch (error) {
+      console.error("Admin login error:", error);
+      Alert.alert('Login Error', 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,9 +56,18 @@ export default function AdminLoginScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleAdminLogin} disabled={loading}>
-        <Text style={styles.buttonText}>Log In</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.disabledButton]} 
+        onPress={handleAdminLogin} 
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Logging in...' : 'Log In'}
+        </Text>
       </TouchableOpacity>
+      <Text style={styles.hint}>
+        Use admin@example.com / password
+      </Text>
     </View>
   );
 }

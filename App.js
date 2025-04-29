@@ -1,17 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import AppNavigator from './navigation/AppNavigator';
+
+function AuthenticatedApp() {
+  const { isAuthenticated, isAdmin } = useAuth();
+  
+  useEffect(() => {
+    console.log("Auth state in App:", { isAuthenticated, isAdmin });
+  }, [isAuthenticated, isAdmin]);
+
+  return (
+    <>
+      <StatusBar style="auto" />
+      <AppNavigator />
+    </>
+  );
+}
 
 export default function App() {
   return (
     <NavigationContainer>
       <AuthProvider>
         <EventsProvider>
-          <StatusBar style="auto" />
-          <AppNavigator />
+          <AuthenticatedApp />
         </EventsProvider>
       </AuthProvider>
     </NavigationContainer>

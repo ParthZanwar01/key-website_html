@@ -3,14 +3,14 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInWithEmailAndPassword,
-  signInWithPopup, 
+  createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  signInWithPopup,
   signOut
 } from 'firebase/auth';
 import { Platform } from 'react-native';
 
 // Initialize Firebase
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyA21pcqwgrlVArLcYOO79u7lnsWN_Hxybw",
   authDomain: "keyapp-9bf11.firebaseapp.com",
@@ -41,25 +41,30 @@ export function AuthProvider({ children }) {
       if (currentUser) {
         // User is signed in
         setUser(currentUser);
+        console.log("Auth state changed - user:", currentUser.email);
         
-        // Check if the user is a student (by email domain)
-        if (currentUser.email && currentUser.email.endsWith('@stu.cfisd.net')) {
-          setIsAuthenticated(true);
-          setIsAdmin(false);
-        }
-        // Check if the user is an admin
-        else if (currentUser.email === 'admin@example.com') {
+        // Check if the user is an admin - IMPORTANT: check this first
+        if (currentUser.email === 'admin@example.com') {
+          console.log("This user is an ADMIN");
           setIsAuthenticated(true);
           setIsAdmin(true);
         }
+        // Check if the user is a student (by email domain)
+        else if (currentUser.email && currentUser.email.endsWith('@stu.cfisd.net')) {
+          console.log("This user is a STUDENT");
+          setIsAuthenticated(true);
+          setIsAdmin(false);
+        }
         // Not a valid user type, sign out
         else {
+          console.log("Invalid user type - signing out");
           signOut(auth);
           setIsAuthenticated(false);
           setIsAdmin(false);
         }
       } else {
         // User is signed out
+        console.log("No user signed in");
         setUser(null);
         setIsAuthenticated(false);
         setIsAdmin(false);
@@ -76,23 +81,36 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       
-      // Using popup for web, you'll need different implementations for native
+      // Using popup for web
       const result = await signInWithPopup(auth, googleProvider);
+      console.log("Google sign-in result:", result.user.email);
       
+      // Check if the user is an admin
+      if (result.user.email === 'admin@example.com') {
+        console.log("Google login - user is admin");
+        return {
+          success: true,
+          user: result.user,
+          isAdmin: true
+        };
+      }
       // Check if user email ends with @stu.cfisd.net
-      if (result.user.email && !result.user.email.endsWith('@stu.cfisd.net')) {
+      else if (result.user.email && result.user.email.endsWith('@stu.cfisd.net')) {
+        console.log("Google login - user is student");
+        return {
+          success: true,
+          user: result.user,
+          isAdmin: false
+        };
+      } else {
         // Not a student email, sign out
+        console.log("Google login - invalid email domain");
         await signOut(auth);
         return {
           success: false,
           error: 'Please use your school email address (@stu.cfisd.net)'
         };
       }
-      
-      return {
-        success: true,
-        user: result.user
-      };
     } catch (error) {
       console.error('Google Sign-In Error:', error);
       return {
@@ -106,38 +124,97 @@ export function AuthProvider({ children }) {
 
   // Admin login with email/password
   const loginAsAdmin = async (email, password) => {
-    if (email === 'admin@example.com') {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        return true;
-      } catch (error) {
-        console.error('Admin login error:', error);
-        return false;
+    try {
+      console.log("Attempting admin login:", email);
+      
+      if (email === 'admin@example.com') {
+        try {
+          // First try to log in with existing account
+          console.log("Trying to sign in with existing account");
+          await signInWithEmailAndPassword(auth, email, password);
+          console.log("Admin login successful");
+          return true;
+        } catch (signInError) {
+          // If sign-in fails, try creating a new account
+          console.log("Sign-in failed, trying to create user:", signInError.code);
+          
+          if (signInError.code === 'auth/user-not-found' || 
+              signInError.code === 'auth/invalid-credential') {
+            try {
+              console.log("Creating new admin account");
+              await createUserWithEmailAndPassword(auth, email, password);
+              console.log("Admin account created successfully");
+              return true;
+            } catch (createError) {
+              console.error("Failed to create admin account:", createError);
+              return false;
+            }
+          } else {
+            console.error("Admin login failed:", signInError);
+            return false;
+          }
+        }
       }
+      return false;
+    } catch (error) {
+      console.error('Admin login process error:', error);
+      return false;
     }
-    return false;
   };
 
   // Student login with email/password
   const loginAsStudent = async (email, password) => {
-    if (email.endsWith('@stu.cfisd.net')) {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        return true;
-      } catch (error) {
-        console.error('Student login error:', error);
+    try {
+      console.log("Attempting student login:", email);
+      
+      if (email.endsWith('@stu.cfisd.net')) {
+        try {
+          // First try to log in with existing account
+          console.log("Trying to sign in with existing account");
+          await signInWithEmailAndPassword(auth, email, password);
+          console.log("Student login successful");
+          return true;
+        } catch (signInError) {
+          // If sign-in fails, try creating a new account
+          console.log("Sign-in failed, trying to create user:", signInError.code);
+          
+          if (signInError.code === 'auth/user-not-found' || 
+              signInError.code === 'auth/invalid-credential') {
+            try {
+              console.log("Creating new student account");
+              await createUserWithEmailAndPassword(auth, email, password);
+              console.log("Student account created successfully");
+              return true;
+            } catch (createError) {
+              console.error("Failed to create student account:", createError);
+              return false;
+            }
+          } else {
+            console.error("Student login failed:", signInError);
+            return false;
+          }
+        }
+      } else {
+        console.log("Not a student email");
         return false;
       }
+    } catch (error) {
+      console.error('Student login process error:', error);
+      return false;
     }
-    return false;
   };
 
-  // Logout function
   const logout = async () => {
     try {
+      console.log("Logging out user");
       await signOut(auth);
+      console.log("User signed out from Firebase");
+      
+      // The auth state listener will handle setting isAuthenticated and isAdmin to false
+      return true;
     } catch (error) {
       console.error('Logout error:', error);
+      return false;
     }
   };
 

@@ -25,13 +25,24 @@ function CalendarStack({ navigation }) {
   // We need to access the parent navigation for logout
   const { logout } = useAuth();
   
-  const handleLogout = () => {
-    logout();
+// Update logout handler function in AppNavigator.js
+const handleLogout = async () => {
+  try {
+    const success = await logout();
+    // Always navigate regardless of success to ensure user can get back to login screen
     navigation.reset({
       index: 0,
       routes: [{ name: 'Landing' }],
     });
-  };
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Still navigate to Landing screen even if there's an error
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Landing' }],
+    });
+  }
+};
 
   return (
     <Stack.Navigator

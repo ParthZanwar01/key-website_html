@@ -8,21 +8,33 @@ export default function StudentLoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const { loginAsStudent, signInWithGoogle } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email.endsWith('@stu.cfisd.net')) {
-      Alert.alert('Invalid Email', 'Please use a @stu.cfisd.net email to log in.');
-      return;
-    }
+// Inside handleLogin function in StudentLoginScreen.js
+const handleLogin = async () => {
+  if (!email.endsWith('@stu.cfisd.net')) {
+    Alert.alert('Invalid Email', 'Please use a @stu.cfisd.net email to log in.');
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
+  try {
     const success = await loginAsStudent(email, password);
-    setLoading(false);
     
-    if (!success) {
+    if (success) {
+      // Explicitly navigate to Main screen on success
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main', params: { screen: 'Home' } }],
+      });
+    } else {
       Alert.alert('Login Failed', 'Invalid credentials');
     }
-    // Navigation will be handled by the AuthProvider's onAuthStateChanged listener
-  };
+  } catch (error) {
+    console.error('Student login error:', error);
+    Alert.alert('Error', 'An unexpected error occurred');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleGoogleSignIn = async () => {
     try {
