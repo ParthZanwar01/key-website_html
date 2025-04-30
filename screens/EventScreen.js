@@ -18,78 +18,15 @@ import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-// Standalone delete function that doesn't rely on the EventsContext
-const directDeleteEvent = async (eventId, navigation) => {
-  console.log('Starting direct delete process');
-  
-  try {
-    // 1. Get the current events from storage
-    const storedEventsJson = await AsyncStorage.getItem('events');
-    
-    if (!storedEventsJson) {
-      console.log('No events in storage');
-      return false;
-    }
-    
-    const storedEvents = JSON.parse(storedEventsJson);
-    console.log(`Found ${storedEvents.length} events in storage`);
-    
-    // 2. Filter out the event to delete
-    const updatedEvents = storedEvents.filter(event => String(event.id) !== String(eventId));
-    console.log(`After filtering, have ${updatedEvents.length} events`);
-    
-    if (storedEvents.length === updatedEvents.length) {
-      console.log('Warning: No event was removed during filtering');
-    }
-    
-    // 3. Save the updated events back to storage
-    await AsyncStorage.setItem('events', JSON.stringify(updatedEvents));
-    console.log('Saved updated events to storage');
-    
-    return true;
-  } catch (error) {
-    console.error('Error in direct delete:', error);
-    return false;
-  }
-};
-
-// Helper function to check available navigation routes
-const checkNavigationRoutes = (navigation) => {
-  try {
-    console.log('====== NAVIGATION DEBUG ======');
-    
-    // Get current route
-    const currentRoute = navigation.getCurrentRoute();
-    console.log('Current route:', currentRoute?.name);
-    
-    // Get state of this navigator
-    const state = navigation.getState();
-    console.log('Available routes in this navigator:');
-    state.routeNames.forEach((name, i) => console.log(`${i+1}. ${name}`));
-    
-    // Check parent navigator if available
-    const parent = navigation.getParent();
-    if (parent) {
-      const parentState = parent.getState();
-      console.log('Parent navigator routes:');
-      parentState.routeNames.forEach((name, i) => console.log(`${i+1}. ${name}`));
-    }
-    
-    console.log('============================');
-  } catch (error) {
-    console.error('Navigation debug error:', error);
-  }
-};
-
+// This is the simplified solution focused on the web version
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
-  const { getEventById, signupForEvent, refreshEvents } = useEvents();
+  const { getEventById, signupForEvent, deleteEvent } = useEvents();
   const { isAdmin } = useAuth();
   const [event, setEvent] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const eventData = getEventById(eventId);
@@ -100,85 +37,6 @@ export default function EventScreen({ route, navigation }) {
       navigation.goBack();
     }
   }, [eventId, getEventById, navigation]);
-
-  // Enhanced delete handler with fallbacks for different navigation strategies
-  const handleDeleteEvent = () => {
-    console.log('Delete button clicked');
-    
-    Alert.alert(
-      'Delete Event',
-      'Are you sure you want to delete this event?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => console.log('Delete cancelled')
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Delete confirmed');
-            setDeleting(true);
-            
-            // Check navigation options before deleting
-            checkNavigationRoutes(navigation);
-            
-            // First try the direct delete approach
-            const success = await directDeleteEvent(eventId, navigation);
-            
-            if (success) {
-              console.log('Delete succeeded, trying navigation');
-              
-              // Try different navigation targets
-              try {
-                // Method 1: Try to navigate to the CalendarMain screen
-                console.log('Trying navigation to CalendarMain');
-                navigation.navigate('CalendarMain');
-              } catch (e1) {
-                console.log('Method 1 failed:', e1.message);
-                
-                try {
-                  // Method 2: Try to navigate to the Calendar tab
-                  console.log('Trying navigation to Calendar tab');
-                  navigation.navigate('Calendar');
-                } catch (e2) {
-                  console.log('Method 2 failed:', e2.message);
-                  
-                  try {
-                    // Method 3: Try to go back to previous screen
-                    console.log('Trying navigation goBack()');
-                    navigation.goBack();
-                  } catch (e3) {
-                    console.log('Method 3 failed:', e3.message);
-                    
-                    // Final fallback
-                    console.log('Using reset as last resort');
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: 'Main' }],
-                    });
-                  }
-                }
-              }
-              
-              // Show success message after a delay
-              setTimeout(() => {
-                Alert.alert('Success', 'Event deleted successfully');
-              }, 500);
-              
-              // Also refresh the events context
-              refreshEvents();
-            } else {
-              console.log('Delete failed');
-              setDeleting(false);
-              Alert.alert('Error', 'Failed to delete event');
-            }
-          }
-        }
-      ]
-    );
-  };
 
   const handleSignup = () => {
     if (!name.trim() || !email.trim()) {
@@ -214,26 +72,72 @@ export default function EventScreen({ route, navigation }) {
     }
   };
 
-  const renderAttendee = ({ item }) => (
-    <View style={styles.attendeeItem}>
-      <Text style={styles.attendeeName}>{item.name}</Text>
-      <Text style={styles.attendeeEmail}>{item.email}</Text>
-    </View>
-  );
+  // Simplified delete function specifically for web
+  const handleDeleteEvent = () => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this event? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            // Web-specific direct delete approach
+            setLoading(true);
+            
+            // Get current events from storage first
+            AsyncStorage.getItem('events')
+              .then(storedEvents => {
+                if (storedEvents) {
+                  // Parse the events
+                  const allEvents = JSON.parse(storedEvents);
+                  
+                  // Filter out the event to delete
+                  const updatedEvents = allEvents.filter(event => 
+                    String(event.id) !== String(eventId)
+                  );
+                  
+                  // Save back to storage
+                  return AsyncStorage.setItem('events', JSON.stringify(updatedEvents))
+                    .then(() => {
+                      console.log('Event deleted from storage directly');
+                      
+                      // Navigate back immediately on web platform
+                      if (Platform.OS === 'web') {
+                        navigation.navigate('Calendar');
+                      } else {
+                        navigation.goBack();
+                      }
+                      
+                      // Show success message
+                      setTimeout(() => {
+                        Alert.alert('Success', 'Event deleted successfully');
+                      }, 500);
+                    });
+                }
+              })
+              .catch(error => {
+                console.error('Error during delete:', error);
+                Alert.alert('Error', 'Failed to delete event. Please try again.');
+              })
+              .finally(() => {
+                setLoading(false);
+              });
+          }
+        }
+      ]
+    );
+  };
 
+  // The rest of your render code remains the same
   if (!event) {
     return (
       <View style={styles.loadingContainer}>
         <Text>Loading event...</Text>
-      </View>
-    );
-  }
-
-  if (deleting) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#59a2f0" />
-        <Text style={styles.loadingText}>Deleting event...</Text>
       </View>
     );
   }
@@ -267,7 +171,6 @@ export default function EventScreen({ route, navigation }) {
                 <TouchableOpacity 
                   style={styles.deleteButton}
                   onPress={handleDeleteEvent}
-                  disabled={deleting}
                 >
                   <Ionicons name="trash-outline" size={22} color="white" />
                   <Text style={styles.deleteButtonText}>Delete</Text>
@@ -335,7 +238,12 @@ export default function EventScreen({ route, navigation }) {
                     {/* Show max 3 attendees in this screen */}
                     <FlatList
                       data={event.attendees.slice(0, 3)}
-                      renderItem={renderAttendee}
+                      renderItem={({ item }) => (
+                        <View style={styles.attendeeItem}>
+                          <Text style={styles.attendeeName}>{item.name}</Text>
+                          <Text style={styles.attendeeEmail}>{item.email}</Text>
+                        </View>
+                      )}
                       keyExtractor={(item, index) => index.toString()}
                       scrollEnabled={false}
                       ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -430,12 +338,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#94cfec',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#333',
   },
   eventDetails: {
     backgroundColor: 'white',
