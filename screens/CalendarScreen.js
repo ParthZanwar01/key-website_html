@@ -224,14 +224,23 @@ export default function CalendarScreen({ navigation, route }) {
           extraData={events} // Add this to make sure it updates when events change
         />
         
-        {/* Floating Action Button for admins to create events */}
+        {/* Floating Action Buttons for admins */}
         {isAdmin && (
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => navigation.navigate('EventCreation')}
-          >
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
+          <View style={styles.fabContainer}>
+            <TouchableOpacity
+              style={styles.manageFab}
+              onPress={() => navigation.navigate('EventDeletion')}
+            >
+              <Ionicons name="trash-outline" size={24} color="white" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.fab}
+              onPress={() => navigation.navigate('EventCreation')}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
         )}
         
         {/* Context Menu Modal */}
@@ -370,15 +379,32 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 10,
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
+    right: 20,
+    bottom: 20,
+    alignItems: 'center',
+  },
+  fab: {
     width: 56,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    right: 20,
-    bottom: 20,
     backgroundColor: '#f1ca3b',
+    borderRadius: 28,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    marginTop: 10,
+  },
+  manageFab: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ff6b6b',
     borderRadius: 28,
     elevation: 8,
     shadowColor: '#000',

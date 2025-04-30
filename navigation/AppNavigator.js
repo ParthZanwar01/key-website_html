@@ -12,6 +12,7 @@ import StudentLoginScreen from '../screens/StudentLoginScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
+import EventDeletionScreen from '../screens/EventDeletionScreen'; // Import the new screen
 import AttendeeListScreen from '../screens/AttendeeListScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -61,6 +62,7 @@ const handleLogout = async () => {
       />
       <Stack.Screen name="Event" component={EventScreen} options={{ title: "Event Details" }} />
       <Stack.Screen name="EventCreation" component={EventCreationScreen} options={{ title: "Create Event" }} />
+      <Stack.Screen name="EventDeletion" component={EventDeletionScreen} options={{ title: "Manage Events" }} />
       <Stack.Screen name="AttendeeList" component={AttendeeListScreen} options={{ title: "Attendees" }} />
     </Stack.Navigator>
   );
