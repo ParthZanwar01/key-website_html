@@ -12,7 +12,7 @@ import StudentLoginScreen from '../screens/StudentLoginScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
-import EventDeletionScreen from '../screens/EventDeletionScreen'; // Import the new screen
+import EventDeletionScreen from '../screens/EventDeletionScreen';
 import AttendeeListScreen from '../screens/AttendeeListScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -23,27 +23,26 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function CalendarStack({ navigation }) {
-  // We need to access the parent navigation for logout
   const { logout } = useAuth();
   
-// Update logout handler function in AppNavigator.js
-const handleLogout = async () => {
-  try {
-    const success = await logout();
-    // Always navigate regardless of success to ensure user can get back to login screen
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Landing' }],
-    });
-  } catch (error) {
-    console.error("Logout error:", error);
-    // Still navigate to Landing screen even if there's an error
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Landing' }],
-    });
-  }
-};
+  // Update logout handler function in AppNavigator.js
+  const handleLogout = async () => {
+    try {
+      const success = await logout();
+      // Always navigate regardless of success to ensure user can get back to login screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Landing' }],
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Still navigate to Landing screen even if there's an error
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Landing' }],
+      });
+    }
+  };
 
   return (
     <Stack.Navigator
@@ -68,169 +67,156 @@ const handleLogout = async () => {
   );
 }
 
-function MainTabNavigator() {
+function MainTabNavigator({ navigation }) {
   const { logout, isAdmin } = useAuth();
+
+  // Centralized logout handler
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigate to Landing screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Landing' }],
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Still try to navigate even if there's an error
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Landing' }],
+      });
+    }
+  };
 
   return (
     <Tab.Navigator
-  screenOptions={({ route }) => ({
-    tabBarIcon: ({ focused, color, size }) => {
-      let iconName;
-      if (route.name === 'Home') {
-        iconName = focused ? 'home' : 'home-outline';
-      } else if (route.name === 'Calendar') {
-        iconName = focused ? 'calendar' : 'calendar-outline';
-      } else if (route.name === 'Officers') {
-        iconName = focused ? 'people' : 'people-outline';
-      } else if (route.name === 'Create Event') {
-        iconName = focused ? 'add-circle' : 'add-circle-outline';
-      }
-      return <Ionicons name={iconName} size={size} color={color} />;
-    },
-    tabBarActiveTintColor: '#ffca3b',
-    tabBarInactiveTintColor: 'gray',
-  })}
->  
-{/* Middle tab */}
-  <Tab.Screen
-  name="Home"
-  component={HomeScreen}
-  options={({ navigation }) => ({
-    headerRight: () => (
-      <TouchableOpacity
-        onPress={() => {
-          logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Landing' }],
-          });
-        }}
-        style={{ marginRight: 15 }}
-      >
-        <Ionicons name="log-out-outline" size={24} color="black" />
-      </TouchableOpacity>
-    ),
-  })}
-/>
-
-  {/* Left tab */}
-  <Tab.Screen
-    name="Calendar"
-    component={CalendarStack}
-    options={{ headerShown: false }}
-  />
-
-
-  {/* Right tab */}
-  <Tab.Screen
-    name="Officers"
-    component={OfficersScreen}
-    options={{
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => {
-            logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Landing' }],
-            });
-          }}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="log-out-outline" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-    }}
-  />
-
-  {/* Only visible to admin */}
-  {isAdmin && (
-    <Tab.Screen
-      name="Create Event"
-      component={EventCreationScreen}
-      options={({ navigation }) => ({
-        tabBarIcon: ({ focused, size, color }) => (
-          <Ionicons
-            name={focused ? 'add-circle' : 'add-circle-outline'}
-            size={size}
-            color={color}
-          />
-        ),
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => {
-              logout();
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Landing' }],
-              });
-            }}
-            style={{ marginRight: 15 }}
-          >
-            <Ionicons name="log-out-outline" size={24} color="black" />
-          </TouchableOpacity>
-        ),
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Calendar') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'Officers') {
+            iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Create Event') {
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
+          }
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#ffca3b',
+        tabBarInactiveTintColor: 'gray',
       })}
-    />
-  )}
+    >
+      {/* Middle tab */}
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="black" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
+      {/* Left tab */}
+      <Tab.Screen
+        name="Calendar"
+        component={CalendarStack}
+        options={{ headerShown: false }}
+      />
 
-  {/* Only visible to student logins */}
-{!isAdmin && (
-  <Tab.Screen
-    name="Contact"
-    component={ContactScreen}
-    options={({ navigation }) => ({
-      tabBarIcon: ({ focused, color, size }) => (
-        <Ionicons
-          name={focused ? 'mail' : 'mail-outline'}
-          size={size}
-          color={color}
+      {/* Right tab */}
+      <Tab.Screen
+        name="Officers"
+        component={OfficersScreen}
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="black" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+
+      {/* Only visible to admin */}
+      {isAdmin && (
+        <Tab.Screen
+          name="Create Event"
+          component={EventCreationScreen}
+          options={{
+            tabBarIcon: ({ focused, size, color }) => (
+              <Ionicons
+                name={focused ? 'add-circle' : 'add-circle-outline'}
+                size={size}
+                color={color}
+              />
+            ),
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={{ marginRight: 15 }}
+              >
+                <Ionicons name="log-out-outline" size={24} color="black" />
+              </TouchableOpacity>
+            ),
+          }}
         />
-      ),
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => {
-            logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Landing' }],
-            });
+      )}
+
+      {/* Only visible to student logins */}
+      {!isAdmin && (
+        <Tab.Screen
+          name="Contact"
+          component={ContactScreen}
+          options={{
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons
+                name={focused ? 'mail' : 'mail-outline'}
+                size={size}
+                color={color}
+              />
+            ),
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={{ marginRight: 15 }}
+              >
+                <Ionicons name="log-out-outline" size={24} color="black" />
+              </TouchableOpacity>
+            ),
           }}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="log-out-outline" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-    })}
-  />
-)}
-{!isAdmin && (
-  <Tab.Screen
-    name="CheckIn"
-    component={CheckInScreen}
-    options={({ navigation }) => ({
-      tabBarIcon: ({ focused, color, size }) => (
-        <Ionicons name={focused ? 'location' : 'location-outline'} size={size} color={color} />
-      ),
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => {
-            logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Landing' }],
-            });
+        />
+      )}
+      {!isAdmin && (
+        <Tab.Screen
+          name="CheckIn"
+          component={CheckInScreen}
+          options={{
+            tabBarIcon: ({ focused, color, size }) => (
+              <Ionicons name={focused ? 'location' : 'location-outline'} size={size} color={color} />
+            ),
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={{ marginRight: 15 }}
+              >
+                <Ionicons name="log-out-outline" size={24} color="black" />
+              </TouchableOpacity>
+            ),
           }}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="log-out-outline" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-    })}
-  />
-)}
-  </Tab.Navigator>
+        />
+      )}
+    </Tab.Navigator>
   );
 }
 
