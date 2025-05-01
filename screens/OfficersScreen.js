@@ -15,36 +15,44 @@ export default function OfficersScreen() {
   const officers = [
     {
       id: '1',
-      name: "Jane Smith",
-      position: "President",
-      email: "president@organization.com",
-      bio: "Jane has been with the organization for 5 years and specializes in community outreach and partnership development.",
-      imageUrl: "https://via.placeholder.com/150"
+      name: "Bella Pham",
+      position: "Vice President",
+      email: "bellapham@example.com",
+      bio: "Class of 2026 – 3-year member. Fun Fact: I was born in Connecticut.",
+      imageSource: require('../assets/images/officers/bella.png'),
     },
     {
       id: '2',
-      name: "John Doe",
-      position: "Vice President",
-      email: "vp@organization.com",
-      bio: "John joined the leadership team in 2023 and brings extensive experience in event management and fundraising.",
-      imageUrl: "https://via.placeholder.com/150"
+      name: "Svar Chandak",
+      position: "Treasurer",
+      email: "svar@example.com",
+      bio: "Class of 2027 – 2-year member. Fun Fact: I ripped my ear in half once while playing baseball.",
+      imageSource: require('../assets/images/officers/svar.png'),
     },
     {
       id: '3',
-      name: "Maria Garcia",
-      position: "Secretary",
-      email: "secretary@organization.com",
-      bio: "Maria has been our secretary for 2 years and maintains our records and communications with precision and care.",
-      imageUrl: "https://via.placeholder.com/150"
+      name: "Cody Nguyen",
+      position: "Treasurer",
+      email: "cody@example.com",
+      bio: "Class of 2027 – 2-year member. Fun Fact: I’ve been playing piano for 8 years.",
+      imageSource: require('../assets/images/officers/cody.png'),
     },
     {
       id: '4',
-      name: "David Kim",
-      position: "Treasurer",
-      email: "treasurer@organization.com",
-      bio: "David handles all financial matters and has helped secure several grants for our organization.",
-      imageUrl: "https://via.placeholder.com/150"
-    }
+      name: "Shamoel Daudjee",
+      position: "Hours Manager",
+      email: "shamoel@example.com",
+      bio: "Class of 2027 – 2-year member. Fun Fact: I was born in Africa.",
+      imageSource: require('../assets/images/officers/shamoel.png'),
+    },
+    {
+      id: '5',
+      name: "Arjun Diwakar",
+      position: "Event Chairman",
+      email: "ariun@example.com",
+      bio: "Class of 2027 – 2-year member. Fun Fact: I’ve never watched Star Wars.",
+      imageSource: require('../assets/images/officers/arjun.png'),
+    },
   ];
 
   const handleEmailPress = (email) => {
@@ -54,7 +62,7 @@ export default function OfficersScreen() {
   const renderOfficer = ({ item }) => (
     <View style={styles.officerCard}>
       <Image
-        source={{ uri: item.imageUrl }}
+        source={item.imageSource}
         style={styles.officerImage}
       />
       <View style={styles.officerDetails}>

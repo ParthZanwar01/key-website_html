@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 // Screens
 import LandingScreen from '../screens/LandingScreen';
@@ -68,48 +69,50 @@ const handleLogout = async () => {
 
 function MainTabNavigator() {
   const { logout, isAdmin } = useAuth();
+  const navigation = useNavigation(); // 👈 this gives access to navigation
 
   return (
     <Tab.Navigator
-  screenOptions={({ route }) => ({
-    tabBarIcon: ({ focused, color, size }) => {
-      let iconName;
-      if (route.name === 'Home') {
-        iconName = focused ? 'home' : 'home-outline';
-      } else if (route.name === 'Calendar') {
-        iconName = focused ? 'calendar' : 'calendar-outline';
-      } else if (route.name === 'Officers') {
-        iconName = focused ? 'people' : 'people-outline';
-      } else if (route.name === 'Create Event') {
-        iconName = focused ? 'add-circle' : 'add-circle-outline';
-      }
-      return <Ionicons name={iconName} size={size} color={color} />;
-    },
-    tabBarActiveTintColor: '#ffca3b',
-    tabBarInactiveTintColor: 'gray',
-  })}
->  
-{/* Middle tab */}
-  <Tab.Screen
-  name="Home"
-  component={HomeScreen}
-  options={({ navigation }) => ({
-    headerRight: () => (
-      <TouchableOpacity
-        onPress={() => {
-          logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Landing' }],
-          });
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Calendar') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'Officers') {
+            iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Create Event') {
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#ffca3b',
+        tabBarInactiveTintColor: 'gray',
+      })}
+    >
+      {/* Home screen with Logout in header */}
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => {
+                logout();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Landing' }],
+                });
+              }}
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="black" />
+            </TouchableOpacity>
+          ),
         }}
-        style={{ marginRight: 15 }}
-      >
-        <Ionicons name="log-out-outline" size={24} color="black" />
-      </TouchableOpacity>
-    ),
-  })}
-/>
+      />
 
   {/* Left tab */}
   <Tab.Screen
