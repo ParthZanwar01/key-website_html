@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   signOut
 } from 'firebase/auth';
-import { Platform } from 'react-native';
+import { Platform,Alert } from 'react-native';
 
 // Initialize Firebase
 const firebaseConfig = {
@@ -122,45 +122,86 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Admin login with email/password
-  const loginAsAdmin = async (email, password) => {
-    try {
-      console.log("Attempting admin login:", email);
-      
-      if (email === 'admin@example.com') {
-        try {
-          // First try to log in with existing account
-          console.log("Trying to sign in with existing account");
-          await signInWithEmailAndPassword(auth, email, password);
-          console.log("Admin login successful");
-          return true;
-        } catch (signInError) {
-          // If sign-in fails, try creating a new account
-          console.log("Sign-in failed, trying to create user:", signInError.code);
+ // Update the loginAsAdmin function in contexts/AuthContext.js
+const loginAsAdmin = async (email, password) => {
+  try {
+    console.log("Attempting admin login:", email);
+    
+    if (email === 'admin@example.com') {
+      try {
+        // Add a timeout to the Firebase auth request
+        const loginPromise = signInWithEmailAndPassword(auth, email, password);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Login request timed out')), 15000)
+        );
+        
+        // Race between the login attempt and the timeout
+        await Promise.race([loginPromise, timeoutPromise]);
+        console.log("Admin login successful");
+        return true;
+      } catch (signInError) {
+        console.error("Sign-in error:", signInError);
+        
+        // Check for network-related errors
+        if (signInError.code === 'auth/network-request-failed') {
+          console.log("Network error detected. Checking internet connection...");
+          // You can add more sophisticated network checking here
           
-          if (signInError.code === 'auth/user-not-found' || 
-              signInError.code === 'auth/invalid-credential') {
-            try {
-              console.log("Creating new admin account");
-              await createUserWithEmailAndPassword(auth, email, password);
-              console.log("Admin account created successfully");
-              return true;
-            } catch (createError) {
-              console.error("Failed to create admin account:", createError);
-              return false;
+          // For now, inform the user about the network issue
+          Alert.alert(
+            'Network Error',
+            'Could not connect to authentication servers. Please check your internet connection and try again.',
+            [{ text: 'OK' }]
+          );
+          return false;
+        }
+        
+        // If user doesn't exist, create a new account
+        if (signInError.code === 'auth/user-not-found' || 
+            signInError.code === 'auth/invalid-credential') {
+          try {
+            console.log("Creating new admin account");
+            await createUserWithEmailAndPassword(auth, email, password);
+            console.log("Admin account created successfully");
+            return true;
+          } catch (createError) {
+            console.error("Failed to create admin account:", createError);
+            
+            // Handle different creation errors
+            if (createError.code === 'auth/network-request-failed') {
+              Alert.alert(
+                'Network Error',
+                'Could not connect to authentication servers. Please check your internet connection and try again.',
+                [{ text: 'OK' }]
+              );
+            } else {
+              Alert.alert(
+                'Account Creation Failed',
+                'Could not create admin account: ' + createError.message,
+                [{ text: 'OK' }]
+              );
             }
-          } else {
-            console.error("Admin login failed:", signInError);
             return false;
           }
+        } else {
+          console.error("Admin login failed:", signInError);
+          Alert.alert(
+            'Login Error',
+            'Admin login failed: ' + signInError.message,
+            [{ text: 'OK' }]
+          );
+          return false;
         }
       }
-      return false;
-    } catch (error) {
-      console.error('Admin login process error:', error);
-      return false;
     }
-  };
+    Alert.alert('Invalid Email', 'Please use the admin@example.com email to log in.');
+    return false;
+  } catch (error) {
+    console.error('Admin login process error:', error);
+    Alert.alert('Error', 'An unexpected error occurred during login.');
+    return false;
+  }
+};
 
   // Student login with email/password
   const loginAsStudent = async (email, password) => {
