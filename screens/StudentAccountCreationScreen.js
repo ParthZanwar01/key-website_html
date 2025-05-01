@@ -14,14 +14,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../contexts/AuthContext';
+// No need for AuthContext since we're not auto-logging in
 
 // Google Sheets API endpoint
 const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/25c69fca-a42a-4e8e-a5a7-0e0a7622f7f0';
 
 export default function StudentAccountCreationScreen({ route, navigation }) {
   const { sNumber, studentData } = route.params;
-  const { loginAsStudent } = useAuth();
   
   const [name, setName] = useState(studentData.name || '');
   const [password, setPassword] = useState('');
@@ -68,29 +67,20 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
         lastLogin: new Date().toISOString()
       });
       
-      // Proceed to login with the newly created account
-      const success = await loginAsStudent(sNumber, password);
-      
-      if (success) {
-        Alert.alert(
-          'Account Created', 
-          'Your account has been successfully created!',
-          [
-            { 
-              text: 'OK', 
-              onPress: () => {
-                // Reset to main screen
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Main', params: { screen: 'Home' } }],
-                });
-              }
+      // Instead of auto-login, redirect to login screen
+      Alert.alert(
+        'Account Created', 
+        'Your account has been successfully created! Please log in with your credentials.',
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              // Navigate to the login screen
+              navigation.navigate('StudentLogin');
             }
-          ]
-        );
-      } else {
-        Alert.alert('Login Failed', 'Account created but could not log in automatically. Please try logging in manually.');
-      }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Account creation error:', error);
       Alert.alert(
