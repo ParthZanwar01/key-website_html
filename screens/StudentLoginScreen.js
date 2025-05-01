@@ -1,106 +1,121 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentLoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
+  const [sNumber, setSNumber] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { loginAsStudent, signInWithGoogle } = useAuth();
-
-// Inside handleLogin function in StudentLoginScreen.js
-const handleLogin = async () => {
-  if (!email.endsWith('@stu.cfisd.net')) {
-    Alert.alert('Invalid Email', 'Please use a @stu.cfisd.net email to log in.');
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const success = await loginAsStudent(email, password);
-    
-    if (success) {
-      // Explicitly navigate to Main screen on success
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main', params: { screen: 'Home' } }],
-      });
-    } else {
-      Alert.alert('Login Failed', 'Invalid credentials');
+  const { loginAsStudent } = useAuth();
+  
+  // Login with S-Number/password (Google Sheets)
+  const handleLogin = async () => {
+    // Input validation
+    if (!sNumber.trim() || !password.trim()) {
+      Alert.alert('Missing Information', 'Please enter both S-Number and password.');
+      return;
     }
-  } catch (error) {
-    console.error('Student login error:', error);
-    Alert.alert('Error', 'An unexpected error occurred');
-  } finally {
-    setLoading(false);
-  }
-};
 
-  const handleGoogleSignIn = async () => {
+    if (!sNumber.startsWith('s')) {
+      Alert.alert('Invalid S-Number', 'Please enter a valid S-Number starting with "s" (e.g., s150712).');
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
-      const result = await signInWithGoogle();
+      const success = await loginAsStudent(sNumber.toLowerCase(), password);
       
-      if (!result.success) {
-        Alert.alert('Sign In Failed', result.error || 'Could not sign in with Google');
+      if (success) {
+        // Explicitly navigate to Main screen on success
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main', params: { screen: 'Home' } }],
+        });
       }
-      // Navigation will be handled by the AuthProvider's onAuthStateChanged listener
+      // If not successful, the AuthContext will display appropriate alerts
     } catch (error) {
-      console.error('Google Sign-In Error:', error);
-      Alert.alert('Error', 'An unexpected error occurred');
+      console.error('Student login error:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Student Login</Text>
-      
-      {/* Email/Password Login */}
-      <TextInput
-        placeholder="Your school email address (@stu.cfisd.net)"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.disabledButton]} 
-        onPress={handleLogin} 
-        disabled={loading}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
       >
-        <Text style={styles.buttonText}>Log In</Text>
-      </TouchableOpacity>
-      
-      {/* Divider */}
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
-      </View>
-      
-      {/* Google Sign-In Button */}
-      <TouchableOpacity 
-        style={styles.googleButton} 
-        onPress={handleGoogleSignIn}
-        disabled={loading}
-      >
-        <Text style={styles.googleButtonText}>Sign in with Google</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.hint}>
-        Use your @stu.cfisd.net school account
-      </Text>
-    </View>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.loginCard}>
+            <Text style={styles.title}>Student Login</Text>
+            <Text style={styles.subtitle}>Sign in with your S-Number</Text>
+            
+            {/* S-Number input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Student ID Number</Text>
+              <TextInput
+                placeholder="s123456"
+                value={sNumber}
+                onChangeText={setSNumber}
+                style={styles.input}
+                keyboardType="default"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            
+            {/* Password input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+                secureTextEntry
+              />
+            </View>
+            
+            {/* Login button */}
+            <TouchableOpacity 
+              style={[styles.button, loading && styles.disabledButton]} 
+              onPress={handleLogin} 
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Log In</Text>
+              )}
+            </TouchableOpacity>
+            
+            {/* First-time login info */}
+            <Text style={styles.infoText}>
+              First time? Enter your S-Number and create a password. Your S-Number must be in our system to log in.
+            </Text>
+            
+            {/* Help text */}
+            <Text style={styles.helpText}>
+              Need help? Contact your Key Club sponsor.
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -108,74 +123,79 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#add8e6',
+  },
+  keyboardAvoid: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    padding: 20,
+  },
+  loginCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#0d1b2a',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 6,
+    fontWeight: '500',
   },
   input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
   },
   button: {
-    width: '100%',
-    height: 50,
     backgroundColor: '#fcd53f',
-    justifyContent: 'center',
-    alignItems: 'center',
     borderRadius: 8,
-    marginBottom: 10,
-  },
-  divider: {
-    flexDirection: 'row',
+    paddingVertical: 14,
     alignItems: 'center',
-    width: '100%',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    color: '#666',
-  },
-  googleButton: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    marginBottom: 10,
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  googleButtonText: {
-    fontWeight: 'bold',
-    color: '#757575',
-    marginLeft: 10,
+    marginTop: 8,
+    marginBottom: 16,
   },
   disabledButton: {
-    backgroundColor: '#cccccc',
+    backgroundColor: '#e0e0e0',
   },
   buttonText: {
+    color: '#0d1b2a',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  hint: {
-    fontSize: 12,
-    marginTop: 10,
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
   },
- });
- 
- 
+  helpText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+  }
+});

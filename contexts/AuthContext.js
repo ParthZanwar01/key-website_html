@@ -1,33 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut
-} from 'firebase/auth';
-import { Platform,Alert } from 'react-native';
-
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyA21pcqwgrlVArLcYOO79u7lnsWN_Hxybw",
-  authDomain: "keyapp-9bf11.firebaseapp.com",
-  projectId: "keyapp-9bf11",
-  storageBucket: "keyapp-9bf11.firebasestorage.app",
-  messagingSenderId: "976015063127",
-  appId: "1:976015063127:web:c5b40212dfb5898abf4b12",
-  measurementId: "G-JSP2P19GHE"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+import axios from 'axios';
+import { Platform, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Create context
 const AuthContext = createContext();
+
+// Google Sheets API endpoint (replace with your actual Sheet ID and API endpoint)
+const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/25c69fca-a42a-4e8e-a5a7-0e0a7622f7f0';
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,208 +15,197 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Listen for auth state changes
+  // Check for authentication on load
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      if (currentUser) {
-        // User is signed in
-        setUser(currentUser);
-        console.log("Auth state changed - user:", currentUser.email);
+    const checkAuth = async () => {
+      try {
+        // Get stored user data
+        const userData = await AsyncStorage.getItem('user');
         
-        // Check if the user is an admin - IMPORTANT: check this first
-        if (currentUser.email === 'admin@example.com') {
-          console.log("This user is an ADMIN");
-          setIsAuthenticated(true);
-          setIsAdmin(true);
-        }
-        // Check if the user is a student (by email domain)
-        else if (currentUser.email && currentUser.email.endsWith('@stu.cfisd.net')) {
-          console.log("This user is a STUDENT");
-          setIsAuthenticated(true);
-          setIsAdmin(false);
-        }
-        // Not a valid user type, sign out
-        else {
-          console.log("Invalid user type - signing out");
-          signOut(auth);
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          
+          // Check if the user is an admin
+          if (parsedUser.sNumber === 'admin') {
+            console.log("This user is an ADMIN");
+            setIsAuthenticated(true);
+            setIsAdmin(true);
+          } 
+          // Check if the user is a student (by S-number)
+          else if (parsedUser.sNumber && parsedUser.sNumber.startsWith('s')) {
+            console.log("This user is a STUDENT");
+            setIsAuthenticated(true);
+            setIsAdmin(false);
+          } 
+          // Not a valid user type, sign out
+          else {
+            console.log("Invalid user type - signing out");
+            await logout();
+          }
+        } else {
+          console.log("No user signed in");
           setIsAuthenticated(false);
           setIsAdmin(false);
         }
-      } else {
-        // User is signed out
-        console.log("No user signed in");
-        setUser(null);
-        setIsAuthenticated(false);
-        setIsAdmin(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
-
-    // Clean up subscription
-    return () => unsubscribe();
+    };
+    
+    checkAuth();
   }, []);
 
-  // Sign in with Google
-  const signInWithGoogle = async () => {
+  // Login as admin
+  const loginAsAdmin = async (email, password) => {
     try {
-      setLoading(true);
+      console.log("Attempting admin login:", email);
       
-      // Using popup for web
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log("Google sign-in result:", result.user.email);
+      if (email === 'admin@example.com') {
+        try {
+          // Simple check for admin credentials
+          // In a real app, you would verify against secure storage
+          if (password === 'password') {
+            const adminUser = {
+              sNumber: 'admin',
+              name: 'Admin User',
+              role: 'admin'
+            };
+            
+            // Store user data
+            await AsyncStorage.setItem('user', JSON.stringify(adminUser));
+            
+            // Update state
+            setUser(adminUser);
+            setIsAuthenticated(true);
+            setIsAdmin(true);
+            
+            console.log("Admin login successful");
+            return true;
+          } else {
+            console.log("Admin password incorrect");
+            return false;
+          }
+        } catch (error) {
+          console.error("Login error:", error);
+          return false;
+        }
+      }
       
-      // Check if the user is an admin
-      if (result.user.email === 'admin@example.com') {
-        console.log("Google login - user is admin");
-        return {
-          success: true,
-          user: result.user,
-          isAdmin: true
-        };
-      }
-      // Check if user email ends with @stu.cfisd.net
-      else if (result.user.email && result.user.email.endsWith('@stu.cfisd.net')) {
-        console.log("Google login - user is student");
-        return {
-          success: true,
-          user: result.user,
-          isAdmin: false
-        };
-      } else {
-        // Not a student email, sign out
-        console.log("Google login - invalid email domain");
-        await signOut(auth);
-        return {
-          success: false,
-          error: 'Please use your school email address (@stu.cfisd.net)'
-        };
-      }
+      Alert.alert('Invalid Email', 'Please use the admin@example.com email to log in.');
+      return false;
     } catch (error) {
-      console.error('Google Sign-In Error:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to sign in with Google'
-      };
-    } finally {
-      setLoading(false);
+      console.error('Admin login process error:', error);
+      Alert.alert('Error', 'An unexpected error occurred during login.');
+      return false;
     }
   };
 
- // Update the loginAsAdmin function in contexts/AuthContext.js
-const loginAsAdmin = async (email, password) => {
-  try {
-    console.log("Attempting admin login:", email);
-    
-    if (email === 'admin@example.com') {
-      try {
-        // Add a timeout to the Firebase auth request
-        const loginPromise = signInWithEmailAndPassword(auth, email, password);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Login request timed out')), 15000)
-        );
-        
-        // Race between the login attempt and the timeout
-        await Promise.race([loginPromise, timeoutPromise]);
-        console.log("Admin login successful");
-        return true;
-      } catch (signInError) {
-        console.error("Sign-in error:", signInError);
-        
-        // Check for network-related errors
-        if (signInError.code === 'auth/network-request-failed') {
-          console.log("Network error detected. Checking internet connection...");
-          // You can add more sophisticated network checking here
+  // Student login with Google Sheets
+  const loginAsStudent = async (sNumber, password) => {
+    try {
+      console.log("Attempting student login with S-Number:", sNumber);
+      
+      if (sNumber.startsWith('s')) {
+        try {
+          // Query the Google Sheet for all students
+          const response = await axios.get(`${GOOGLE_SHEET_API_ENDPOINT}`);
+          const allStudents = response.data;
           
-          // For now, inform the user about the network issue
-          Alert.alert(
-            'Network Error',
-            'Could not connect to authentication servers. Please check your internet connection and try again.',
-            [{ text: 'OK' }]
+          // Look for the student by S-Number in the existing sheet
+          const studentInSheet = allStudents.find(s => 
+            s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
           );
-          return false;
-        }
-        
-        // If user doesn't exist, create a new account
-        if (signInError.code === 'auth/user-not-found' || 
-            signInError.code === 'auth/invalid-credential') {
-          try {
-            console.log("Creating new admin account");
-            await createUserWithEmailAndPassword(auth, email, password);
-            console.log("Admin account created successfully");
-            return true;
-          } catch (createError) {
-            console.error("Failed to create admin account:", createError);
-            
-            // Handle different creation errors
-            if (createError.code === 'auth/network-request-failed') {
-              Alert.alert(
-                'Network Error',
-                'Could not connect to authentication servers. Please check your internet connection and try again.',
-                [{ text: 'OK' }]
-              );
-            } else {
-              Alert.alert(
-                'Account Creation Failed',
-                'Could not create admin account: ' + createError.message,
-                [{ text: 'OK' }]
-              );
-            }
+          
+          // If S-Number doesn't exist in sheet, reject login
+          if (!studentInSheet) {
+            console.log("Student S-Number not found in database");
+            Alert.alert('Login Failed', 'Your S-Number was not found in our system. Please contact your administrator.');
             return false;
           }
-        } else {
-          console.error("Admin login failed:", signInError);
-          Alert.alert(
-            'Login Error',
-            'Admin login failed: ' + signInError.message,
-            [{ text: 'OK' }]
-          );
-          return false;
-        }
-      }
-    }
-    Alert.alert('Invalid Email', 'Please use the admin@example.com email to log in.');
-    return false;
-  } catch (error) {
-    console.error('Admin login process error:', error);
-    Alert.alert('Error', 'An unexpected error occurred during login.');
-    return false;
-  }
-};
-
-  // Student login with email/password
-  const loginAsStudent = async (email, password) => {
-    try {
-      console.log("Attempting student login:", email);
-      
-      if (email.endsWith('@stu.cfisd.net')) {
-        try {
-          // First try to log in with existing account
-          console.log("Trying to sign in with existing account");
-          await signInWithEmailAndPassword(auth, email, password);
-          console.log("Student login successful");
-          return true;
-        } catch (signInError) {
-          // If sign-in fails, try creating a new account
-          console.log("Sign-in failed, trying to create user:", signInError.code);
           
-          if (signInError.code === 'auth/user-not-found' || 
-              signInError.code === 'auth/invalid-credential') {
-            try {
-              console.log("Creating new student account");
-              await createUserWithEmailAndPassword(auth, email, password);
-              console.log("Student account created successfully");
+          // Check if student has already set up an account (has a password)
+          if (studentInSheet.password) {
+            // Existing account - verify password
+            if (studentInSheet.password === password) {
+              // Password matches - login successful
+              const studentUser = {
+                sNumber: studentInSheet.sNumber,
+                name: studentInSheet.name || sNumber,
+                role: 'student',
+                id: studentInSheet.id || Date.now().toString()
+              };
+              
+              // Store user data
+              await AsyncStorage.setItem('user', JSON.stringify(studentUser));
+              
+              // Update state
+              setUser(studentUser);
+              setIsAuthenticated(true);
+              setIsAdmin(false);
+              
+              console.log("Student login successful");
               return true;
-            } catch (createError) {
-              console.error("Failed to create student account:", createError);
+            } else {
+              // Password doesn't match
+              console.log("Student password incorrect");
+              Alert.alert('Login Failed', 'Incorrect password. Please try again.');
               return false;
             }
           } else {
-            console.error("Student login failed:", signInError);
-            return false;
+            // First time login - set up account with provided password
+            try {
+              // Find the row index of the student to update
+              const rowIndex = allStudents.findIndex(s => 
+                s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
+              );
+              
+              if (rowIndex === -1) {
+                throw new Error("Failed to locate student row");
+              }
+              
+              // Update the student entry with the password
+              await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, {
+                password: password,
+                lastLogin: new Date().toISOString()
+              });
+              
+              // Create user object
+              const newStudentUser = {
+                sNumber: studentInSheet.sNumber,
+                name: studentInSheet.name || sNumber,
+                role: 'student',
+                id: studentInSheet.id || Date.now().toString()
+              };
+              
+              // Store user data
+              await AsyncStorage.setItem('user', JSON.stringify(newStudentUser));
+              
+              // Update state
+              setUser(newStudentUser);
+              setIsAuthenticated(true);
+              setIsAdmin(false);
+              
+              console.log("First-time student login successful");
+              return true;
+            } catch (setupError) {
+              console.error("Failed to set up student account:", setupError);
+              Alert.alert('Account Setup Failed', 'Could not set up your account. Please try again later.');
+              return false;
+            }
           }
+        } catch (error) {
+          console.error("Google Sheets API error:", error);
+          Alert.alert(
+            'Connection Error',
+            'Could not connect to the student database. Please check your internet connection and try again.'
+          );
+          return false;
         }
       } else {
-        console.log("Not a student email");
+        Alert.alert('Invalid S-Number', 'Please enter a valid S-Number starting with "s".');
         return false;
       }
     } catch (error) {
@@ -248,10 +217,16 @@ const loginAsAdmin = async (email, password) => {
   const logout = async () => {
     try {
       console.log("Logging out user");
-      await signOut(auth);
-      console.log("User signed out from Firebase");
       
-      // The auth state listener will handle setting isAuthenticated and isAdmin to false
+      // Clear stored user data
+      await AsyncStorage.removeItem('user');
+      
+      // Reset state
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      
+      console.log("User logged out");
       return true;
     } catch (error) {
       console.error('Logout error:', error);
@@ -272,7 +247,6 @@ const loginAsAdmin = async (email, password) => {
         user,
         loginAsAdmin,
         loginAsStudent,
-        signInWithGoogle,
         logout,
       }}
     >
