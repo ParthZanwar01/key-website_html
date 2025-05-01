@@ -10,6 +10,8 @@ import { useNavigation } from '@react-navigation/native';
 import LandingScreen from '../screens/LandingScreen';
 import AdminLoginScreen from '../screens/AdminLoginScreen';
 import StudentLoginScreen from '../screens/StudentLoginScreen';
+import StudentVerificationScreen from '../screens/StudentVerificationScreen';
+import StudentAccountCreationScreen from '../screens/StudentAccountCreationScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
@@ -70,7 +72,6 @@ function CalendarStack({ navigation }) {
 
 function MainTabNavigator({ navigation }) {
   const { logout, isAdmin } = useAuth();
-  //const navigation = useNavigation(); // 👈 this gives access to navigation
 
   // Centralized logout handler
   const handleLogout = async () => {
@@ -228,6 +229,8 @@ export default function AppNavigator() {
       <Stack.Screen name="Landing" component={LandingScreen} />
       <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
       <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
+      <Stack.Screen name="StudentVerification" component={StudentVerificationScreen} />
+      <Stack.Screen name="StudentAccountCreation" component={StudentAccountCreationScreen} />
       <Stack.Screen name="Main" component={MainTabNavigator} />
     </Stack.Navigator>
   );
