@@ -1,20 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function HomeScreen() {
-return (
-  <View style={styles.container}>
-  <Image source={require('../assets/images/keyclublogo.png')} style={styles.logo} />
-  <Text style={styles.title}>Welcome to Cypress Ranch Key Club</Text>
-  <Text style={styles.subtitle}>
-    I pledge on my honor{'\n'}
-    To uphold the objects of Key Club International;{'\n'}
-    To build my home, school and community;{'\n'}
-    To serve my nation and God;{'\n'}
-    And combat all forces which tend to undermine these institutions.
-  </Text>
-</View>
-);
+  const { user } = useAuth();
+  
+  return (
+    <View style={styles.container}>
+      <Image source={require('../assets/images/keyclublogo.png')} style={styles.logo} />
+      <Text style={styles.welcome}>Welcome, {user?.name || user?.sNumber || 'Member'}</Text>
+      <Text style={styles.title}>Cypress Ranch Key Club</Text>
+      <Text style={styles.subtitle}>
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -28,8 +27,15 @@ const styles = StyleSheet.create({
   logo: {
     width: 250,
     height: 250,
-    marginBottom: 30,
+    marginBottom: 20,
     resizeMode: 'contain',
+  },
+  welcome: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   title: {
     fontSize: 30,
