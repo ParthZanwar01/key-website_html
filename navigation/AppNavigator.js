@@ -70,7 +70,7 @@ function CalendarStack({ navigation }) {
 
 function MainTabNavigator({ navigation }) {
   const { logout, isAdmin } = useAuth();
-  const navigation = useNavigation(); // 👈 this gives access to navigation
+  //const navigation = useNavigation(); // 👈 this gives access to navigation
 
   // Centralized logout handler
   const handleLogout = async () => {
