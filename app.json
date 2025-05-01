@@ -31,7 +31,7 @@
       "package": "com.parthzanwar.keyclubapp"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/images/keyclublogo.png",
       "serviceWorker": false
     }
   }
