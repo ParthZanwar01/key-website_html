@@ -49,7 +49,7 @@ export default function OfficersScreen() {
       id: '5',
       name: "Arjun Diwakar",
       position: "Event Chairman",
-      email: "ariun@example.com",
+      email: "arjun@example.com",
       bio: "Class of 2027 – 2-year member. Fun Fact: I’ve never watched Star Wars.",
       imageSource: require('../assets/images/officers/arjun.png'),
     },
