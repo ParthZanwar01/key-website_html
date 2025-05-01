@@ -3,8 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AdminLoginScreen({ navigation }) {
-  const [email, setEmail] = useState('admin@example.com'); // Pre-fill for testing
-  const [password, setPassword] = useState('password'); // Pre-fill for testing
+  const [email, setEmail] = useState(); // Pre-fill for testing
+  const [password, setPassword] = useState(); // Pre-fill for testing
   const [loading, setLoading] = useState(false);
   const { loginAsAdmin } = useAuth();
 
