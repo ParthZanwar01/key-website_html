@@ -5,99 +5,139 @@ import {
   StyleSheet,
   FlatList,
   Image,
-  TouchableOpacity,
-  Linking
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
+  ImageBackground
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
+const cardWidth = width / 2 - 15; // Half screen width minus margin
 
 export default function OfficersScreen() {
-  // Sample officers data - replace with your actual officers
+  // Officer data based on your images
   const officers = [
     {
       id: '1',
-      name: "Bella Pham",
-      position: "Vice President",
-      email: "bellapham@example.com",
-      bio: "Class of 2026 – 3-year member. Fun Fact: I was born in Connecticut.",
+      name: "Bella       Pham",
+      position: "President",
+      classYear: "2026",
+      memberYears: "3",
       imageSource: require('../assets/images/officers/bella.png'),
     },
     {
       id: '2',
-      name: "Svar Chandak",
-      position: "Treasurer",
-      email: "svar@example.com",
-      bio: "Class of 2027 – 2-year member. Fun Fact: I ripped my ear in half once while playing baseball.",
-      imageSource: require('../assets/images/officers/svar.png'),
+      name: "Jacob Harred",
+      position: "Vice President",
+      classYear: "2026",
+      memberYears: "3",
+      imageSource: require('../assets/images/officers/jacob.png'),
     },
     {
       id: '3',
       name: "Cody Nguyen",
       position: "Treasurer",
-      email: "cody@example.com",
-      bio: "Class of 2027 – 2-year member. Fun Fact: I’ve been playing piano for 8 years.",
+      classYear: "2027",
+      memberYears: "2",
       imageSource: require('../assets/images/officers/cody.png'),
     },
     {
       id: '4',
       name: "Shamoel Daudjee",
       position: "Hours Manager",
-      email: "shamoel@example.com",
-      bio: "Class of 2027 – 2-year member. Fun Fact: I was born in Africa.",
+      classYear: "2027",
+      memberYears: "2",
       imageSource: require('../assets/images/officers/shamoel.png'),
     },
     {
       id: '5',
+      name: "Svar Chandak",
+      position: "Treasurer",
+      classYear: "2027",
+      memberYears: "2",
+      imageSource: require('../assets/images/officers/svar.png'),
+    },
+    {
+      id: '6',
       name: "Arjun Diwakar",
       position: "Event Chairman",
-      email: "arjun@example.com",
-      bio: "Class of 2027 – 2-year member. Fun Fact: I’ve never watched Star Wars.",
+      classYear: "2027",
+      memberYears: "2",
       imageSource: require('../assets/images/officers/arjun.png'),
     },
   ];
 
-  const handleEmailPress = (email) => {
-    Linking.openURL(`mailto:${email}`);
-  };
-
-  const renderOfficer = ({ item }) => (
-    <View style={styles.officerCard}>
-      <Image
-        source={item.imageSource}
-        style={styles.officerImage}
-      />
-      <View style={styles.officerDetails}>
-        <Text style={styles.officerName}>{item.name}</Text>
-        <Text style={styles.officerPosition}>{item.position}</Text>
-        <TouchableOpacity onPress={() => handleEmailPress(item.email)}>
-          <Text style={styles.officerEmail}>{item.email}</Text>
-        </TouchableOpacity>
-        <Text style={styles.officerBio}>{item.bio}</Text>
+  const renderOfficerCard = ({ item, index }) => (
+    <View style={[styles.cardContainer, { marginLeft: index % 2 === 0 ? 10 : 5, marginRight: index % 2 === 0 ? 5 : 10 }]}>
+      <View style={styles.officerCard}>
+        {/* Key Club logo */}
+        <Image 
+          source={require('../assets/images/keyclublogo.png')} 
+          style={styles.keyClubLogo} 
+          resizeMode="contain"
+        />
+        
+        {/* Background with string lights */}
+        <ImageBackground
+          source={require('../assets/images/string_lights_bg.png')}
+          style={styles.cardBackground}
+          resizeMode="cover"
+        >
+          {/* Officer photo */}
+          <View style={styles.photoContainer}>
+            <Image
+              source={item.imageSource}
+              style={styles.officerImage}
+              resizeMode="cover"
+            />
+          </View>
+          
+          {/* Officer name */}
+          <View style={styles.nameContainer}>
+            <Text style={styles.officerName}>{item.name}</Text>
+          </View>
+          
+          {/* Officer details */}
+          <View style={styles.detailsContainer}>
+            <Text style={styles.classInfo}>Class of {item.classYear}</Text>
+            <Text style={styles.memberInfo}>{item.memberYears}-year member</Text>
+            
+          </View>
+        </ImageBackground>
+        
+        {/* Floral border at bottom */}
+        <Image 
+          source={require('../assets/images/floral_border.png')} 
+          style={styles.floralBorder} 
+          resizeMode="cover"
+        />
+        
+        {/* Position banner */}
+        <View style={styles.positionContainer}>
+          <Text style={styles.positionText}>{item.position}</Text>
+        </View>
       </View>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Our Leadership Team</Text>
         <Text style={styles.headerSubtitle}>
-          Meet the dedicated individuals who make our events possible.
+          Meet the dedicated individuals who lead our Key Club.
         </Text>
       </View>
 
       <FlatList
         data={officers}
-        renderItem={renderOfficer}
+        renderItem={renderOfficerCard}
         keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={styles.listContainer}
+        numColumns={2}
       />
-
-      <View style={styles.contactSection}>
-        <Text style={styles.contactTitle}>Contact Our Leadership</Text>
-        <Text style={styles.contactText}>
-          Have questions for our team? Feel free to reach out to any of our officers.
-        </Text>
-      </View>
     </SafeAreaView>
   );
 }
@@ -105,86 +145,149 @@ export default function OfficersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#94cfec',
+    backgroundColor: '#0d1b2a',
   },
   header: {
-    padding: 10,
-    backgroundColor: 'white',
+    padding: 16,
+    backgroundColor: '#0d1b2a',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#2a3950',
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: '#ffd60a',
+    marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
     textAlign: 'center',
   },
-  listContent: {
-    padding: 15,
+  listContainer: {
+    paddingVertical: 10,
+    paddingBottom: 30,
+  },
+  cardContainer: {
+    width: cardWidth,
+    marginBottom: 20,
   },
   officerCard: {
-    backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 20,
     overflow: 'hidden',
+    height: 480,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#374151',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  keyClubLogo: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 30,
+    height: 30,
+    opacity: 0.8,
+    zIndex: 10,
+  },
+  cardBackground: {
+    width: '100%',
+    height: '100%',
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: '#2d3748', // Fallback color if image doesn't load
+  },
+  photoContainer: {
+    marginTop: 30,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    width: cardWidth - 40,
+    height: 200,
+    borderRadius: 15,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: '#fff',
   },
   officerImage: {
     width: '100%',
-    height: 150,
-    resizeMode: 'cover',
+    height: '100%',
   },
-  officerDetails: {
-    padding: 15,
+  nameContainer: {
+    marginBottom: 8,
   },
   officerName: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    textAlign: 'center',
   },
-  officerPosition: {
-    fontSize: 16,
-    color: '#59a2f0',
-    marginBottom: 5,
-  },
-  officerEmail: {
-    fontSize: 14,
-    color: '#0066cc',
-    marginBottom: 10,
-  },
-  officerBio: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-  },
-  contactSection: {
-    padding: 20,
-    backgroundColor: '#f8f9fa',
+  detailsContainer: {
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    marginTop: 5,
   },
-  contactTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+  classInfo: {
+    fontSize: 16,
+    color: '#e2e8f0',
+    textAlign: 'center',
   },
-  contactText: {
-    fontSize: 14,
-    color: '#666',
+  memberInfo: {
+    fontSize: 16,
+    color: '#e2e8f0',
     textAlign: 'center',
     marginBottom: 15,
+  },
+  funFactLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#f3f4f6',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  funFactText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    color: '#f3f4f6',
+    textAlign: 'center',
+    marginHorizontal: 10,
+  },
+  floralBorder: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    width: '100%',
+  },
+  positionContainer: {
+    position: 'absolute',
+    bottom: 25,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  positionText: {
+    backgroundColor: '#f8a3a3',
+    color: '#0d1b2a',
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    textAlign: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
