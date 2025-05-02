@@ -19,7 +19,7 @@ export default function OfficersScreen() {
   const officers = [
     {
       id: '1',
-      name: "Bella       Pham",
+      name: "Bella Pham",
       position: "President",
       classYear: "2026",
       memberYears: "3",
