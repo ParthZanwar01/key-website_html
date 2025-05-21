@@ -5,7 +5,6 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -17,19 +16,26 @@ import axios from 'axios';
 // Google Sheets API endpoint
 const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/25c69fca-a42a-4e8e-a5a7-0e0a7622f7f0';
 
-export default function StudentVerificationScreen({ navigation }) {
+export default function StudentVerificationScreen(props) {
+  const { navigation } = props;
   const [sNumber, setSNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleVerification = async () => {
+    // Reset state
+    setErrorMessage('');
+    setIsSuccess(false);
+    
     // Input validation
     if (!sNumber.trim()) {
-      Alert.alert('Missing Information', 'Please enter your S-Number.');
+      setErrorMessage('Please enter your S-Number.');
       return;
     }
 
     if (!sNumber.toLowerCase().startsWith('s')) {
-      Alert.alert('Invalid S-Number', 'Please enter a valid S-Number starting with "s" (e.g., s150712).');
+      setErrorMessage('Please enter a valid S-Number starting with "s" (e.g., s150712).');
       return;
     }
 
@@ -45,39 +51,34 @@ export default function StudentVerificationScreen({ navigation }) {
       );
       
       if (!studentInSheet) {
-        Alert.alert(
-          'Not Found', 
-          'Your S-Number was not found in our system. Please contact your Key Club sponsor to be added to the roster.'
-        );
+        setErrorMessage('Your S-Number was not found in our system. Please contact your Key Club sponsor to be added to the roster.');
         setLoading(false);
         return;
       }
       
       // Check if student has already set up an account (has a password)
       if (studentInSheet.password) {
-        Alert.alert(
-          'Account Exists', 
-          'An account with this S-Number already exists. Please go to the login page.',
-          [
-            { 
-              text: 'Go to Login', 
-              onPress: () => navigation.navigate('StudentLogin') 
-            }
-          ]
-        );
+        setIsSuccess(true);
+        setErrorMessage('An account with this S-Number already exists. Please go to the login page.');
+        setTimeout(() => {
+          navigation.navigate('StudentLogin');
+        }, 2000);
       } else {
+        // Make sure we're sending a proper name value (empty string if undefined)
+        const studentData = {
+          ...studentInSheet,
+          name: studentInSheet.name || ""
+        };
+        
         // Student exists but doesn't have a password - proceed to account creation
         navigation.navigate('StudentAccountCreation', { 
           sNumber: sNumber,
-          studentData: studentInSheet 
+          studentData: studentData 
         });
       }
     } catch (error) {
       console.error('Verification error:', error);
-      Alert.alert(
-        'Connection Error',
-        'Could not connect to the student database. Please check your internet connection and try again.'
-      );
+      setErrorMessage('Could not connect to the student database. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -94,6 +95,12 @@ export default function StudentVerificationScreen({ navigation }) {
             <Text style={styles.title}>Student Verification</Text>
             <Text style={styles.subtitle}>Enter your S-Number to get started</Text>
             
+            {errorMessage ? (
+              <View style={[styles.messageContainer, isSuccess === true ? styles.successMessage : styles.errorMessage]}>
+                <Text style={styles.messageText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+            
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Student ID Number</Text>
               <TextInput
@@ -108,11 +115,11 @@ export default function StudentVerificationScreen({ navigation }) {
             </View>
             
             <TouchableOpacity 
-              style={[styles.button, loading && styles.disabledButton]} 
+              style={[styles.button, loading === true && styles.disabledButton]} 
               onPress={handleVerification} 
-              disabled={loading}
+              disabled={loading === true}
             >
-              {loading ? (
+              {loading === true ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <Text style={styles.buttonText}>Verify</Text>
@@ -170,6 +177,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 24,
+    textAlign: 'center',
+  },
+  messageContainer: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  errorMessage: {
+    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+  },
+  successMessage: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: '#c8e6c9',
+  },
+  messageText: {
+    fontSize: 14,
     textAlign: 'center',
   },
   inputContainer: {

@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -14,33 +13,65 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// No need for AuthContext since we're not auto-logging in
 
 // Google Sheets API endpoint
 const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/25c69fca-a42a-4e8e-a5a7-0e0a7622f7f0';
 
-export default function StudentAccountCreationScreen({ route, navigation }) {
-  const { sNumber, studentData } = route.params;
+export default function StudentAccountCreationScreen(props) {
+  const { route, navigation } = props;
+  const params = route?.params || {}; // Use optional chaining
+  const sNumber = params.sNumber || '';
+  const studentData = params.studentData || {};
   
+  // Use an empty string as a fallback instead of undefined
   const [name, setName] = useState(studentData.name || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [redirectTimer, setRedirectTimer] = useState(null);
+
+  // Check if we have valid data
+  useEffect(() => {
+    if (!sNumber) {
+      setErrorMessage('Missing student information. Please try the verification process again.');
+      // Navigate back to verification after a delay
+      const timer = setTimeout(() => {
+        navigation.navigate('StudentVerification');
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [sNumber, navigation]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+    };
+  }, [redirectTimer]);
 
   const handleCreateAccount = async () => {
+    // Reset state
+    setErrorMessage('');
+    setSuccessMessage('');
+    
     // Input validation
     if (!name.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Missing Information', 'Please fill out all fields.');
+      setErrorMessage('Please fill out all fields.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match. Please try again.');
+      setErrorMessage('Passwords do not match. Please try again.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Weak Password', 'Password should be at least 6 characters long.');
+      setErrorMessage('Password should be at least 6 characters long.');
       return;
     }
 
@@ -55,7 +86,7 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
       );
       
       if (rowIndex === -1) {
-        Alert.alert('Error', 'Student record not found.');
+        setErrorMessage('Student record not found.');
         setLoading(false);
         return;
       }
@@ -67,26 +98,25 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
         lastLogin: new Date().toISOString()
       });
       
-      // Instead of auto-login, redirect to login screen
-      Alert.alert(
-        'Account Created', 
-        'Your account has been successfully created! Please log in with your credentials.',
-        [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              // Navigate to the login screen
-              navigation.navigate('StudentLogin');
-            }
-          }
-        ]
-      );
+      // Display success message
+      setSuccessMessage('Your account has been successfully created! Redirecting you to the login page...');
+      
+      // Set a timer to redirect to login
+      const timer = setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [
+            { name: 'Landing' },
+            { name: 'StudentLogin' }
+          ],
+        });
+      }, 3000);
+      
+      setRedirectTimer(timer);
+      
     } catch (error) {
       console.error('Account creation error:', error);
-      Alert.alert(
-        'Error',
-        'Could not create your account. Please try again later.'
-      );
+      setErrorMessage('Could not create your account. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -103,6 +133,18 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
             <Text style={styles.title}>Create Your Account</Text>
             <Text style={styles.subtitle}>Complete your Key Club account setup</Text>
             
+            {errorMessage ? (
+              <View style={[styles.messageContainer, styles.errorMessage]}>
+                <Text style={styles.messageText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+            
+            {successMessage ? (
+              <View style={[styles.messageContainer, styles.successMessage]}>
+                <Text style={styles.messageText}>{successMessage}</Text>
+              </View>
+            ) : null}
+            
             <View style={styles.sNumberDisplay}>
               <Text style={styles.sNumberLabel}>Student ID:</Text>
               <Text style={styles.sNumberValue}>{sNumber}</Text>
@@ -115,6 +157,7 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
                 value={name}
                 onChangeText={setName}
                 style={styles.input}
+                editable={!loading && !successMessage}
               />
             </View>
             
@@ -126,6 +169,7 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
                 onChangeText={setPassword}
                 style={styles.input}
                 secureTextEntry
+                editable={!loading && !successMessage}
               />
             </View>
             
@@ -137,28 +181,33 @@ export default function StudentAccountCreationScreen({ route, navigation }) {
                 onChangeText={setConfirmPassword}
                 style={styles.input}
                 secureTextEntry
+                editable={!loading && !successMessage}
               />
             </View>
             
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.disabledButton]} 
-              onPress={handleCreateAccount} 
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => navigation.goBack()}
-              disabled={loading}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+            {!successMessage && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.button, (loading || Boolean(successMessage)) && styles.disabledButton]} 
+                  onPress={handleCreateAccount} 
+                  disabled={loading || Boolean(successMessage)}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.buttonText}>Create Account</Text>
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.cancelButton}
+                  onPress={() => navigation.goBack()}
+                  disabled={loading || Boolean(successMessage)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -200,6 +249,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 24,
+    textAlign: 'center',
+  },
+  messageContainer: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  errorMessage: {
+    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+  },
+  successMessage: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: '#c8e6c9',
+  },
+  messageText: {
+    fontSize: 14,
     textAlign: 'center',
   },
   sNumberDisplay: {
