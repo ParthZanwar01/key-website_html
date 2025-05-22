@@ -1,6 +1,9 @@
 [build]
-  command = "npm install && npx expo export:web"
+  command = "npm install && npx expo export --platform web --output-dir dist"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
 
 [[redirects]]
   from = "/*"
