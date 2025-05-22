@@ -32,7 +32,8 @@
     },
     "web": {
       "favicon": "./assets/images/keyclublogo.png",
-      "serviceWorker": false
+      "serviceWorker": false,
+      "bundler": "metro"
     }
   }
 }
