@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 
 // Google Sheets API endpoint
-const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/82b6e8aa-1a12-44ea-8e86-0af7ae875d96';
+const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/216a1c49-0ea0-48d4-be6d-d9245fd7896e';
 
 export default function StudentVerificationScreen(props) {
   const { navigation } = props;
