@@ -12,12 +12,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function EventDeletionScreen({ navigation }) {
   const { events, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState({});
+  
+  // State for confirmation dialogs
+  const [confirmDialog, setConfirmDialog] = useState({
+    visible: false,
+    type: 'single', // 'single' or 'multiple'
+    eventId: null,
+    eventTitle: '',
+    count: 0
+  });
   
   // Check if user is admin
   useEffect(() => {
@@ -59,7 +69,7 @@ export default function EventDeletionScreen({ navigation }) {
     }
   };
   
-  // Delete multiple events - no confirmation alerts
+  // Delete multiple events
   const deleteSelectedEvents = async () => {
     const selectedIds = Object.keys(selectedEvents).filter(id => selectedEvents[id]);
     
@@ -144,14 +154,43 @@ export default function EventDeletionScreen({ navigation }) {
   
   // Handle direct delete of a single event
   const handleSingleDelete = async (eventId) => {
+    const eventToDelete = events.find(e => e.id === eventId);
+    setConfirmDialog({
+      visible: true,
+      type: 'single',
+      eventId: eventId,
+      eventTitle: eventToDelete ? eventToDelete.title : 'this event',
+      count: 1
+    });
+  };
+
+  // Handle multiple delete
+  const handleMultipleDelete = () => {
+    const selectedIds = Object.keys(selectedEvents).filter(id => selectedEvents[id]);
+    setConfirmDialog({
+      visible: true,
+      type: 'multiple',
+      eventId: null,
+      eventTitle: '',
+      count: selectedIds.length
+    });
+  };
+
+  // Confirm deletion
+  const confirmDeletion = async () => {
+    setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 });
     setLoading(true);
     
     try {
-      await deleteEventDirectly(eventId);
-      await refreshEvents();
-      navigation.navigate('CalendarMain');
+      if (confirmDialog.type === 'single') {
+        await deleteEventDirectly(confirmDialog.eventId);
+        await refreshEvents();
+        navigation.navigate('CalendarMain');
+      } else {
+        await deleteSelectedEvents();
+      }
     } catch (error) {
-      console.error('Error deleting event:', error);
+      console.error('Error deleting event(s):', error);
     } finally {
       setLoading(false);
     }
@@ -215,6 +254,8 @@ export default function EventDeletionScreen({ navigation }) {
     </View>
   );
 
+  const selectedCount = Object.values(selectedEvents).filter(Boolean).length;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -228,16 +269,14 @@ export default function EventDeletionScreen({ navigation }) {
         <TouchableOpacity 
           style={[
             styles.deleteButton,
-            (loading || Object.values(selectedEvents).filter(Boolean).length === 0) && 
-            styles.disabledButton
+            (loading || selectedCount === 0) && styles.disabledButton
           ]}
-          onPress={deleteSelectedEvents}
-          disabled={loading || Object.values(selectedEvents).filter(Boolean).length === 0}
+          onPress={handleMultipleDelete}
+          disabled={loading || selectedCount === 0}
         >
           <Text style={[
             styles.deleteButtonText,
-            (loading || Object.values(selectedEvents).filter(Boolean).length === 0) && 
-            styles.disabledButtonText
+            (loading || selectedCount === 0) && styles.disabledButtonText
           ]}>
             Delete
           </Text>
@@ -283,9 +322,9 @@ export default function EventDeletionScreen({ navigation }) {
       
       <View style={styles.footer}>
         <Text style={styles.selectionInfo}>
-          {Object.values(selectedEvents).filter(Boolean).length} events selected
+          {selectedCount} events selected
         </Text>
-        {Object.values(selectedEvents).filter(Boolean).length > 0 && (
+        {selectedCount > 0 && (
           <TouchableOpacity 
             style={styles.clearButton}
             onPress={() => setSelectedEvents({})}
@@ -294,6 +333,23 @@ export default function EventDeletionScreen({ navigation }) {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        visible={confirmDialog.visible}
+        title="Delete Events"
+        message={
+          confirmDialog.type === 'single' 
+            ? `Are you sure you want to delete "${confirmDialog.eventTitle}"? This action cannot be undone.`
+            : `Are you sure you want to delete ${confirmDialog.count} events? This action cannot be undone.`
+        }
+        onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
+        onConfirm={confirmDeletion}
+        cancelText="Cancel"
+        confirmText="Delete"
+        destructive={true}
+        icon="trash-outline"
+      />
     </SafeAreaView>
   );
 }

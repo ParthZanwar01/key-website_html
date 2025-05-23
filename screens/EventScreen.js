@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   FlatList,
@@ -17,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 // Standalone delete function that doesn't rely on the EventsContext
 const directDeleteEvent = async (eventId, navigation) => {
@@ -91,110 +91,120 @@ export default function EventScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // State for confirmation dialogs
+  const [deleteDialog, setDeleteDialog] = useState({ visible: false });
+  const [signupDialog, setSignupDialog] = useState({ visible: false, message: '', isError: false });
+  const [errorDialog, setErrorDialog] = useState({ visible: false, message: '' });
+  const [successDialog, setSuccessDialog] = useState({ visible: false, message: '' });
+
   useEffect(() => {
     const eventData = getEventById(eventId);
     if (eventData) {
       setEvent(eventData);
     } else {
-      Alert.alert('Error', 'Event not found');
-      navigation.goBack();
+      setErrorDialog({ 
+        visible: true, 
+        message: 'Event not found' 
+      });
     }
   }, [eventId, getEventById, navigation]);
 
   // Enhanced delete handler with fallbacks for different navigation strategies
   const handleDeleteEvent = () => {
     console.log('Delete button clicked');
+    setDeleteDialog({ visible: true });
+  };
+
+  const confirmDelete = async () => {
+    console.log('Delete confirmed');
+    setDeleteDialog({ visible: false });
+    setDeleting(true);
     
-    Alert.alert(
-      'Delete Event',
-      'Are you sure you want to delete this event?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => console.log('Delete cancelled')
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Delete confirmed');
-            setDeleting(true);
+    // Check navigation options before deleting
+    checkNavigationRoutes(navigation);
+    
+    // First try the direct delete approach
+    const success = await directDeleteEvent(eventId, navigation);
+    
+    if (success) {
+      console.log('Delete succeeded, trying navigation');
+      
+      // Try different navigation targets
+      try {
+        // Method 1: Try to navigate to the CalendarMain screen
+        console.log('Trying navigation to CalendarMain');
+        navigation.navigate('CalendarMain');
+      } catch (e1) {
+        console.log('Method 1 failed:', e1.message);
+        
+        try {
+          // Method 2: Try to navigate to the Calendar tab
+          console.log('Trying navigation to Calendar tab');
+          navigation.navigate('Calendar');
+        } catch (e2) {
+          console.log('Method 2 failed:', e2.message);
+          
+          try {
+            // Method 3: Try to go back to previous screen
+            console.log('Trying navigation goBack()');
+            navigation.goBack();
+          } catch (e3) {
+            console.log('Method 3 failed:', e3.message);
             
-            // Check navigation options before deleting
-            checkNavigationRoutes(navigation);
-            
-            // First try the direct delete approach
-            const success = await directDeleteEvent(eventId, navigation);
-            
-            if (success) {
-              console.log('Delete succeeded, trying navigation');
-              
-              // Try different navigation targets
-              try {
-                // Method 1: Try to navigate to the CalendarMain screen
-                console.log('Trying navigation to CalendarMain');
-                navigation.navigate('CalendarMain');
-              } catch (e1) {
-                console.log('Method 1 failed:', e1.message);
-                
-                try {
-                  // Method 2: Try to navigate to the Calendar tab
-                  console.log('Trying navigation to Calendar tab');
-                  navigation.navigate('Calendar');
-                } catch (e2) {
-                  console.log('Method 2 failed:', e2.message);
-                  
-                  try {
-                    // Method 3: Try to go back to previous screen
-                    console.log('Trying navigation goBack()');
-                    navigation.goBack();
-                  } catch (e3) {
-                    console.log('Method 3 failed:', e3.message);
-                    
-                    // Final fallback
-                    console.log('Using reset as last resort');
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: 'Main' }],
-                    });
-                  }
-                }
-              }
-              
-              // Show success message after a delay
-              setTimeout(() => {
-                Alert.alert('Success', 'Event deleted successfully');
-              }, 500);
-              
-              // Also refresh the events context
-              refreshEvents();
-            } else {
-              console.log('Delete failed');
-              setDeleting(false);
-              Alert.alert('Error', 'Failed to delete event');
-            }
+            // Final fallback
+            console.log('Using reset as last resort');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Main' }],
+            });
           }
         }
-      ]
-    );
+      }
+      
+      // Show success message after a delay
+      setTimeout(() => {
+        setSuccessDialog({
+          visible: true,
+          message: 'Event deleted successfully'
+        });
+      }, 500);
+      
+      // Also refresh the events context
+      refreshEvents();
+    } else {
+      console.log('Delete failed');
+      setDeleting(false);
+      setErrorDialog({
+        visible: true,
+        message: 'Failed to delete event'
+      });
+    }
   };
 
   const handleSignup = () => {
     if (!name.trim() || !email.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorDialog({
+        visible: true,
+        message: 'Please fill in all fields'
+      });
       return;
     }
 
     // Check if capacity reached
     if (event.attendees.length >= event.capacity) {
-      Alert.alert('Error', 'This event has reached its capacity');
+      setErrorDialog({
+        visible: true,
+        message: 'This event has reached its capacity'
+      });
       return;
     }
 
     // Check if already registered
     if (event.attendees.some(attendee => attendee.email === email)) {
-      Alert.alert('Error', 'You are already registered for this event');
+      setErrorDialog({
+        visible: true,
+        message: 'You are already registered for this event'
+      });
       return;
     }
 
@@ -202,13 +212,15 @@ export default function EventScreen({ route, navigation }) {
     try {
       setLoading(true);
       signupForEvent(eventId, { name, email });
-      Alert.alert(
-        'Success', 
-        'You have successfully signed up for this event!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      setSuccessDialog({
+        visible: true,
+        message: 'You have successfully signed up for this event!'
+      });
     } catch (err) {
-      Alert.alert('Error', 'Failed to sign up for event');
+      setErrorDialog({
+        visible: true,
+        message: 'Failed to sign up for event'
+      });
     } finally {
       setLoading(false);
     }
@@ -225,6 +237,24 @@ export default function EventScreen({ route, navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <Text>Loading event...</Text>
+        
+        {/* Error dialog for event not found */}
+        <ConfirmationDialog
+          visible={errorDialog.visible}
+          title="Error"
+          message={errorDialog.message}
+          onCancel={() => {
+            setErrorDialog({ visible: false, message: '' });
+            navigation.goBack();
+          }}
+          onConfirm={() => {
+            setErrorDialog({ visible: false, message: '' });
+            navigation.goBack();
+          }}
+          cancelText=""
+          confirmText="OK"
+          icon="alert-circle"
+        />
       </View>
     );
   }
@@ -414,6 +444,50 @@ export default function EventScreen({ route, navigation }) {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        visible={deleteDialog.visible}
+        title="Delete Event"
+        message={`Are you sure you want to delete "${event.title}"? This action cannot be undone.`}
+        onCancel={() => setDeleteDialog({ visible: false })}
+        onConfirm={confirmDelete}
+        cancelText="Cancel"
+        confirmText="Delete"
+        destructive={true}
+        icon="trash-outline"
+      />
+
+      {/* Error Dialog */}
+      <ConfirmationDialog
+        visible={errorDialog.visible}
+        title="Error"
+        message={errorDialog.message}
+        onCancel={() => setErrorDialog({ visible: false, message: '' })}
+        onConfirm={() => setErrorDialog({ visible: false, message: '' })}
+        cancelText=""
+        confirmText="OK"
+        icon="alert-circle"
+      />
+
+      {/* Success Dialog */}
+      <ConfirmationDialog
+        visible={successDialog.visible}
+        title="Success"
+        message={successDialog.message}
+        onCancel={() => {
+          setSuccessDialog({ visible: false, message: '' });
+          navigation.goBack();
+        }}
+        onConfirm={() => {
+          setSuccessDialog({ visible: false, message: '' });
+          navigation.goBack();
+        }}
+        cancelText=""
+        confirmText="OK"
+        icon="checkmark-circle"
+        iconColor="#4CAF50"
+      />
     </SafeAreaView>
   );
 }

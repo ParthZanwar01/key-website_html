@@ -5,13 +5,13 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   FlatList,
-  Alert,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function CalendarScreen({ navigation, route }) {
   const { events, deleteEvent } = useEvents();
@@ -26,6 +26,13 @@ export default function CalendarScreen({ navigation, route }) {
     x: 0,
     y: 0,
     eventId: null
+  });
+  
+  // State for confirmation dialog
+  const [confirmDialog, setConfirmDialog] = useState({
+    visible: false,
+    eventId: null,
+    eventTitle: ''
   });
   
   // Listen for focus events to refresh the calendar when navigating back
@@ -120,36 +127,36 @@ export default function CalendarScreen({ navigation, route }) {
         navigation.navigate('AttendeeList', { eventId });
         break;
       case 'delete':
-        Alert.alert(
-          'Confirm Delete',
-          'Are you sure you want to delete this event? This action cannot be undone.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel'
-            },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: () => {
-                try {
-                  // Delete the event
-                  deleteEvent(eventId);
-                  
-                  // Force refresh the calendar by updating the refresh key
-                  setRefreshKey(prev => prev + 1);
-                  
-                  // Show success message
-                  Alert.alert('Success', 'Event deleted successfully');
-                } catch (error) {
-                  console.error('Error deleting event:', error);
-                  Alert.alert('Error', 'Failed to delete event. Please try again.');
-                }
-              }
-            }
-          ]
-        );
+        // Find the event to get its title
+        const eventToDelete = events.find(e => e.id === eventId);
+        setConfirmDialog({
+          visible: true,
+          eventId: eventId,
+          eventTitle: eventToDelete ? eventToDelete.title : 'this event'
+        });
         break;
+    }
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    const eventId = confirmDialog.eventId;
+    
+    // Close dialog
+    setConfirmDialog({ visible: false, eventId: null, eventTitle: '' });
+    
+    try {
+      // Delete the event
+      await deleteEvent(eventId);
+      
+      // Force refresh the calendar by updating the refresh key
+      setRefreshKey(prev => prev + 1);
+      
+      // Show success message - you could add another dialog for this or use a toast
+      console.log('Event deleted successfully');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      // You could show an error dialog here if needed
     }
   };
 
@@ -290,6 +297,19 @@ export default function CalendarScreen({ navigation, route }) {
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Confirmation Dialog */}
+        <ConfirmationDialog
+          visible={confirmDialog.visible}
+          title="Delete Event"
+          message={`Are you sure you want to delete "${confirmDialog.eventTitle}"? This action cannot be undone.`}
+          onCancel={() => setConfirmDialog({ visible: false, eventId: null, eventTitle: '' })}
+          onConfirm={handleDeleteConfirm}
+          cancelText="Cancel"
+          confirmText="Delete"
+          destructive={true}
+          icon="trash-outline"
+        />
       </View>
     </SafeAreaView>
   );
