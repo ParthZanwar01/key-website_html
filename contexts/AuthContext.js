@@ -15,41 +15,61 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for authentication on load
+  // Enhanced authentication check that handles web refreshes better
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Get stored user data
-        const userData = await AsyncStorage.getItem('user');
+        // For web, also check localStorage as fallback
+        let userData;
+        
+        try {
+          userData = await AsyncStorage.getItem('user');
+        } catch (asyncStorageError) {
+          // If AsyncStorage fails (common on web), try localStorage directly
+          if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+            userData = window.localStorage.getItem('user');
+          }
+        }
         
         if (userData) {
           const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
+          console.log("Found stored user data:", parsedUser);
           
-          // Check if the user is an admin
-          if (parsedUser.sNumber === 'admin') {
-            console.log("This user is an ADMIN");
-            setIsAuthenticated(true);
-            setIsAdmin(true);
-          } 
-          // Check if the user is a student (by S-number)
-          else if (parsedUser.sNumber && parsedUser.sNumber.startsWith('s')) {
-            console.log("This user is a STUDENT");
-            setIsAuthenticated(true);
-            setIsAdmin(false);
-          } 
-          // Not a valid user type, sign out
-          else {
-            console.log("Invalid user type - signing out");
-            await logout();
+          // Validate the stored user data
+          if (parsedUser && (parsedUser.sNumber || parsedUser.role)) {
+            setUser(parsedUser);
+            
+            // Check if the user is an admin
+            if (parsedUser.sNumber === 'admin' || parsedUser.role === 'admin') {
+              console.log("Restoring admin session");
+              setIsAuthenticated(true);
+              setIsAdmin(true);
+            } 
+            // Check if the user is a student (by S-number)
+            else if (parsedUser.sNumber && parsedUser.sNumber.startsWith('s')) {
+              console.log("Restoring student session");
+              setIsAuthenticated(true);
+              setIsAdmin(false);
+            } 
+            // Invalid user data
+            else {
+              console.log("Invalid stored user data - clearing");
+              await clearAuthData();
+            }
+          } else {
+            console.log("Invalid user data structure - clearing");
+            await clearAuthData();
           }
         } else {
-          console.log("No user signed in");
+          console.log("No stored authentication found");
           setIsAuthenticated(false);
           setIsAdmin(false);
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
+        // On error, clear any potentially corrupted auth data
+        await clearAuthData();
       } finally {
         setLoading(false);
       }
@@ -57,6 +77,41 @@ export function AuthProvider({ children }) {
     
     checkAuth();
   }, []);
+
+  // Helper function to clear auth data from both storage methods
+  const clearAuthData = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+    } catch (e) {
+      console.log("AsyncStorage clear failed:", e);
+    }
+    
+    // Also clear from localStorage on web
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('user');
+    }
+    
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+  };
+
+  // Enhanced storage function that works on both native and web
+  const storeUserData = async (userData) => {
+    const userDataString = JSON.stringify(userData);
+    
+    try {
+      await AsyncStorage.setItem('user', userDataString);
+    } catch (asyncError) {
+      console.log("AsyncStorage failed, trying localStorage:", asyncError);
+      // If AsyncStorage fails, try localStorage for web
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('user', userDataString);
+      } else {
+        throw asyncError;
+      }
+    }
+  };
 
   // Login as admin
   const loginAsAdmin = async (email, password) => {
@@ -66,16 +121,16 @@ export function AuthProvider({ children }) {
       if (email === 'admin@example.com') {
         try {
           // Simple check for admin credentials
-          // In a real app, you would verify against secure storage
           if (password === 'password') {
             const adminUser = {
               sNumber: 'admin',
               name: 'Admin User',
-              role: 'admin'
+              role: 'admin',
+              loginTime: new Date().toISOString()
             };
             
-            // Store user data
-            await AsyncStorage.setItem('user', JSON.stringify(adminUser));
+            // Store user data using enhanced storage
+            await storeUserData(adminUser);
             
             // Update state
             setUser(adminUser);
@@ -135,11 +190,12 @@ export function AuthProvider({ children }) {
                 sNumber: studentInSheet.sNumber,
                 name: studentInSheet.name || sNumber,
                 role: 'student',
-                id: studentInSheet.id || Date.now().toString()
+                id: studentInSheet.id || Date.now().toString(),
+                loginTime: new Date().toISOString()
               };
               
-              // Store user data
-              await AsyncStorage.setItem('user', JSON.stringify(studentUser));
+              // Store user data using enhanced storage
+              await storeUserData(studentUser);
               
               // Update state
               setUser(studentUser);
@@ -177,11 +233,12 @@ export function AuthProvider({ children }) {
                 sNumber: studentInSheet.sNumber,
                 name: studentInSheet.name || sNumber,
                 role: 'student',
-                id: studentInSheet.id || Date.now().toString()
+                id: studentInSheet.id || Date.now().toString(),
+                loginTime: new Date().toISOString()
               };
               
-              // Store user data
-              await AsyncStorage.setItem('user', JSON.stringify(newStudentUser));
+              // Store user data using enhanced storage
+              await storeUserData(newStudentUser);
               
               // Update state
               setUser(newStudentUser);
@@ -218,25 +275,25 @@ export function AuthProvider({ children }) {
     try {
       console.log("Logging out user");
       
-      // Clear stored user data
-      await AsyncStorage.removeItem('user');
-      
-      // Reset state
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
+      // Clear stored user data from both storage methods
+      await clearAuthData();
       
       console.log("User logged out");
       return true;
     } catch (error) {
       console.error('Logout error:', error);
+      // Still clear the state even if storage clearing fails
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
       return false;
     }
   };
 
+  // Show loading component while checking authentication
   if (loading) {
-    // Return a loading state if needed
-    return null; // or a loading component
+    // You can customize this loading component
+    return null; // or return a loading spinner component
   }
 
   return (
@@ -248,6 +305,7 @@ export function AuthProvider({ children }) {
         loginAsAdmin,
         loginAsStudent,
         logout,
+        loading,
       }}
     >
       {children}

@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -20,7 +20,6 @@ import AttendeeListScreen from '../screens/AttendeeListScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ContactScreen from '../screens/ContactScreen';
-// Removed CheckInScreen import
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -28,7 +27,6 @@ const Tab = createBottomTabNavigator();
 function CalendarStack({ navigation }) {
   const { logout } = useAuth();
   
-  // Update logout handler function in AppNavigator.js
   const handleLogout = async () => {
     try {
       const success = await logout();
@@ -200,20 +198,47 @@ function MainTabNavigator({ navigation }) {
           }}
         />
       )}
-      {/* Removed CheckIn tab completely */}
     </Tab.Navigator>
   );
 }
 
+// Loading component
+function LoadingScreen() {
+  return (
+    <View style={{ 
+      flex: 1, 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      backgroundColor: '#94cfec' 
+    }}>
+      <ActivityIndicator size="large" color="#59a2f0" />
+    </View>
+  );
+}
+
 export default function AppNavigator() {
+  const { isAuthenticated, loading } = useAuth();
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Landing" component={LandingScreen} />
-      <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
-      <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
-      <Stack.Screen name="StudentVerification" component={StudentVerificationScreen} />
-      <Stack.Screen name="StudentAccountCreation" component={StudentAccountCreationScreen} />
-      <Stack.Screen name="Main" component={MainTabNavigator} />
+      {isAuthenticated ? (
+        // User is authenticated - show main app
+        <Stack.Screen name="Main" component={MainTabNavigator} />
+      ) : (
+        // User is not authenticated - show auth screens
+        <>
+          <Stack.Screen name="Landing" component={LandingScreen} />
+          <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
+          <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
+          <Stack.Screen name="StudentVerification" component={StudentVerificationScreen} />
+          <Stack.Screen name="StudentAccountCreation" component={StudentAccountCreationScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
