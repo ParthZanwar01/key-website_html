@@ -15,7 +15,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Google Sheets API endpoint
-const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/25c69fca-a42a-4e8e-a5a7-0e0a7622f7f0';
+const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/216a1c49-0ea0-48d4-be6d-d9245fd7896e';
 
 export default function StudentAccountCreationScreen(props) {
   const { route, navigation } = props;
