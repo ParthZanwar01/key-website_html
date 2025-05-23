@@ -8,201 +8,145 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function EventDeletionScreen({ navigation }) {
-  const { events, refreshEvents } = useEvents();
+  const { events, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState({});
-  
-  // State for confirmation dialogs
+
   const [confirmDialog, setConfirmDialog] = useState({
     visible: false,
-    type: 'single', // 'single' or 'multiple'
+    type: 'single',
     eventId: null,
     eventTitle: '',
     count: 0
   });
-  
-  // Check if user is admin
+
+  const [messageDialog, setMessageDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    isError: false
+  });
+
   useEffect(() => {
     if (!isAdmin) {
       navigation.goBack();
     }
-  }, [isAdmin, navigation]);
-  
-  // Load events
+  }, [isAdmin]);
+
   useEffect(() => {
     refreshEvents();
-  }, [refreshEvents]);
-  
-  // Direct delete function - no alerts or confirmations
-  const deleteEventDirectly = async (eventId) => {
-    try {
-      console.log('Directly deleting event:', eventId);
-      
-      // Get current events from storage
-      const storedEventsJson = await AsyncStorage.getItem('events');
-      if (!storedEventsJson) {
-        console.log('No events in storage');
-        return false;
-      }
-      
-      const storedEvents = JSON.parse(storedEventsJson);
-      
-      // Filter out the event to delete
-      const updatedEvents = storedEvents.filter(event => String(event.id) !== String(eventId));
-      
-      // Save the updated events back to storage
-      await AsyncStorage.setItem('events', JSON.stringify(updatedEvents));
-      console.log(`Event ${eventId} deleted successfully`);
-      
-      return true;
-    } catch (error) {
-      console.error('Error in direct event deletion:', error);
-      return false;
-    }
-  };
-  
-  // Delete multiple events
+  }, []);
+
   const deleteSelectedEvents = async () => {
     const selectedIds = Object.keys(selectedEvents).filter(id => selectedEvents[id]);
-    
-    if (selectedIds.length === 0) {
-      return;
-    }
-    
+    if (selectedIds.length === 0) return;
+
     setLoading(true);
-    
-    try {
-      let successCount = 0;
-      
-      for (const eventId of selectedIds) {
-        const success = await deleteEventDirectly(eventId);
-        if (success) {
-          successCount++;
-        }
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const id of selectedIds) {
+      try {
+        await deleteEvent(id);
+        successCount++;
+      } catch (e) {
+        console.error(`Failed to delete ${id}`, e);
+        errorCount++;
       }
-      
-      // Clear selection
-      setSelectedEvents({});
-      
-      // Refresh events
-      await refreshEvents();
-      
-      // If any events were deleted, return to calendar screen
-      if (successCount > 0) {
-        navigation.navigate('CalendarMain');
-      }
-    } catch (error) {
-      console.error('Error in batch deletion:', error);
-    } finally {
-      setLoading(false);
     }
-  };
-  
-  // Toggle selection of an event
-  const toggleEventSelection = (eventId) => {
-    setSelectedEvents(prev => ({
-      ...prev,
-      [eventId]: !prev[eventId]
-    }));
-  };
-  
-  // Group events into upcoming and past
-  const upcomingEvents = events.filter(event => {
-    const eventDate = new Date(event.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return eventDate >= today;
-  }).sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-  const pastEvents = events.filter(event => {
-    const eventDate = new Date(event.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return eventDate < today;
-  }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  // Select all events in a section
-  const selectAllInSection = (section) => {
-    const newSelection = { ...selectedEvents };
-    const eventsToSelect = section === 'upcoming' ? upcomingEvents : pastEvents;
-    
-    eventsToSelect.forEach(event => {
-      newSelection[event.id] = true;
+
+    setSelectedEvents({});
+    await refreshEvents();
+
+    setMessageDialog({
+      visible: true,
+      title: errorCount ? 'Partial Success' : 'Success',
+      message: errorCount
+        ? `Deleted ${successCount}, failed ${errorCount}`
+        : `Deleted ${successCount} successfully`,
+      isError: !!errorCount
     });
-    
-    setSelectedEvents(newSelection);
+
+    if (!errorCount) {
+      setTimeout(() => navigation.navigate('CalendarMain'), 1500);
+    }
+
+    setLoading(false);
   };
-  
-  // Format date for display
-  const formatEventDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+
+  const toggleEventSelection = id => {
+    setSelectedEvents(prev => ({ ...prev, [id]: !prev[id] }));
   };
-  
-  // Handle direct delete of a single event
-  const handleSingleDelete = async (eventId) => {
-    const eventToDelete = events.find(e => e.id === eventId);
+
+  const upcomingEvents = events.filter(e => new Date(e.date) >= new Date().setHours(0, 0, 0, 0));
+  const pastEvents = events.filter(e => new Date(e.date) < new Date().setHours(0, 0, 0, 0));
+
+  const selectAllInSection = section => {
+    const updated = { ...selectedEvents };
+    (section === 'upcoming' ? upcomingEvents : pastEvents).forEach(e => updated[e.id] = true);
+    setSelectedEvents(updated);
+  };
+
+  const formatEventDate = dateStr => new Date(dateStr).toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+  });
+
+  const handleSingleDelete = id => {
+    const evt = events.find(e => e.id === id);
     setConfirmDialog({
       visible: true,
       type: 'single',
-      eventId: eventId,
-      eventTitle: eventToDelete ? eventToDelete.title : 'this event',
+      eventId: id,
+      eventTitle: evt?.title || 'this event',
       count: 1
     });
   };
 
-  // Handle multiple delete
   const handleMultipleDelete = () => {
-    const selectedIds = Object.keys(selectedEvents).filter(id => selectedEvents[id]);
-    setConfirmDialog({
-      visible: true,
-      type: 'multiple',
-      eventId: null,
-      eventTitle: '',
-      count: selectedIds.length
-    });
+    const count = Object.values(selectedEvents).filter(Boolean).length;
+    setConfirmDialog({ visible: true, type: 'multiple', count });
   };
 
-  // Confirm deletion
   const confirmDeletion = async () => {
     setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 });
     setLoading(true);
-    
     try {
       if (confirmDialog.type === 'single') {
-        await deleteEventDirectly(confirmDialog.eventId);
+        await deleteEvent(confirmDialog.eventId);
         await refreshEvents();
-        navigation.navigate('CalendarMain');
+        setMessageDialog({
+          visible: true,
+          title: 'Success',
+          message: 'Event deleted successfully',
+          isError: false
+        });
+        setTimeout(() => navigation.navigate('CalendarMain'), 1500);
       } else {
         await deleteSelectedEvents();
       }
-    } catch (error) {
-      console.error('Error deleting event(s):', error);
+    } catch (e) {
+      console.error(e);
+      setMessageDialog({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to delete event(s)',
+        isError: true
+      });
     } finally {
       setLoading(false);
     }
   };
-  
-  // Render each event item
+
   const renderEventItem = ({ item }) => (
     <TouchableOpacity
-      style={[
-        styles.eventItem,
-        selectedEvents[item.id] && styles.selectedEventItem
-      ]}
+      style={[styles.eventItem, selectedEvents[item.id] && styles.selectedEventItem]}
       onPress={() => toggleEventSelection(item.id)}
     >
       <View style={styles.eventItemContent}>
@@ -216,38 +160,24 @@ export default function EventDeletionScreen({ navigation }) {
             {item.attendees?.length || 0} / {item.capacity} attendees
           </Text>
         </View>
-        
         <View style={styles.actionButtons}>
-          {selectedEvents[item.id] ? (
-            <Ionicons name="checkmark-circle" size={24} color="#59a2f0" />
-          ) : (
-            <Ionicons name="ellipse-outline" size={24} color="#ccc" />
-          )}
-          
-          <TouchableOpacity
-            style={styles.deleteIconButton}
-            onPress={() => handleSingleDelete(item.id)}
-          >
+          <Ionicons name={selectedEvents[item.id] ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={selectedEvents[item.id] ? '#59a2f0' : '#ccc'} />
+          <TouchableOpacity style={styles.deleteIconButton} onPress={() => handleSingleDelete(item.id)}>
             <Ionicons name="trash-outline" size={20} color="#ff4d4d" />
           </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
   );
-  
-  // Section header component
+
   const SectionHeader = ({ title, count, section }) => (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleContainer}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <Text style={styles.sectionCount}>{count} events</Text>
       </View>
-      
       {count > 0 && (
-        <TouchableOpacity 
-          style={styles.selectAllButton}
-          onPress={() => selectAllInSection(section)}
-        >
+        <TouchableOpacity style={styles.selectAllButton} onPress={() => selectAllInSection(section)}>
           <Text style={styles.selectAllText}>Select All</Text>
         </TouchableOpacity>
       )}
@@ -259,96 +189,58 @@ export default function EventDeletionScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Events</Text>
-        <TouchableOpacity 
-          style={[
-            styles.deleteButton,
-            (loading || selectedCount === 0) && styles.disabledButton
-          ]}
+        <TouchableOpacity
+          style={[styles.deleteButton, (loading || selectedCount === 0) && styles.disabledButton]}
           onPress={handleMultipleDelete}
           disabled={loading || selectedCount === 0}
         >
-          <Text style={[
-            styles.deleteButtonText,
-            (loading || selectedCount === 0) && styles.disabledButtonText
-          ]}>
-            Delete
-          </Text>
+          <Text style={[styles.deleteButtonText, (loading || selectedCount === 0) && styles.disabledButtonText]}>Delete</Text>
         </TouchableOpacity>
       </View>
-      
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#59a2f0" />
-          <Text style={styles.loadingText}>Processing...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={[
-            { type: 'upcomingHeader' },
-            ...upcomingEvents.map(event => ({ type: 'event', ...event })),
-            { type: 'pastHeader' },
-            ...pastEvents.map(event => ({ type: 'event', ...event })),
-          ]}
-          renderItem={({ item }) => {
-            if (item.type === 'upcomingHeader') {
-              return <SectionHeader title="Upcoming Events" count={upcomingEvents.length} section="upcoming" />;
-            } else if (item.type === 'pastHeader') {
-              return <SectionHeader title="Past Events" count={pastEvents.length} section="past" />;
-            } else {
-              return renderEventItem({ item });
-            }
-          }}
-          keyExtractor={(item, index) => {
-            if (item.type === 'upcomingHeader') return 'upcoming-header';
-            if (item.type === 'pastHeader') return 'past-header';
-            return item.id;
-          }}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={60} color="#ccc" />
-              <Text style={styles.emptyText}>No events found</Text>
-            </View>
-          }
-          contentContainerStyle={styles.listContent}
-        />
-      )}
-      
-      <View style={styles.footer}>
-        <Text style={styles.selectionInfo}>
-          {selectedCount} events selected
-        </Text>
-        {selectedCount > 0 && (
-          <TouchableOpacity 
-            style={styles.clearButton}
-            onPress={() => setSelectedEvents({})}
-          >
-            <Text style={styles.clearButtonText}>Clear Selection</Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
-      {/* Confirmation Dialog */}
+      <FlatList
+        contentContainerStyle={styles.listContent}
+        data={[
+          { title: 'Upcoming Events', data: upcomingEvents, key: 'upcoming' },
+          { title: 'Past Events', data: pastEvents, key: 'past' }
+        ]}
+        renderItem={({ item }) => (
+          <View>
+            <SectionHeader title={item.title} count={item.data.length} section={item.key} />
+            {item.data.map(event => renderEventItem({ item: event }))}
+          </View>
+        )}
+        keyExtractor={(_, index) => index.toString()}
+      />
+
       <ConfirmationDialog
         visible={confirmDialog.visible}
-        title="Delete Events"
-        message={
-          confirmDialog.type === 'single' 
-            ? `Are you sure you want to delete "${confirmDialog.eventTitle}"? This action cannot be undone.`
-            : `Are you sure you want to delete ${confirmDialog.count} events? This action cannot be undone.`
-        }
+        title="Confirm Deletion"
+        message={confirmDialog.type === 'single'
+          ? `Delete ${confirmDialog.eventTitle}?`
+          : `Delete ${confirmDialog.count} selected events?`}
         onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
         onConfirm={confirmDeletion}
         cancelText="Cancel"
         confirmText="Delete"
-        destructive={true}
-        icon="trash-outline"
+        icon="alert-circle"
+        iconColor="#ff4d4d"
+      />
+
+      <ConfirmationDialog
+        visible={messageDialog.visible}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+        cancelText=""
+        confirmText="OK"
+        icon={messageDialog.isError ? 'alert-circle' : 'checkmark-circle'}
+        iconColor={messageDialog.isError ? '#ff4d4d' : '#4CAF50'}
       />
     </SafeAreaView>
   );
@@ -390,16 +282,6 @@ const styles = StyleSheet.create({
   },
   disabledButtonText: {
     color: '#999',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#333',
   },
   listContent: {
     padding: 10,
@@ -484,36 +366,5 @@ const styles = StyleSheet.create({
   deleteIconButton: {
     marginLeft: 12,
     padding: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 50,
-    flex: 1,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  selectionInfo: {
-    fontSize: 14,
-    color: '#666',
-  },
-  clearButton: {
-    padding: 5,
-  },
-  clearButtonText: {
-    color: '#59a2f0',
-    fontWeight: 'bold',
   },
 });

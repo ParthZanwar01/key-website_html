@@ -12,78 +12,14 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
-// Standalone delete function that doesn't rely on the EventsContext
-const directDeleteEvent = async (eventId, navigation) => {
-  console.log('Starting direct delete process');
-  
-  try {
-    // 1. Get the current events from storage
-    const storedEventsJson = await AsyncStorage.getItem('events');
-    
-    if (!storedEventsJson) {
-      console.log('No events in storage');
-      return false;
-    }
-    
-    const storedEvents = JSON.parse(storedEventsJson);
-    console.log(`Found ${storedEvents.length} events in storage`);
-    
-    // 2. Filter out the event to delete
-    const updatedEvents = storedEvents.filter(event => String(event.id) !== String(eventId));
-    console.log(`After filtering, have ${updatedEvents.length} events`);
-    
-    if (storedEvents.length === updatedEvents.length) {
-      console.log('Warning: No event was removed during filtering');
-    }
-    
-    // 3. Save the updated events back to storage
-    await AsyncStorage.setItem('events', JSON.stringify(updatedEvents));
-    console.log('Saved updated events to storage');
-    
-    return true;
-  } catch (error) {
-    console.error('Error in direct delete:', error);
-    return false;
-  }
-};
-
-// Helper function to check available navigation routes
-const checkNavigationRoutes = (navigation) => {
-  try {
-    console.log('====== NAVIGATION DEBUG ======');
-    
-    // Get current route
-    const currentRoute = navigation.getCurrentRoute();
-    console.log('Current route:', currentRoute?.name);
-    
-    // Get state of this navigator
-    const state = navigation.getState();
-    console.log('Available routes in this navigator:');
-    state.routeNames.forEach((name, i) => console.log(`${i+1}. ${name}`));
-    
-    // Check parent navigator if available
-    const parent = navigation.getParent();
-    if (parent) {
-      const parentState = parent.getState();
-      console.log('Parent navigator routes:');
-      parentState.routeNames.forEach((name, i) => console.log(`${i+1}. ${name}`));
-    }
-    
-    console.log('============================');
-  } catch (error) {
-    console.error('Navigation debug error:', error);
-  }
-};
-
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
-  const { getEventById, signupForEvent, refreshEvents } = useEvents();
+  const { getEventById, signupForEvent, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
   const [event, setEvent] = useState(null);
   const [name, setName] = useState('');
@@ -93,7 +29,6 @@ export default function EventScreen({ route, navigation }) {
 
   // State for confirmation dialogs
   const [deleteDialog, setDeleteDialog] = useState({ visible: false });
-  const [signupDialog, setSignupDialog] = useState({ visible: false, message: '', isError: false });
   const [errorDialog, setErrorDialog] = useState({ visible: false, message: '' });
   const [successDialog, setSuccessDialog] = useState({ visible: false, message: '' });
 
@@ -109,7 +44,7 @@ export default function EventScreen({ route, navigation }) {
     }
   }, [eventId, getEventById, navigation]);
 
-  // Enhanced delete handler with fallbacks for different navigation strategies
+  // Enhanced delete handler using EventsContext
   const handleDeleteEvent = () => {
     console.log('Delete button clicked');
     setDeleteDialog({ visible: true });
@@ -120,68 +55,52 @@ export default function EventScreen({ route, navigation }) {
     setDeleteDialog({ visible: false });
     setDeleting(true);
     
-    // Check navigation options before deleting
-    checkNavigationRoutes(navigation);
-    
-    // First try the direct delete approach
-    const success = await directDeleteEvent(eventId, navigation);
-    
-    if (success) {
-      console.log('Delete succeeded, trying navigation');
+    try {
+      // Use EventsContext deleteEvent method which handles Google Sheets
+      await deleteEvent(eventId);
       
-      // Try different navigation targets
-      try {
-        // Method 1: Try to navigate to the CalendarMain screen
-        console.log('Trying navigation to CalendarMain');
-        navigation.navigate('CalendarMain');
-      } catch (e1) {
-        console.log('Method 1 failed:', e1.message);
-        
+      // Refresh events to ensure sync
+      await refreshEvents();
+      
+      console.log('Delete succeeded, navigating back');
+      
+      // Show success message briefly then navigate
+      setSuccessDialog({
+        visible: true,
+        message: 'Event deleted successfully'
+      });
+      
+      // Navigate back after showing success
+      setTimeout(() => {
         try {
-          // Method 2: Try to navigate to the Calendar tab
-          console.log('Trying navigation to Calendar tab');
-          navigation.navigate('Calendar');
-        } catch (e2) {
-          console.log('Method 2 failed:', e2.message);
-          
+          navigation.navigate('CalendarMain');
+        } catch (e1) {
           try {
-            // Method 3: Try to go back to previous screen
-            console.log('Trying navigation goBack()');
-            navigation.goBack();
-          } catch (e3) {
-            console.log('Method 3 failed:', e3.message);
-            
-            // Final fallback
-            console.log('Using reset as last resort');
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Main' }],
-            });
+            navigation.navigate('Calendar');
+          } catch (e2) {
+            try {
+              navigation.goBack();
+            } catch (e3) {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' }],
+              });
+            }
           }
         }
-      }
+      }, 1500);
       
-      // Show success message after a delay
-      setTimeout(() => {
-        setSuccessDialog({
-          visible: true,
-          message: 'Event deleted successfully'
-        });
-      }, 500);
-      
-      // Also refresh the events context
-      refreshEvents();
-    } else {
-      console.log('Delete failed');
+    } catch (error) {
+      console.error('Delete failed:', error);
       setDeleting(false);
       setErrorDialog({
         visible: true,
-        message: 'Failed to delete event'
+        message: 'Failed to delete event. Please try again.'
       });
     }
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name.trim() || !email.trim()) {
       setErrorDialog({
         visible: true,
@@ -191,7 +110,7 @@ export default function EventScreen({ route, navigation }) {
     }
 
     // Check if capacity reached
-    if (event.attendees.length >= event.capacity) {
+    if (event.attendees && event.attendees.length >= event.capacity) {
       setErrorDialog({
         visible: true,
         message: 'This event has reached its capacity'
@@ -200,7 +119,7 @@ export default function EventScreen({ route, navigation }) {
     }
 
     // Check if already registered
-    if (event.attendees.some(attendee => attendee.email === email)) {
+    if (event.attendees && event.attendees.some(attendee => attendee.email === email)) {
       setErrorDialog({
         visible: true,
         message: 'You are already registered for this event'
@@ -208,18 +127,29 @@ export default function EventScreen({ route, navigation }) {
       return;
     }
 
-    // Submit signup
+    // Submit signup using EventsContext
     try {
       setLoading(true);
-      signupForEvent(eventId, { name, email });
+      await signupForEvent(eventId, { name, email });
+      
+      // Refresh the event data to show updated attendee list
+      await refreshEvents();
+      
       setSuccessDialog({
         visible: true,
         message: 'You have successfully signed up for this event!'
       });
+      
+      // Navigate back after success
+      setTimeout(() => {
+        navigation.goBack();
+      }, 2000);
+      
     } catch (err) {
+      console.error('Signup error:', err);
       setErrorDialog({
         visible: true,
-        message: 'Failed to sign up for event'
+        message: 'Failed to sign up for event. Please try again.'
       });
     } finally {
       setLoading(false);
@@ -271,7 +201,7 @@ export default function EventScreen({ route, navigation }) {
   const eventDate = new Date(event.date);
   const startTime = new Date(`${event.date}T${event.startTime}`);
   const endTime = new Date(`${event.date}T${event.endTime}`);
-  const isFullyBooked = event.attendees.length >= event.capacity;
+  const isFullyBooked = event.attendees && event.attendees.length >= event.capacity;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -323,8 +253,7 @@ export default function EventScreen({ route, navigation }) {
               <View style={styles.metadataItem}>
                 <Text style={styles.metadataLabel}>Time:</Text>
                 <Text style={styles.metadataValue}>
-                  {startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} -
-                  {endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  {startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </Text>
               </View>
               
@@ -336,7 +265,7 @@ export default function EventScreen({ route, navigation }) {
               <View style={styles.metadataItem}>
                 <Text style={styles.metadataLabel}>Availability:</Text>
                 <Text style={styles.metadataValue}>
-                  {event.attendees.length} / {event.capacity} spots filled
+                  {event.attendees ? event.attendees.length : 0} / {event.capacity} spots filled
                 </Text>
               </View>
             </View>
@@ -350,7 +279,9 @@ export default function EventScreen({ route, navigation }) {
             {isAdmin && (
               <View style={styles.attendeesContainer}>
                 <View style={styles.attendeesHeaderRow}>
-                  <Text style={styles.attendeesTitle}>Attendees ({event.attendees.length})</Text>
+                  <Text style={styles.attendeesTitle}>
+                    Attendees ({event.attendees ? event.attendees.length : 0})
+                  </Text>
                   <TouchableOpacity 
                     style={styles.viewAllButton}
                     onPress={() => navigation.navigate('AttendeeList', { eventId: event.id })}
@@ -360,7 +291,7 @@ export default function EventScreen({ route, navigation }) {
                   </TouchableOpacity>
                 </View>
                 
-                {event.attendees.length > 0 ? (
+                {event.attendees && event.attendees.length > 0 ? (
                   <>
                     {/* Show max 3 attendees in this screen */}
                     <FlatList

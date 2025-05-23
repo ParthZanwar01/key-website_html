@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function CalendarScreen({ navigation, route }) {
-  const { events, deleteEvent } = useEvents();
+  const { events, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
@@ -35,15 +35,29 @@ export default function CalendarScreen({ navigation, route }) {
     eventTitle: ''
   });
   
+  // State for success/error messages
+  const [messageDialog, setMessageDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    isError: false
+  });
+  
   // Listen for focus events to refresh the calendar when navigating back
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      // Force refresh of the calendar when screen comes into focus
+      // Refresh events from Google Sheets when screen comes into focus
+      refreshEvents();
       setRefreshKey(prevKey => prevKey + 1);
     });
     
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, refreshEvents]);
+
+  // Refresh events when component mounts
+  useEffect(() => {
+    refreshEvents();
+  }, [refreshEvents]);
 
   // Generate calendar days for the current month
   useEffect(() => {
@@ -138,7 +152,7 @@ export default function CalendarScreen({ navigation, route }) {
     }
   };
 
-  // Handle delete confirmation
+  // Handle delete confirmation - using EventsContext deleteEvent method
   const handleDeleteConfirm = async () => {
     const eventId = confirmDialog.eventId;
     
@@ -146,17 +160,30 @@ export default function CalendarScreen({ navigation, route }) {
     setConfirmDialog({ visible: false, eventId: null, eventTitle: '' });
     
     try {
-      // Delete the event
+      // Use the EventsContext deleteEvent method which handles Google Sheets
       await deleteEvent(eventId);
       
       // Force refresh the calendar by updating the refresh key
       setRefreshKey(prev => prev + 1);
       
-      // Show success message - you could add another dialog for this or use a toast
-      console.log('Event deleted successfully');
+      // Show success message
+      setMessageDialog({
+        visible: true,
+        title: 'Success',
+        message: 'Event deleted successfully',
+        isError: false
+      });
+      
     } catch (error) {
       console.error('Error deleting event:', error);
-      // You could show an error dialog here if needed
+      
+      // Show error message
+      setMessageDialog({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to delete event. Please try again.',
+        isError: true
+      });
     }
   };
 
@@ -309,6 +336,19 @@ export default function CalendarScreen({ navigation, route }) {
           confirmText="Delete"
           destructive={true}
           icon="trash-outline"
+        />
+
+        {/* Message Dialog (Success/Error) */}
+        <ConfirmationDialog
+          visible={messageDialog.visible}
+          title={messageDialog.title}
+          message={messageDialog.message}
+          onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+          onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+          cancelText=""
+          confirmText="OK"
+          icon={messageDialog.isError ? "alert-circle" : "checkmark-circle"}
+          iconColor={messageDialog.isError ? "#ff4d4d" : "#4CAF50"}
         />
       </View>
     </SafeAreaView>
