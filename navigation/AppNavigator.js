@@ -20,7 +20,7 @@ import AttendeeListScreen from '../screens/AttendeeListScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ContactScreen from '../screens/ContactScreen';
-import CheckInScreen from '../screens/CheckInScreen';
+// Removed CheckInScreen import
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -200,25 +200,7 @@ function MainTabNavigator({ navigation }) {
           }}
         />
       )}
-      {!isAdmin && (
-        <Tab.Screen
-          name="CheckIn"
-          component={CheckInScreen}
-          options={{
-            tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'location' : 'location-outline'} size={size} color={color} />
-            ),
-            headerRight: () => (
-              <TouchableOpacity
-                onPress={handleLogout}
-                style={{ marginRight: 15 }}
-              >
-                <Ionicons name="log-out-outline" size={24} color="black" />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-      )}
+      {/* Removed CheckIn tab completely */}
     </Tab.Navigator>
   );
 }
