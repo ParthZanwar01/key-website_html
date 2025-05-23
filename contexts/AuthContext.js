@@ -126,6 +126,7 @@ export function AuthProvider({ children }) {
               sNumber: 'admin',
               name: 'Admin User',
               role: 'admin',
+              totalHours: '0', // Initialize hours for admin
               loginTime: new Date().toISOString()
             };
             
@@ -191,6 +192,7 @@ export function AuthProvider({ children }) {
                 name: studentInSheet.name || sNumber,
                 role: 'student',
                 id: studentInSheet.id || Date.now().toString(),
+                totalHours: studentInSheet.totalHours || '0', // Initialize hours if not present
                 loginTime: new Date().toISOString()
               };
               
@@ -222,10 +224,12 @@ export function AuthProvider({ children }) {
                 throw new Error("Failed to locate student row");
               }
               
-              // Update the student entry with the password
+              // Update the student entry with the password and initialize hours
               await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, {
                 password: password,
-                lastLogin: new Date().toISOString()
+                totalHours: '0', // Initialize with 0 hours
+                lastLogin: new Date().toISOString(),
+                lastHourUpdate: new Date().toISOString()
               });
               
               // Create user object
@@ -234,6 +238,7 @@ export function AuthProvider({ children }) {
                 name: studentInSheet.name || sNumber,
                 role: 'student',
                 id: studentInSheet.id || Date.now().toString(),
+                totalHours: '0', // Initialize with 0 hours
                 loginTime: new Date().toISOString()
               };
               
@@ -245,7 +250,7 @@ export function AuthProvider({ children }) {
               setIsAuthenticated(true);
               setIsAdmin(false);
               
-              console.log("First-time student login successful");
+              console.log("First-time student login successful with hour initialization");
               return true;
             } catch (setupError) {
               console.error("Failed to set up student account:", setupError);

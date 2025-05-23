@@ -20,6 +20,9 @@ import AttendeeListScreen from '../screens/AttendeeListScreen';
 import OfficersScreen from '../screens/OfficersScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ContactScreen from '../screens/ContactScreen';
+import HourRequestScreen from '../screens/HourRequestScreen';
+import StudentHourRequestsScreen from '../screens/StudentHourRequestsScreen';
+import AdminHourManagementScreen from '../screens/AdminHourManagementScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -64,6 +67,11 @@ function CalendarStack({ navigation }) {
       <Stack.Screen name="EventCreation" component={EventCreationScreen} options={{ title: "Create Event" }} />
       <Stack.Screen name="EventDeletion" component={EventDeletionScreen} options={{ title: "Manage Events" }} />
       <Stack.Screen name="AttendeeList" component={AttendeeListScreen} options={{ title: "Attendees" }} />
+      
+      {/* Hour Management Screens */}
+      <Stack.Screen name="HourRequest" component={HourRequestScreen} options={{ title: "Request Hours" }} />
+      <Stack.Screen name="HourRequests" component={StudentHourRequestsScreen} options={{ title: "My Hour Requests" }} />
+      <Stack.Screen name="AdminHourManagement" component={AdminHourManagementScreen} options={{ title: "Manage Hour Requests" }} />
     </Stack.Navigator>
   );
 }
@@ -99,6 +107,8 @@ function MainTabNavigator({ navigation }) {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Calendar') {
             iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'Hours') {
+            iconName = focused ? 'time' : 'time-outline';
           } else if (route.name === 'Officers') {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Create Event') {
@@ -110,7 +120,7 @@ function MainTabNavigator({ navigation }) {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      {/* Middle tab */}
+      {/* Home tab */}
       <Tab.Screen
         name="Home"
         component={HomeScreen}
@@ -126,14 +136,30 @@ function MainTabNavigator({ navigation }) {
         }}
       />
 
-      {/* Left tab */}
+      {/* Calendar tab */}
       <Tab.Screen
         name="Calendar"
         component={CalendarStack}
         options={{ headerShown: false }}
       />
 
-      {/* Right tab */}
+      {/* Hours tab - shows different screens for admin vs student */}
+      <Tab.Screen
+        name="Hours"
+        component={isAdmin ? AdminHourManagementScreen : HourRequestScreen}
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="black" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+
+      {/* Officers tab */}
       <Tab.Screen
         name="Officers"
         component={OfficersScreen}

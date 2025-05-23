@@ -1,0 +1,416 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useHours } from '../contexts/HourContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+
+export default function StudentHourRequestsScreen({ navigation }) {
+  const { getStudentRequests, getStudentHours, refreshHourRequests } = useHours();
+  const { user } = useAuth();
+  
+  const [requests, setRequests] = useState([]);
+  const [currentHours, setCurrentHours] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    if (!user?.sNumber) return;
+    
+    try {
+      // Load student's requests
+      const studentRequests = getStudentRequests(user.sNumber);
+      setRequests(studentRequests);
+      
+      // Load current hours
+      const hours = await getStudentHours(user.sNumber);
+      setCurrentHours(hours);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshHourRequests();
+      await loadData();
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return '#f39c12';
+      case 'approved': return '#27ae60';
+      case 'rejected': return '#e74c3c';
+      default: return '#95a5a6';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return 'hourglass-outline';
+      case 'approved': return 'checkmark-circle';
+      case 'rejected': return 'close-circle';
+      default: return 'help-circle';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const renderRequestItem = ({ item }) => (
+    <View style={styles.requestItem}>
+      <View style={styles.requestHeader}>
+        <Text style={styles.eventName}>{item.eventName}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+          <Ionicons 
+            name={getStatusIcon(item.status)} 
+            size={14} 
+            color="white" 
+            style={styles.statusIcon}
+          />
+          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.requestDetails}>
+        <View style={styles.detailRow}>
+          <Ionicons name="calendar-outline" size={16} color="#666" />
+          <Text style={styles.detailText}>Event: {formatDate(item.eventDate)}</Text>
+        </View>
+        
+        <View style={styles.detailRow}>
+          <Ionicons name="time-outline" size={16} color="#666" />
+          <Text style={styles.detailText}>Hours: {item.hoursRequested}</Text>
+        </View>
+        
+        <View style={styles.detailRow}>
+          <Ionicons name="paper-plane-outline" size={16} color="#666" />
+          <Text style={styles.detailText}>Submitted: {formatDate(item.submittedAt)}</Text>
+        </View>
+      </View>
+      
+      <Text style={styles.description} numberOfLines={2}>
+        {item.description}
+      </Text>
+      
+      {item.status === 'approved' && item.reviewedAt && (
+        <View style={styles.approvalInfo}>
+          <Text style={styles.approvalText}>
+            ✓ Approved on {formatDate(item.reviewedAt)}
+          </Text>
+        </View>
+      )}
+      
+      {item.status === 'rejected' && item.adminNotes && (
+        <View style={styles.rejectionInfo}>
+          <Text style={styles.rejectionTitle}>Reason:</Text>
+          <Text style={styles.rejectionText}>{item.adminNotes}</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const getSummaryStats = () => {
+    const pending = requests.filter(r => r.status === 'pending').length;
+    const approved = requests.filter(r => r.status === 'approved').length;
+    const rejected = requests.filter(r => r.status === 'rejected').length;
+    const totalRequested = requests
+      .filter(r => r.status === 'approved')
+      .reduce((sum, r) => sum + parseFloat(r.hoursRequested || 0), 0);
+    
+    return { pending, approved, rejected, totalRequested };
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#59a2f0" />
+        <Text style={styles.loadingText}>Loading your requests...</Text>
+      </View>
+    );
+  }
+
+  const stats = getSummaryStats();
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Hour Requests</Text>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => navigation.navigate('HourRequest')}
+        >
+          <Ionicons name="add" size={24} color="#59a2f0" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Summary Cards */}
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryValue}>{currentHours.toFixed(1)}</Text>
+          <Text style={styles.summaryLabel}>Total Hours</Text>
+        </View>
+        
+        <View style={styles.summaryCard}>
+          <Text style={[styles.summaryValue, { color: '#f39c12' }]}>{stats.pending}</Text>
+          <Text style={styles.summaryLabel}>Pending</Text>
+        </View>
+        
+        <View style={styles.summaryCard}>
+          <Text style={[styles.summaryValue, { color: '#27ae60' }]}>{stats.approved}</Text>
+          <Text style={styles.summaryLabel}>Approved</Text>
+        </View>
+      </View>
+
+      {/* Requests List */}
+      {requests.length > 0 ? (
+        <FlatList
+          data={requests}
+          renderItem={renderRequestItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#59a2f0']}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="time-outline" size={60} color="#ccc" />
+          <Text style={styles.emptyTitle}>No Hour Requests Yet</Text>
+          <Text style={styles.emptyText}>
+            Submit your first hour request to start tracking your volunteer hours!
+          </Text>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => navigation.navigate('HourRequest')}
+          >
+            <Text style={styles.createButtonText}>Submit Request</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 15,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  backButton: {
+    padding: 5,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  addButton: {
+    padding: 5,
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    padding: 15,
+    justifyContent: 'space-between',
+  },
+  summaryCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  summaryValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#59a2f0',
+    marginBottom: 5,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  listContent: {
+    padding: 15,
+  },
+  requestItem: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  requestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  eventName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    marginRight: 10,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusIcon: {
+    marginRight: 4,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  requestDetails: {
+    marginBottom: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  description: {
+    fontSize: 14,
+    color: '#555',
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  approvalInfo: {
+    backgroundColor: '#e8f5e9',
+    padding: 8,
+    borderRadius: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: '#27ae60',
+  },
+  approvalText: {
+    fontSize: 12,
+    color: '#27ae60',
+    fontWeight: '500',
+  },
+  rejectionInfo: {
+    backgroundColor: '#ffebee',
+    padding: 8,
+    borderRadius: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: '#e74c3c',
+  },
+  rejectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 2,
+  },
+  rejectionText: {
+    fontSize: 12,
+    color: '#c0392b',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#666',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  createButton: {
+    backgroundColor: '#59a2f0',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 6,
+  },
+  createButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});

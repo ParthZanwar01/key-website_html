@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
+import { HourProvider } from './contexts/HourContext';
 import AppNavigator from './navigation/AppNavigator';
 
 function AuthenticatedApp() {
@@ -25,7 +26,9 @@ export default function App() {
     <NavigationContainer>
       <AuthProvider>
         <EventsProvider>
-          <AuthenticatedApp />
+          <HourProvider>
+            <AuthenticatedApp />
+          </HourProvider>
         </EventsProvider>
       </AuthProvider>
     </NavigationContainer>
