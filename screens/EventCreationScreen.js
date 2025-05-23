@@ -17,6 +17,7 @@ import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function EventCreationScreen({ route, navigation }) {
   const { addEvent, getEventById, updateEvent } = useEvents();
@@ -41,6 +42,19 @@ export default function EventCreationScreen({ route, navigation }) {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   
   const [loading, setLoading] = useState(false);
+  
+  // State for confirmation dialogs
+  const [successDialog, setSuccessDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
+  
+  const [errorDialog, setErrorDialog] = useState({
+    visible: false,
+    message: ''
+  });
   
   // Load event data if editing
   useEffect(() => {
@@ -90,10 +104,13 @@ export default function EventCreationScreen({ route, navigation }) {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     // Validate input
     if (!title.trim() || !description.trim() || !location.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      setErrorDialog({
+        visible: true,
+        message: 'Please fill in all required fields'
+      });
       return;
     }
 
@@ -116,12 +133,18 @@ export default function EventCreationScreen({ route, navigation }) {
           lastUpdated: new Date().toISOString()
         };
         
-        updateEvent(updatedEvent);
-        Alert.alert(
-          'Success', 
-          'Event updated successfully!',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
+        await updateEvent(updatedEvent);
+        
+        // Show success dialog for update
+        setSuccessDialog({
+          visible: true,
+          title: 'Event Updated!',
+          message: `"${title}" has been successfully updated.`,
+          onConfirm: () => {
+            setSuccessDialog({ visible: false, title: '', message: '', onConfirm: null });
+            navigation.goBack();
+          }
+        });
       } else {
         // Create new event object
         const newEvent = {
@@ -140,16 +163,25 @@ export default function EventCreationScreen({ route, navigation }) {
         };
 
         // Add the new event
-        addEvent(newEvent);
-        Alert.alert(
-          'Success', 
-          'Event created successfully!',
-          [{ text: 'OK', onPress: () => navigation.navigate('Calendar') }]
-        );
+        await addEvent(newEvent);
+        
+        // Show success dialog for creation
+        setSuccessDialog({
+          visible: true,
+          title: 'Event Created!',
+          message: `"${title}" has been successfully created and added to the calendar.`,
+          onConfirm: () => {
+            setSuccessDialog({ visible: false, title: '', message: '', onConfirm: null });
+            navigation.navigate('Calendar');
+          }
+        });
       }
     } catch (err) {
-      Alert.alert('Error', isEditing ? 'Failed to update event' : 'Failed to create event');
-      console.error('Event creation error:', err);
+      console.error('Event creation/update error:', err);
+      setErrorDialog({
+        visible: true,
+        message: isEditing ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -524,6 +556,32 @@ export default function EventCreationScreen({ route, navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Success Dialog */}
+      <ConfirmationDialog
+        visible={successDialog.visible}
+        title={successDialog.title}
+        message={successDialog.message}
+        onCancel={successDialog.onConfirm}
+        onConfirm={successDialog.onConfirm}
+        cancelText=""
+        confirmText="OK"
+        icon="checkmark-circle"
+        iconColor="#4CAF50"
+      />
+
+      {/* Error Dialog */}
+      <ConfirmationDialog
+        visible={errorDialog.visible}
+        title="Error"
+        message={errorDialog.message}
+        onCancel={() => setErrorDialog({ visible: false, message: '' })}
+        onConfirm={() => setErrorDialog({ visible: false, message: '' })}
+        cancelText=""
+        confirmText="OK"
+        icon="alert-circle"
+        iconColor="#ff4d4d"
+      />
     </SafeAreaView>
   );
 }
