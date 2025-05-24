@@ -55,6 +55,7 @@ export default function AdminHourManagementScreen({ navigation }) {
   const loadData = async () => {
     try {
       const requests = getAllRequests();
+      console.log('Admin screen loaded requests:', requests.length);
       setAllRequests(requests);
       applyFilters(requests, filter, searchQuery);
     } catch (error) {
@@ -110,6 +111,7 @@ export default function AdminHourManagementScreen({ navigation }) {
   };
 
   const handleReviewRequest = (request, action) => {
+    console.log('Starting review for request:', request.id, 'action:', action);
     setReviewModal({
       visible: true,
       request: request,
@@ -121,27 +123,48 @@ export default function AdminHourManagementScreen({ navigation }) {
   const submitReview = async () => {
     const { request, action, notes } = reviewModal;
     
+    console.log('Submitting review:', {
+      requestId: request.id,
+      action: action,
+      notes: notes,
+      studentSNumber: request.studentSNumber,
+      hoursRequested: request.hoursRequested
+    });
+    
     setReviewModal({ visible: false, request: null, action: null, notes: '' });
     
     try {
+      console.log('Calling updateHourRequestStatus...');
+      
       await updateHourRequestStatus(request.id, action, notes);
+      
+      console.log('updateHourRequestStatus completed successfully');
       
       setMessageDialog({
         visible: true,
         title: 'Success',
-        message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`,
+        message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully!${action === 'approve' ? ' Student hours have been updated.' : ''}`,
         isError: false
       });
       
       // Refresh data
+      console.log('Refreshing data after status update...');
+      await refreshHourRequests();
       await loadData();
       
     } catch (error) {
       console.error('Failed to update request:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
       setMessageDialog({
         visible: true,
         title: 'Error',
-        message: 'Failed to update request. Please try again.',
+        message: `Failed to ${action} request: ${error.message}. Please try again.`,
         isError: true
       });
     }
@@ -203,7 +226,10 @@ export default function AdminHourManagementScreen({ navigation }) {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
-            onPress={() => handleReviewRequest(item, 'approve')}
+            onPress={() => {
+              console.log('Approve button pressed for request:', item.id);
+              handleReviewRequest(item, 'approve');
+            }}
           >
             <Ionicons name="checkmark" size={16} color="white" />
             <Text style={styles.actionButtonText}>Approve</Text>
@@ -211,7 +237,10 @@ export default function AdminHourManagementScreen({ navigation }) {
           
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => handleReviewRequest(item, 'reject')}
+            onPress={() => {
+              console.log('Reject button pressed for request:', item.id);
+              handleReviewRequest(item, 'reject');
+            }}
           >
             <Ionicons name="close" size={16} color="white" />
             <Text style={styles.actionButtonText}>Reject</Text>
@@ -349,7 +378,7 @@ export default function AdminHourManagementScreen({ navigation }) {
             {reviewModal.request && (
               <View style={styles.reviewRequestInfo}>
                 <Text style={styles.reviewRequestText}>
-                  <Text style={styles.bold}>Student:</Text> {reviewModal.request.studentName}
+                  <Text style={styles.bold}>Student:</Text> {reviewModal.request.studentName} ({reviewModal.request.studentSNumber})
                 </Text>
                 <Text style={styles.reviewRequestText}>
                   <Text style={styles.bold}>Event:</Text> {reviewModal.request.eventName}
@@ -387,7 +416,10 @@ export default function AdminHourManagementScreen({ navigation }) {
                   styles.confirmModalButton,
                   { backgroundColor: reviewModal.action === 'approve' ? '#27ae60' : '#e74c3c' }
                 ]}
-                onPress={submitReview}
+                onPress={() => {
+                  console.log('Confirm button pressed in modal');
+                  submitReview();
+                }}
               >
                 <Text style={styles.confirmModalButtonText}>
                   {reviewModal.action === 'approve' ? 'Approve' : 'Reject'}
