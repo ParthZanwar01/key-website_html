@@ -240,8 +240,15 @@ export function HourProvider({ children }) {
       // Wait for API to process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // If approved, update student's total hours
-      if (status === 'approved') {
+      // DEBUG: Check exact status value
+      console.log('🔍 CHECKING STATUS FOR HOURS UPDATE:');
+      console.log('   Status value:', status);
+      console.log('   Status type:', typeof status);
+      console.log('   Status === "approved":', status === 'approved');
+      console.log('   Status === "approve":', status === 'approve');
+      
+      // If approved, update student's total hours - handle both "approve" and "approved"
+      if (status === 'approved' || status === 'approve') {
         console.log('🎯 Request APPROVED - updating student hours...');
         const hoursToAdd = parseFloat(request.hoursRequested);
         
@@ -268,6 +275,8 @@ export function HourProvider({ children }) {
           });
           throw new Error('Request approved but failed to update student hours: ' + hourUpdateError.message);
         }
+      } else {
+        console.log('❌ Status is not approve/approved, skipping hours update. Status:', status);
       }
       
       // Update local state immediately
