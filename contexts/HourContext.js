@@ -167,16 +167,28 @@ export function HourProvider({ children }) {
       console.log('Found request to update:', request);
       
       const updatedRequest = {
-        ...request,
-        status: status,
+        id: request.id,
+        studentSNumber: request.studentSNumber,
+        studentName: request.studentName,
+        eventName: request.eventName,
+        eventDate: request.eventDate,
+        hoursRequested: request.hoursRequested,
+        description: request.description,
+        status: status, // This is the key field
+        submittedAt: request.submittedAt,
         reviewedAt: new Date().toISOString(),
         reviewedBy: reviewedBy,
         adminNotes: adminNotes
       };
       
+      console.log('Updating request with data:', updatedRequest);
+      
       // Update the request status first
-      await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
-      console.log('Hour request status updated successfully');
+      const updateResponse = await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
+      console.log('Hour request status updated successfully, response:', updateResponse.status);
+      
+      // Wait a moment for the API to process
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // If approved, update student's total hours
       if (status === 'approved') {
@@ -198,8 +210,30 @@ export function HourProvider({ children }) {
         }
       }
       
+      // Update the local state immediately to reflect the change
+      setHourRequests(prevRequests => 
+        prevRequests.map(req => 
+          req.id === requestId 
+            ? { ...req, ...updatedRequest }
+            : req
+        )
+      );
+      
+      // Wait another moment before refreshing from cloud
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // Refresh requests from cloud
-      await loadHourRequestsFromCloud();
+      console.log('Refreshing requests from cloud...');
+      const refreshedRequests = await loadHourRequestsFromCloud();
+      
+      // Verify the update worked
+      const updatedReq = refreshedRequests.find(r => r.id === requestId);
+      if (updatedReq) {
+        console.log('Verified updated request:', updatedReq);
+        if (updatedReq.status !== status) {
+          console.warn('Status mismatch after update! Expected:', status, 'Got:', updatedReq.status);
+        }
+      }
       
       return true;
       

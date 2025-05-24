@@ -147,10 +147,16 @@ export default function AdminHourManagementScreen({ navigation }) {
         isError: false
       });
       
+      // Wait a moment before refreshing to allow API to process
+      console.log('Waiting before refresh...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Refresh data
       console.log('Refreshing data after status update...');
       await refreshHourRequests();
       await loadData();
+      
+      console.log('Data refresh completed');
       
     } catch (error) {
       console.error('Failed to update request:', error);
