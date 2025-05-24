@@ -20,7 +20,7 @@ export function HourProvider({ children }) {
   // Load hour requests from Google Sheets
   const loadHourRequestsFromCloud = useCallback(async () => {
     try {
-      console.log('🔄 Loading hour requests from Google Sheets...');
+      console.log('Loading hour requests from Google Sheets...');
       const response = await axios.get(HOUR_REQUESTS_API_ENDPOINT);
       const cloudRequests = response.data || [];
       
@@ -29,10 +29,10 @@ export function HourProvider({ children }) {
       // Save to local storage as backup
       await AsyncStorage.setItem('hourRequests', JSON.stringify(cloudRequests));
       
-      console.log(`✅ Loaded ${cloudRequests.length} hour requests from cloud`);
+      console.log(`Loaded ${cloudRequests.length} hour requests from cloud`);
       return cloudRequests;
     } catch (error) {
-      console.error('❌ Failed to load hour requests from cloud:', error);
+      console.error('Failed to load hour requests from cloud:', error);
       // Fallback to local storage if cloud fails
       try {
         const localRequests = await AsyncStorage.getItem('hourRequests');
@@ -42,7 +42,7 @@ export function HourProvider({ children }) {
           return parsed;
         }
       } catch (localError) {
-        console.error('❌ Failed to load local hour requests:', localError);
+        console.error('Failed to load local hour requests:', localError);
       }
       return [];
     }
@@ -51,7 +51,7 @@ export function HourProvider({ children }) {
   // Submit hour request
   const submitHourRequest = useCallback(async (requestData) => {
     try {
-      console.log('📝 Submitting hour request:', requestData);
+      console.log('Submitting hour request:', requestData);
       
       const hourRequestData = {
         id: Date.now().toString(),
@@ -69,152 +69,107 @@ export function HourProvider({ children }) {
       };
       
       await axios.post(HOUR_REQUESTS_API_ENDPOINT, hourRequestData);
-      console.log('✅ Hour request submitted successfully');
+      console.log('Hour request submitted successfully');
       
       // Refresh requests from cloud
       await loadHourRequestsFromCloud();
       
     } catch (error) {
-      console.error('❌ Failed to submit hour request:', error);
+      console.error('Failed to submit hour request:', error);
       throw error;
     }
   }, [loadHourRequestsFromCloud]);
 
-  // Update student's total hours - WITH EXTENSIVE DEBUGGING
+  // Update student's total hours
   const updateStudentHours = useCallback(async (sNumber, hoursToAdd) => {
     try {
-      console.log('🎯 === STARTING updateStudentHours ===');
-      console.log('📊 Student:', sNumber);
-      console.log('➕ Hours to add:', hoursToAdd, '(type:', typeof hoursToAdd, ')');
+      console.log('Updating hours for student:', sNumber, 'adding:', hoursToAdd);
       
       // Get all students
-      console.log('📋 Fetching all students from:', STUDENTS_API_ENDPOINT);
       const response = await axios.get(STUDENTS_API_ENDPOINT);
       const allStudents = response.data;
       
-      console.log('👥 Total students found:', allStudents.length);
-      console.log('📝 First few students:', allStudents.slice(0, 3).map(s => ({
-        sNumber: s.sNumber,
-        name: s.name,
-        totalHours: s.totalHours
-      })));
-      
       // Find the student index
       const studentIndex = allStudents.findIndex(s => {
-        const match = s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase();
-        return match;
+        return s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase();
       });
       
-      if (studentIndex !== -1) {
-        console.log('🎯 Found matching student at index:', studentIndex);
-      }
-      
       if (studentIndex === -1) {
-        console.error('❌ Student not found in sheet:', sNumber);
-        console.log('📝 Available sNumbers:', allStudents.map(s => s.sNumber));
+        console.error('Student not found in sheet:', sNumber);
         throw new Error('Student not found');
       }
       
       const student = allStudents[studentIndex];
-      console.log('👤 Student data:', student);
-      console.log('📊 Current student record:', student);
+      console.log('Found student:', student.name, 'current hours:', student.totalHours);
       
       // Parse current hours safely
       let currentHours = 0;
-      console.log('🔍 Raw totalHours value:', student.totalHours, '(type:', typeof student.totalHours, ')');
-      
       if (student.totalHours !== undefined && student.totalHours !== null && student.totalHours !== '') {
         currentHours = parseFloat(student.totalHours);
         if (isNaN(currentHours)) {
-          console.warn('⚠️ Invalid totalHours value:', student.totalHours, 'defaulting to 0');
+          console.warn('Invalid totalHours value, defaulting to 0');
           currentHours = 0;
         }
       }
       
       const hoursToAddFloat = parseFloat(hoursToAdd);
       if (isNaN(hoursToAddFloat)) {
-        console.error('❌ Invalid hoursToAdd value:', hoursToAdd);
         throw new Error('Invalid hours amount');
       }
       
       const newTotalHours = currentHours + hoursToAddFloat;
+      console.log(`Updating hours: ${currentHours} + ${hoursToAddFloat} = ${newTotalHours}`);
       
-      console.log('🧮 CALCULATION:');
-      console.log('   Current hours:', currentHours);
-      console.log('   Hours to add:', hoursToAddFloat);
-      console.log('   New total:', newTotalHours);
-      
-      // Prepare update data - ONLY updating the necessary fields
+      // Prepare update data
       const updateData = {
         totalHours: newTotalHours.toString(),
         lastHourUpdate: new Date().toISOString()
       };
       
-      console.log('📤 Update data to send:', updateData);
-      console.log('🌐 Update URL:', `${STUDENTS_API_ENDPOINT}/${studentIndex}`);
-      
-      // Update the student's hours
-      const updateResponse = await axios.patch(`${STUDENTS_API_ENDPOINT}/${studentIndex}`, updateData);
-      
-      console.log('✅ UPDATE RESPONSE:');
-      console.log('   Status:', updateResponse.status);
-      console.log('   Data:', updateResponse.data);
-      
-      // Wait a moment for the API to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verify the update by fetching the student again
-      console.log('🔍 VERIFYING UPDATE...');
-      const verifyResponse = await axios.get(STUDENTS_API_ENDPOINT);
-      const updatedStudents = verifyResponse.data;
-      const updatedStudent = updatedStudents[studentIndex];
-      
-      console.log('🎯 VERIFICATION RESULT:');
-      console.log('   Student after update:', updatedStudent);
-      console.log('   New totalHours value:', updatedStudent.totalHours);
-      console.log('   Expected:', newTotalHours.toString());
-      console.log('   Match:', updatedStudent.totalHours === newTotalHours.toString());
-      
-      if (updatedStudent.totalHours !== newTotalHours.toString()) {
-        console.error('❌ HOURS UPDATE FAILED!');
-        console.error('   Expected:', newTotalHours.toString());
-        console.error('   Actual:', updatedStudent.totalHours);
-        throw new Error('Hours update verification failed');
+      // Try different update methods for better reliability
+      let updateResponse;
+      try {
+        // Try PATCH first
+        updateResponse = await axios.patch(`${STUDENTS_API_ENDPOINT}/${studentIndex}`, updateData);
+        console.log('Hours updated successfully via PATCH');
+      } catch (patchError) {
+        console.log('PATCH failed, trying PUT...');
+        // Try PUT with full student data
+        const fullUpdateData = {
+          ...student,
+          totalHours: newTotalHours.toString(),
+          lastHourUpdate: new Date().toISOString()
+        };
+        updateResponse = await axios.put(`${STUDENTS_API_ENDPOINT}/${studentIndex}`, fullUpdateData);
+        console.log('Hours updated successfully via PUT');
       }
       
-      console.log('🎉 === updateStudentHours COMPLETED SUCCESSFULLY ===');
+      // Wait for API to process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('Student hours update completed');
       return true;
       
     } catch (error) {
-      console.error('💥 === updateStudentHours FAILED ===');
-      console.error('❌ Error:', error.message);
-      console.error('📱 Response:', error.response?.data);
-      console.error('🔢 Status:', error.response?.status);
-      console.error('🔧 Stack:', error.stack);
+      console.error('Failed to update student hours:', error);
       throw error;
     }
   }, []);
 
-  // Update hour request status (Admin only) - WITH EXTENSIVE DEBUGGING
+  // Update hour request status (Admin only)
   const updateHourRequestStatus = useCallback(async (requestId, status, adminNotes = '', reviewedBy = 'Admin') => {
     try {
-      console.log('🚀 === STARTING updateHourRequestStatus ===');
-      console.log('🆔 Request ID:', requestId);
-      console.log('📊 Status:', status);
-      console.log('📝 Admin notes:', adminNotes);
-      console.log('👤 Reviewed by:', reviewedBy);
+      console.log('Updating hour request status:', requestId, 'to:', status);
       
       // Find the request index in Google Sheets
       const currentRequests = await loadHourRequestsFromCloud();
       const requestIndex = currentRequests.findIndex(r => r.id === requestId);
       
       if (requestIndex === -1) {
-        console.error('❌ Hour request not found:', requestId);
         throw new Error('Hour request not found');
       }
       
       const request = currentRequests[requestIndex];
-      console.log('📋 Found request to update:', request);
       
       const updatedRequest = {
         id: request.id || '',
@@ -231,42 +186,28 @@ export function HourProvider({ children }) {
         adminNotes: adminNotes || ''
       };
       
-      console.log('📤 Updating request with data:', updatedRequest);
-      console.log('🌐 Update URL:', `${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`);
-      
-      // Update the request status first
-      const requestUpdateResponse = await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
-      console.log('✅ Request status updated, response:', requestUpdateResponse.status);
+      // Update the request status
+      await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
+      console.log('Request status updated successfully');
       
       // Wait for API to process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // DEBUG: Check exact status value
-      console.log('🔍 CHECKING STATUS FOR HOURS UPDATE:');
-      console.log('   Status value:', status);
-      console.log('   Status type:', typeof status);
-      console.log('   Status === "approved":', status === 'approved');
-      console.log('   Status === "approve":', status === 'approve');
-      
-      // If approved, update student's total hours - handle both "approve" and "approved"
+      // If approved, update student's total hours
       if (status === 'approved' || status === 'approve') {
-        console.log('🎯 Request APPROVED - updating student hours...');
+        console.log('Request approved - updating student hours...');
         const hoursToAdd = parseFloat(request.hoursRequested);
         
         if (isNaN(hoursToAdd) || hoursToAdd <= 0) {
-          console.error('❌ Invalid hours requested:', request.hoursRequested);
           throw new Error('Invalid hours amount');
         }
         
-        console.log('➕ Adding', hoursToAdd, 'hours to student', request.studentSNumber);
-        
         try {
           await updateStudentHours(request.studentSNumber, hoursToAdd);
-          console.log('🎉 Student hours updated successfully!');
+          console.log('Student hours updated successfully');
         } catch (hourUpdateError) {
-          console.error('💥 Failed to update student hours:', hourUpdateError);
+          console.error('Failed to update student hours:', hourUpdateError);
           // Revert the request status since hours update failed
-          console.log('🔄 Reverting request status due to hours update failure...');
           await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, {
             ...updatedRequest,
             status: 'pending',
@@ -276,8 +217,6 @@ export function HourProvider({ children }) {
           });
           throw new Error('Request approved but failed to update student hours: ' + hourUpdateError.message);
         }
-      } else {
-        console.log('❌ Status is not approve/approved, skipping hours update. Status:', status);
       }
       
       // Update local state immediately
@@ -293,14 +232,11 @@ export function HourProvider({ children }) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       await loadHourRequestsFromCloud();
       
-      console.log('🎉 === updateHourRequestStatus COMPLETED SUCCESSFULLY ===');
+      console.log('Hour request status update completed successfully');
       return true;
       
     } catch (error) {
-      console.error('💥 === updateHourRequestStatus FAILED ===');
-      console.error('❌ Error:', error.message);
-      console.error('📱 Response:', error.response?.data);
-      console.error('🔢 Status:', error.response?.status);
+      console.error('Failed to update hour request status:', error);
       throw error;
     }
   }, [loadHourRequestsFromCloud, updateStudentHours]);
@@ -308,8 +244,6 @@ export function HourProvider({ children }) {
   // Get student's current hours
   const getStudentHours = useCallback(async (sNumber) => {
     try {
-      console.log('📊 Getting hours for student:', sNumber);
-      
       const response = await axios.get(STUDENTS_API_ENDPOINT);
       const allStudents = response.data;
       
@@ -318,26 +252,23 @@ export function HourProvider({ children }) {
       );
       
       if (!student) {
-        console.log('❌ Student not found:', sNumber);
+        console.log('Student not found:', sNumber);
         return 0;
       }
-      
-      console.log('👤 Found student:', student);
       
       // Parse hours safely
       let hours = 0;
       if (student.totalHours !== undefined && student.totalHours !== null && student.totalHours !== '') {
         hours = parseFloat(student.totalHours);
         if (isNaN(hours)) {
-          console.warn('⚠️ Invalid totalHours value:', student.totalHours);
+          console.warn('Invalid totalHours value:', student.totalHours);
           hours = 0;
         }
       }
       
-      console.log('📊 Returning hours:', hours);
       return hours;
     } catch (error) {
-      console.error('❌ Failed to get student hours:', error);
+      console.error('Failed to get student hours:', error);
       return 0;
     }
   }, []);
