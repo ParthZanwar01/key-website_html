@@ -102,12 +102,12 @@ export function HourProvider({ children }) {
       // Find the student index
       const studentIndex = allStudents.findIndex(s => {
         const match = s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase();
-        if (match) {
-          console.log('🎯 Found matching student at index:', studentIndex);
-          console.log('👤 Student data:', s);
-        }
         return match;
       });
+      
+      if (studentIndex !== -1) {
+        console.log('🎯 Found matching student at index:', studentIndex);
+      }
       
       if (studentIndex === -1) {
         console.error('❌ Student not found in sheet:', sNumber);
@@ -116,6 +116,7 @@ export function HourProvider({ children }) {
       }
       
       const student = allStudents[studentIndex];
+      console.log('👤 Student data:', student);
       console.log('📊 Current student record:', student);
       
       // Parse current hours safely
