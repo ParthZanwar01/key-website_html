@@ -57,6 +57,7 @@ export function EventsProvider({ children }) {
     try {
       console.log('Adding event to Google Sheets:', newEvent.title);
       
+      // Ensure ALL required headers are included
       const eventData = {
         id: newEvent.id,
         title: newEvent.title,
@@ -69,9 +70,11 @@ export function EventsProvider({ children }) {
         color: newEvent.color,
         attendees: JSON.stringify(newEvent.attendees || []),
         createdBy: newEvent.createdBy || 'Admin',
-        createdAt: newEvent.createdAt,
+        createdAt: newEvent.createdAt || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
+      
+      console.log('Event data being sent:', eventData);
       
       await axios.post(EVENTS_API_ENDPOINT, eventData);
       console.log('Event added to Google Sheets successfully');
@@ -98,6 +101,7 @@ export function EventsProvider({ children }) {
         throw new Error('Event not found');
       }
       
+      // Ensure ALL required headers are included
       const eventData = {
         id: updatedEvent.id,
         title: updatedEvent.title,
@@ -109,10 +113,12 @@ export function EventsProvider({ children }) {
         capacity: updatedEvent.capacity,
         color: updatedEvent.color,
         attendees: JSON.stringify(updatedEvent.attendees || []),
-        createdBy: updatedEvent.createdBy,
-        createdAt: updatedEvent.createdAt,
+        createdBy: updatedEvent.createdBy || 'Admin',
+        createdAt: updatedEvent.createdAt || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
+      
+      console.log('Updated event data being sent:', eventData);
       
       await axios.patch(`${EVENTS_API_ENDPOINT}/${eventIndex}`, eventData);
       console.log('Event updated in Google Sheets successfully');
@@ -170,7 +176,8 @@ export function EventsProvider({ children }) {
       // Add attendee and update event
       const updatedEvent = {
         ...event,
-        attendees: [...event.attendees, attendee]
+        attendees: [...event.attendees, attendee],
+        lastUpdated: new Date().toISOString() // Update the lastUpdated field
       };
       
       await updateEvent(updatedEvent);

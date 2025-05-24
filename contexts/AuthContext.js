@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Create context
 const AuthContext = createContext();
 
-// Google Sheets API endpoint (replace with your actual Sheet ID and API endpoint)
+// Google Sheets API endpoint
 const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/216a1c49-0ea0-48d4-be6d-d9245fd7896e';
 
 export function AuthProvider({ children }) {
@@ -126,7 +126,8 @@ export function AuthProvider({ children }) {
               sNumber: 'admin',
               name: 'Admin User',
               role: 'admin',
-              totalHours: '0', // Initialize hours for admin
+              totalHours: '0',
+              id: 'admin-user',
               loginTime: new Date().toISOString()
             };
             
@@ -170,6 +171,8 @@ export function AuthProvider({ children }) {
           const response = await axios.get(`${GOOGLE_SHEET_API_ENDPOINT}`);
           const allStudents = response.data;
           
+          console.log("Retrieved students from sheet:", allStudents.length);
+          
           // Look for the student by S-Number in the existing sheet
           const studentInSheet = allStudents.find(s => 
             s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
@@ -182,6 +185,8 @@ export function AuthProvider({ children }) {
             return false;
           }
           
+          console.log("Found student in sheet:", studentInSheet);
+          
           // Check if student has already set up an account (has a password)
           if (studentInSheet.password) {
             // Existing account - verify password
@@ -192,9 +197,11 @@ export function AuthProvider({ children }) {
                 name: studentInSheet.name || sNumber,
                 role: 'student',
                 id: studentInSheet.id || Date.now().toString(),
-                totalHours: studentInSheet.totalHours || '0', // Initialize hours if not present
+                totalHours: studentInSheet.totalHours || '0',
                 loginTime: new Date().toISOString()
               };
+              
+              console.log("Student user object created:", studentUser);
               
               // Store user data using enhanced storage
               await storeUserData(studentUser);
@@ -215,6 +222,8 @@ export function AuthProvider({ children }) {
           } else {
             // First time login - set up account with provided password
             try {
+              console.log("Setting up first-time account for:", sNumber);
+              
               // Find the row index of the student to update
               const rowIndex = allStudents.findIndex(s => 
                 s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
@@ -224,23 +233,38 @@ export function AuthProvider({ children }) {
                 throw new Error("Failed to locate student row");
               }
               
-              // Update the student entry with the password and initialize hours
-              await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, {
+              console.log("Updating student at row index:", rowIndex);
+              
+              // Prepare the update data with ALL required headers
+              const updateData = {
+                sNumber: studentInSheet.sNumber,
+                name: studentInSheet.name || sNumber,
                 password: password,
-                totalHours: '0', // Initialize with 0 hours
+                totalHours: '0',
                 lastLogin: new Date().toISOString(),
-                lastHourUpdate: new Date().toISOString()
-              });
+                lastHourUpdate: new Date().toISOString(),
+                accountCreated: new Date().toISOString(),
+                id: studentInSheet.id || Date.now().toString()
+              };
+              
+              console.log("Sending update data:", updateData);
+              
+              // Update the student entry
+              const updateResponse = await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, updateData);
+              
+              console.log("Update response:", updateResponse.status, updateResponse.data);
               
               // Create user object
               const newStudentUser = {
                 sNumber: studentInSheet.sNumber,
                 name: studentInSheet.name || sNumber,
                 role: 'student',
-                id: studentInSheet.id || Date.now().toString(),
-                totalHours: '0', // Initialize with 0 hours
+                id: updateData.id,
+                totalHours: '0',
                 loginTime: new Date().toISOString()
               };
+              
+              console.log("New student user object created:", newStudentUser);
               
               // Store user data using enhanced storage
               await storeUserData(newStudentUser);
@@ -254,6 +278,11 @@ export function AuthProvider({ children }) {
               return true;
             } catch (setupError) {
               console.error("Failed to set up student account:", setupError);
+              console.error("Setup error details:", {
+                message: setupError.message,
+                response: setupError.response?.data,
+                status: setupError.response?.status
+              });
               Alert.alert('Account Setup Failed', 'Could not set up your account. Please try again later.');
               return false;
             }

@@ -12,18 +12,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Google Sheets API endpoint
 const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/216a1c49-0ea0-48d4-be6d-d9245fd7896e';
 
 export default function StudentAccountCreationScreen(props) {
   const { route, navigation } = props;
-  const params = route?.params || {}; // Use optional chaining
+  const params = route?.params || {};
   const sNumber = params.sNumber || '';
   const studentData = params.studentData || {};
   
-  // Use an empty string as a fallback instead of undefined
   const [name, setName] = useState(studentData.name || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -36,7 +34,6 @@ export default function StudentAccountCreationScreen(props) {
   useEffect(() => {
     if (!sNumber) {
       setErrorMessage('Missing student information. Please try the verification process again.');
-      // Navigate back to verification after a delay
       const timer = setTimeout(() => {
         navigation.navigate('StudentVerification');
       }, 3000);
@@ -77,9 +74,13 @@ export default function StudentAccountCreationScreen(props) {
 
     setLoading(true);
     try {
+      console.log('Creating account for:', sNumber);
+      
       // Find the student index in Google Sheets
       const response = await axios.get(`${GOOGLE_SHEET_API_ENDPOINT}`);
       const allStudents = response.data;
+      
+      console.log('Found students:', allStudents.length);
       
       const rowIndex = allStudents.findIndex(s => 
         s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
@@ -91,12 +92,25 @@ export default function StudentAccountCreationScreen(props) {
         return;
       }
       
-      // Update the student entry with name, password, and first login timestamp
-      await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, {
-        name: name,
+      console.log('Updating student at index:', rowIndex);
+      
+      // Update with ALL required headers - consistent with sheet structure
+      const updateData = {
+        sNumber: sNumber, // Keep existing sNumber
+        name: name.trim(),
         password: password,
-        lastLogin: new Date().toISOString()
-      });
+        totalHours: '0',
+        lastLogin: new Date().toISOString(),
+        lastHourUpdate: new Date().toISOString(),
+        accountCreated: new Date().toISOString(),
+        id: allStudents[rowIndex].id || Date.now().toString()
+      };
+      
+      console.log('Account creation - updating with data:', updateData);
+      
+      const updateResponse = await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, updateData);
+      
+      console.log('Account creation successful, response:', updateResponse.status);
       
       // Display success message
       setSuccessMessage('Your account has been successfully created! Redirecting you to the login page...');
@@ -116,6 +130,11 @@ export default function StudentAccountCreationScreen(props) {
       
     } catch (error) {
       console.error('Account creation error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       setErrorMessage('Could not create your account. Please try again later.');
     } finally {
       setLoading(false);
