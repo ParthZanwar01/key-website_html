@@ -167,25 +167,33 @@ export function HourProvider({ children }) {
       console.log('Found request to update:', request);
       
       const updatedRequest = {
-        id: request.id,
-        studentSNumber: request.studentSNumber,
-        studentName: request.studentName,
-        eventName: request.eventName,
-        eventDate: request.eventDate,
-        hoursRequested: request.hoursRequested,
-        description: request.description,
+        id: request.id || '',
+        studentSNumber: request.studentSNumber || '',
+        studentName: request.studentName || '',
+        eventName: request.eventName || '',
+        eventDate: request.eventDate || '',
+        hoursRequested: request.hoursRequested || '',
+        description: request.description || '',
         status: status, // This is the key field
-        submittedAt: request.submittedAt,
+        submittedAt: request.submittedAt || '',
         reviewedAt: new Date().toISOString(),
         reviewedBy: reviewedBy,
-        adminNotes: adminNotes
+        adminNotes: adminNotes || ''
       };
       
       console.log('Updating request with data:', updatedRequest);
+      console.log('Update URL:', `${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`);
       
-      // Update the request status first
-      const updateResponse = await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
-      console.log('Hour request status updated successfully, response:', updateResponse.status);
+      try {
+        // Try PATCH first
+        const updateResponse = await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
+        console.log('PATCH successful, response:', updateResponse.status, updateResponse.data);
+      } catch (patchError) {
+        console.log('PATCH failed, trying PUT:', patchError.message);
+        // If PATCH fails, try PUT (some APIs prefer PUT for updates)
+        const updateResponse = await axios.put(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
+        console.log('PUT successful, response:', updateResponse.status, updateResponse.data);
+      }
       
       // Wait a moment for the API to process
       await new Promise(resolve => setTimeout(resolve, 1000));
