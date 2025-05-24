@@ -378,7 +378,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.reviewModalContainer}>
             <Text style={styles.reviewModalTitle}>
-              {reviewModal.action === 'approve' ? 'Approve' : 'Reject'} Request
+              {reviewModal.action === 'approved' ? 'Approve' : 'Reject'} Request
             </Text>
             
             {reviewModal.request && (
@@ -396,7 +396,7 @@ export default function AdminHourManagementScreen({ navigation }) {
             )}
             
             <Text style={styles.notesLabel}>
-              {reviewModal.action === 'approve' ? 'Notes (optional):' : 'Reason for rejection:'}
+              {reviewModal.action === 'approved' ? 'Notes (optional):' : 'Reason for rejection:'}
             </Text>
             <TextInput
               style={styles.notesInput}
@@ -420,7 +420,7 @@ export default function AdminHourManagementScreen({ navigation }) {
               <TouchableOpacity
                 style={[
                   styles.confirmModalButton,
-                  { backgroundColor: reviewModal.action === 'approve' ? '#27ae60' : '#e74c3c' }
+                  { backgroundColor: reviewModal.action === 'approved' ? '#27ae60' : '#e74c3c' }
                 ]}
                 onPress={() => {
                   console.log('Confirm button pressed in modal');
@@ -428,7 +428,7 @@ export default function AdminHourManagementScreen({ navigation }) {
                 }}
               >
                 <Text style={styles.confirmModalButtonText}>
-                  {reviewModal.action === 'approve' ? 'Approve' : 'Reject'}
+                  {reviewModal.action === 'approved' ? 'Approve' : 'Reject'}
                 </Text>
               </TouchableOpacity>
             </View>
