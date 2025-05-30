@@ -113,6 +113,8 @@ function MainTabNavigator({ navigation }) {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Create Event') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
+          } else if (route.name === 'Contact') {
+            iconName = focused ? 'help-circle' : 'help-circle-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -120,7 +122,7 @@ function MainTabNavigator({ navigation }) {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      {/* Home tab */}
+      {/* Home tab - Available to all users */}
       <Tab.Screen
         name="Home"
         component={HomeScreen}
@@ -136,14 +138,14 @@ function MainTabNavigator({ navigation }) {
         }}
       />
 
-      {/* Calendar tab */}
+      {/* Calendar tab - Available to all users */}
       <Tab.Screen
         name="Calendar"
         component={CalendarStack}
         options={{ headerShown: false }}
       />
 
-      {/* Hours tab - shows different screens for admin vs student */}
+      {/* Hours tab - Different screens for admin vs student */}
       <Tab.Screen
         name="Hours"
         component={isAdmin ? AdminHourManagementScreen : HourRequestScreen}
@@ -159,7 +161,7 @@ function MainTabNavigator({ navigation }) {
         }}
       />
 
-      {/* Officers tab */}
+      {/* Officers tab - Available to all users */}
       <Tab.Screen
         name="Officers"
         component={OfficersScreen}
@@ -175,7 +177,31 @@ function MainTabNavigator({ navigation }) {
         }}
       />
 
-      {/* Only visible to admin */}
+      {/* Contact/Support tab - Available to all users but with different functionality */}
+      <Tab.Screen
+        name="Contact"
+        component={ContactScreen}
+        options={{
+          title: isAdmin ? 'Support Center' : 'Contact',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={isAdmin ? (focused ? 'help-circle' : 'help-circle-outline') : (focused ? 'mail' : 'mail-outline')}
+              size={size}
+              color={color}
+            />
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginRight: 15 }}
+            >
+              <Ionicons name="log-out-outline" size={24} color="black" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+
+      {/* Create Event tab - Only visible to admins */}
       {isAdmin && (
         <Tab.Screen
           name="Create Event"
@@ -184,31 +210,6 @@ function MainTabNavigator({ navigation }) {
             tabBarIcon: ({ focused, size, color }) => (
               <Ionicons
                 name={focused ? 'add-circle' : 'add-circle-outline'}
-                size={size}
-                color={color}
-              />
-            ),
-            headerRight: () => (
-              <TouchableOpacity
-                onPress={handleLogout}
-                style={{ marginRight: 15 }}
-              >
-                <Ionicons name="log-out-outline" size={24} color="black" />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-      )}
-
-      {/* Only visible to student logins */}
-      {!isAdmin && (
-        <Tab.Screen
-          name="Contact"
-          component={ContactScreen}
-          options={{
-            tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons
-                name={focused ? 'mail' : 'mail-outline'}
                 size={size}
                 color={color}
               />
