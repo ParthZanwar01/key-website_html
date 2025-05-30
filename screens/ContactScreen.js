@@ -39,6 +39,10 @@ export default function ContactScreen() {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [exporting, setExporting] = useState(false);
   
+  // Sorting state
+  const [sortBy, setSortBy] = useState('newest'); // newest, oldest, status, name
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  
   // Dialog states
   const [dialogs, setDialogs] = useState({
     error: { visible: false, message: '' },
@@ -97,6 +101,72 @@ export default function ContactScreen() {
       [type]: { visible: false }
     }));
   };
+
+  // Sort questions based on selected criteria
+  const sortQuestions = (questions, criteria) => {
+    const questionsCopy = [...questions];
+    
+    switch (criteria) {
+      case 'newest':
+        return questionsCopy.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      case 'oldest':
+        return questionsCopy.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+      case 'status':
+        return questionsCopy.sort((a, b) => {
+          const aResolved = (a.resolved === 'true' || a.status === 'resolved');
+          const bResolved = (b.resolved === 'true' || b.status === 'resolved');
+          if (aResolved === bResolved) {
+            // If same status, sort by newest
+            return new Date(b.submittedAt) - new Date(a.submittedAt);
+          }
+          // Open questions first, then resolved
+          return aResolved - bResolved;
+        });
+      case 'name':
+        return questionsCopy.sort((a, b) => {
+          const nameA = (a.name || '').toLowerCase();
+          const nameB = (b.name || '').toLowerCase();
+          if (nameA === nameB) {
+            // If same name, sort by newest
+            return new Date(b.submittedAt) - new Date(a.submittedAt);
+          }
+          return nameA.localeCompare(nameB);
+        });
+      case 'subject':
+        return questionsCopy.sort((a, b) => {
+          const subjectA = (a.subject || '').toLowerCase();
+          const subjectB = (b.subject || '').toLowerCase();
+          if (subjectA === subjectB) {
+            // If same subject, sort by newest
+            return new Date(b.submittedAt) - new Date(a.submittedAt);
+          }
+          return subjectA.localeCompare(subjectB);
+        });
+      default:
+        return questionsCopy.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    }
+  };
+
+  // Get sorted questions
+  const getSortedQuestions = () => {
+    return sortQuestions(supportQuestions, sortBy);
+  };
+
+  // Handle sort option selection
+  const handleSortChange = (newSortBy) => {
+    console.log('Changing sort to:', newSortBy);
+    setSortBy(newSortBy);
+    setShowSortMenu(false);
+  };
+
+  // Sort options for the dropdown
+  const sortOptions = [
+    { key: 'newest', label: 'Newest First', icon: 'time' },
+    { key: 'oldest', label: 'Oldest First', icon: 'time-outline' },
+    { key: 'status', label: 'By Status (Open First)', icon: 'flag' },
+    { key: 'name', label: 'By Student Name', icon: 'person' },
+    { key: 'subject', label: 'By Subject', icon: 'chatbubble' }
+  ];
 
   // Handle admin response to question
   const handleRespondToQuestion = (question) => {
@@ -599,21 +669,64 @@ export default function ContactScreen() {
             <View style={styles.sectionHeader}>
               <Ionicons name="settings" size={24} color="#59a2f0" />
               <Text style={styles.sectionTitle}>Support Questions Management</Text>
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={exportQuestions}
-                disabled={exporting || supportQuestions.length === 0}
-              >
-                {exporting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="download" size={16} color="#0d1b2a" />
-                )}
-                <Text style={styles.exportButtonText}>
-                  {exporting ? 'Exporting...' : 'Export CSV'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={styles.sortButton}
+                  onPress={() => setShowSortMenu(!showSortMenu)}
+                >
+                  <Ionicons name="funnel" size={16} color="#59a2f0" />
+                  <Text style={styles.sortButtonText}>Sort</Text>
+                  <Ionicons name={showSortMenu ? "chevron-up" : "chevron-down"} size={14} color="#59a2f0" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.exportButton}
+                  onPress={exportQuestions}
+                  disabled={exporting || supportQuestions.length === 0}
+                >
+                  {exporting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="download" size={16} color="#0d1b2a" />
+                  )}
+                  <Text style={styles.exportButtonText}>
+                    {exporting ? 'Exporting...' : 'Export CSV'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
+            
+            {/* Sort Menu */}
+            {showSortMenu && (
+              <View style={styles.sortMenu}>
+                <Text style={styles.sortMenuTitle}>Sort Questions By:</Text>
+                {sortOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.sortOption,
+                      sortBy === option.key && styles.activeSortOption
+                    ]}
+                    onPress={() => handleSortChange(option.key)}
+                  >
+                    <Ionicons 
+                      name={option.icon} 
+                      size={16} 
+                      color={sortBy === option.key ? "#59a2f0" : "#ccc"} 
+                    />
+                    <Text style={[
+                      styles.sortOptionText,
+                      sortBy === option.key && styles.activeSortOptionText
+                    ]}>
+                      {option.label}
+                    </Text>
+                    {sortBy === option.key && (
+                      <Ionicons name="checkmark" size={16} color="#59a2f0" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
             
             {loadingQuestions ? (
               <View style={styles.loadingContainer}>
@@ -628,6 +741,9 @@ export default function ContactScreen() {
                       {supportQuestions.length} total questions • {' '}
                       {supportQuestions.filter(q => q.resolved !== 'true' && q.status !== 'resolved').length} open • {' '}
                       {supportQuestions.filter(q => q.resolved === 'true' || q.status === 'resolved').length} resolved
+                      {sortBy !== 'newest' && (
+                        <Text style={styles.sortIndicator}> • Sorted by {sortOptions.find(o => o.key === sortBy)?.label}</Text>
+                      )}
                     </Text>
                     
                     <TouchableOpacity
@@ -646,7 +762,7 @@ export default function ContactScreen() {
                       nestedScrollEnabled={true}
                       showsVerticalScrollIndicator={false}
                     >
-                      {supportQuestions.slice(0, 10).map(renderSupportQuestion)}
+                      {getSortedQuestions().slice(0, 10).map(renderSupportQuestion)}
                       {supportQuestions.length > 10 && (
                         <Text style={styles.moreQuestionsText}>
                           Showing 10 of {supportQuestions.length} questions. 
@@ -1207,6 +1323,67 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 15,
     padding: 10,
+  },
+  
+  // Sort Menu Styles
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(89, 162, 240, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  sortButtonText: {
+    color: '#59a2f0',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginHorizontal: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sortMenu: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(89, 162, 240, 0.3)',
+  },
+  sortMenuTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    marginBottom: 5,
+  },
+  activeSortOption: {
+    backgroundColor: 'rgba(89, 162, 240, 0.2)',
+  },
+  sortOptionText: {
+    fontSize: 14,
+    color: '#ccc',
+    marginLeft: 10,
+    flex: 1,
+  },
+  activeSortOptionText: {
+    color: '#59a2f0',
+    fontWeight: 'bold',
+  },
+  sortIndicator: {
+    fontSize: 12,
+    color: '#59a2f0',
+    fontStyle: 'italic',
   },
   
   // Admin Actions Styles
