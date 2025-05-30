@@ -44,7 +44,8 @@ export default function ContactScreen() {
     error: { visible: false, message: '' },
     success: { visible: false, message: '' },
     export: { visible: false },
-    video: { visible: false, video: null }
+    video: { visible: false, video: null },
+    respond: { visible: false, question: null, response: '' }
   });
 
   // FAQ data
@@ -95,6 +96,114 @@ export default function ContactScreen() {
       ...prev,
       [type]: { visible: false }
     }));
+  };
+
+  // Handle admin response to question
+  const handleRespondToQuestion = (question) => {
+    setDialogs(prev => ({
+      ...prev,
+      respond: { 
+        visible: true, 
+        question: question,
+        response: question.adminResponse || '' // Pre-fill if already has response
+      }
+    }));
+  };
+
+  // Submit admin response
+  const submitAdminResponse = async () => {
+    const { question, response } = dialogs.respond;
+    
+    if (!response.trim()) {
+      showDialog('error', { message: 'Please enter a response before submitting.' });
+      return;
+    }
+
+    try {
+      console.log('Submitting admin response for question:', question.id);
+      
+      // Find the question index in Google Sheets
+      const currentQuestions = await loadSupportQuestions();
+      const questionIndex = currentQuestions.findIndex(q => q.id === question.id);
+      
+      if (questionIndex === -1) {
+        throw new Error('Question not found');
+      }
+      
+      // Update the question with admin response
+      const updatedQuestion = {
+        ...question,
+        adminResponse: response.trim(),
+        respondedAt: new Date().toISOString(),
+        respondedBy: user?.name || 'Admin',
+        resolved: 'true',
+        status: 'resolved'
+      };
+      
+      await axios.patch(`${SUPPORT_QUESTIONS_API_ENDPOINT}/${questionIndex}`, updatedQuestion);
+      console.log('Admin response saved successfully');
+      
+      // Hide response dialog
+      hideDialog('respond');
+      
+      // Show success message
+      showDialog('success', { 
+        message: 'Response sent successfully! The student has been notified.',
+        onConfirm: () => {
+          hideDialog('success');
+          // Refresh questions to show updated status
+          loadSupportQuestions();
+        }
+      });
+      
+    } catch (error) {
+      console.error('Failed to submit admin response:', error);
+      showDialog('error', { 
+        message: 'Failed to submit response. Please try again.'
+      });
+    }
+  };
+
+  // Mark question as resolved without response
+  const markAsResolved = async (question) => {
+    try {
+      console.log('Marking question as resolved:', question.id);
+      
+      // Find the question index in Google Sheets
+      const currentQuestions = await loadSupportQuestions();
+      const questionIndex = currentQuestions.findIndex(q => q.id === question.id);
+      
+      if (questionIndex === -1) {
+        throw new Error('Question not found');
+      }
+      
+      // Update the question status
+      const updatedQuestion = {
+        ...question,
+        resolved: 'true',
+        status: 'resolved',
+        respondedAt: new Date().toISOString(),
+        respondedBy: user?.name || 'Admin'
+      };
+      
+      await axios.patch(`${SUPPORT_QUESTIONS_API_ENDPOINT}/${questionIndex}`, updatedQuestion);
+      console.log('Question marked as resolved');
+      
+      // Show success and refresh
+      showDialog('success', { 
+        message: 'Question marked as resolved.',
+        onConfirm: () => {
+          hideDialog('success');
+          loadSupportQuestions();
+        }
+      });
+      
+    } catch (error) {
+      console.error('Failed to mark as resolved:', error);
+      showDialog('error', { 
+        message: 'Failed to update question status. Please try again.'
+      });
+    }
   };
   useEffect(() => {
     if (isAdmin) {
@@ -400,6 +509,36 @@ export default function ContactScreen() {
           </Text>
         </View>
       )}
+      
+      {/* Admin Action Buttons */}
+      {isAdmin && (
+        <View style={styles.adminActions}>
+          {question.resolved !== 'true' ? (
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.respondButton}
+                onPress={() => handleRespondToQuestion(question)}
+              >
+                <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+                <Text style={styles.actionButtonText}>Respond</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.resolveButton}
+                onPress={() => markAsResolved(question)}
+              >
+                <Ionicons name="checkmark-outline" size={16} color="#fff" />
+                <Text style={styles.actionButtonText}>Mark Resolved</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.resolvedIndicator}>
+              <Ionicons name="checkmark-circle" size={16} color="#27ae60" />
+              <Text style={styles.resolvedText}>Resolved</Text>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
   const renderVideoGuide = (video) => (
@@ -638,6 +777,51 @@ export default function ContactScreen() {
         confirmText="OK"
         icon="download"
         iconColor="#4CAF50"
+      />
+
+      {/* Admin Response Dialog */}
+      <ConfirmationDialog
+        visible={dialogs.respond.visible}
+        title="Respond to Question"
+        message=""
+        onCancel={() => hideDialog('respond')}
+        onConfirm={submitAdminResponse}
+        cancelText="Cancel"
+        confirmText="Send Response"
+        icon="chatbubble"
+        iconColor="#59a2f0"
+        customContent={
+          <View style={styles.responseDialogContent}>
+            {dialogs.respond.question && (
+              <View style={styles.questionPreview}>
+                <Text style={styles.questionPreviewTitle}>Question:</Text>
+                <Text style={styles.questionPreviewSubject}>{dialogs.respond.question.subject}</Text>
+                <Text style={styles.questionPreviewFrom}>
+                  From: {dialogs.respond.question.name} ({dialogs.respond.question.sNumber || dialogs.respond.question.studentSNumber})
+                </Text>
+                <Text style={styles.questionPreviewMessage}>{dialogs.respond.question.message}</Text>
+              </View>
+            )}
+            
+            <Text style={styles.responseLabel}>Your Response:</Text>
+            <TextInput
+              style={styles.responseInput}
+              value={dialogs.respond.response}
+              onChangeText={(text) => setDialogs(prev => ({
+                ...prev,
+                respond: { ...prev.respond, response: text }
+              }))}
+              placeholder="Type your response to the student here..."
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            
+            <Text style={styles.responseNote}>
+              This response will be saved and the question will be marked as resolved.
+            </Text>
+          </View>
+        }
       />
 
       {/* Video Dialog */}
@@ -999,6 +1183,113 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 15,
     padding: 10,
+  },
+  
+  // Admin Actions Styles
+  adminActions: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  respondButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#59a2f0',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    flex: 0.48,
+    justifyContent: 'center',
+  },
+  resolveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#27ae60',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    flex: 0.48,
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  resolvedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  resolvedText: {
+    color: '#27ae60',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 5,
+  },
+  
+  // Response Dialog Styles
+  responseDialogContent: {
+    marginVertical: 15,
+  },
+  questionPreview: {
+    backgroundColor: 'rgba(89, 162, 240, 0.1)',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: '#59a2f0',
+  },
+  questionPreviewTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#59a2f0',
+    marginBottom: 5,
+  },
+  questionPreviewSubject: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 3,
+  },
+  questionPreviewFrom: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  questionPreviewMessage: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+  },
+  responseLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  responseInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 14,
+    textAlignVertical: 'top',
+    minHeight: 100,
+    marginBottom: 10,
+  },
+  responseNote: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   quickContact: {
     margin: 15,
