@@ -1,18 +1,663 @@
-import React from 'react';
-import { View, Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Linking,
+  Animated,
+  Easing,
+  ActivityIndicator
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
+import ConfirmationDialog from '../components/ConfirmationDialog';
+
+// Google Sheets API endpoint for support questions
+const SUPPORT_QUESTIONS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/d3774c6a-2047-4086-9f06-c9485205ec2e';
 
 export default function ContactScreen() {
-  const handleContactPress = () => {
-    Linking.openURL('https://forms.gle/fvSSchptcLwB9uYy6'); // Replace this with your actual Google Form link
+  const { user, isAdmin } = useAuth();
+  
+  // FAQ dropdown states
+  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [animatedValues] = useState({});
+  
+  // Contact form states
+  const [contactForm, setContactForm] = useState({
+    subject: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Support questions management (admin only)
+  const [supportQuestions, setSupportQuestions] = useState([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  
+  // Dialog states
+  const [dialogs, setDialogs] = useState({
+    error: { visible: false, message: '' },
+    success: { visible: false, message: '' },
+    export: { visible: false },
+    video: { visible: false, video: null }
+  });
+
+  // FAQ data
+  const faqData = [
+    {
+      id: 1,
+      question: "How do I submit volunteer hours?",
+      answer: "To submit volunteer hours, go to the 'Hours' tab and tap 'Request Hours'. Fill out the form with your event details, date, and number of hours. Include a detailed description of your volunteer work for faster approval."
+    },
+    {
+      id: 2,
+      question: "How long does hour approval take?",
+      answer: "Hour requests are typically reviewed within 3-5 business days. You'll see the status update in your 'My Hour Requests' section. Approved hours will automatically be added to your total."
+    },
+    {
+      id: 3,
+      question: "How do I sign up for events?",
+      answer: "Browse events in the Calendar tab. Tap any event to view details and sign up. Make sure to provide accurate contact information as organizers may send updates or reminders."
+    },
+    {
+      id: 4,
+      question: "What if I forgot my password?",
+      answer: "Contact your Key Club sponsor or an officer to reset your password. For security reasons, password resets must be done manually by an administrator."
+    },
+    {
+      id: 5,
+      question: "How can I see my total volunteer hours?",
+      answer: "Your current volunteer hours are displayed on the Home screen. You can also view a detailed breakdown of all your hour requests in the 'Hours' section."
+    },
+    {
+      id: 6,
+      question: "Can I edit or cancel my event registration?",
+      answer: "Currently, you'll need to contact an officer to modify your event registration. Use the contact form below or speak with an officer directly."
+    }
+  ];
+
+  // Show dialog helper
+  const showDialog = (type, data = {}) => {
+    setDialogs(prev => ({
+      ...prev,
+      [type]: { visible: true, ...data }
+    }));
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🗒️ Have a question, suggestion, or issue? Fill out this contact form and an officer will get back to you soon!</Text>
-      <TouchableOpacity onPress={handleContactPress} style={styles.button}>
-        <Text style={styles.buttonText}>Key Club Contact Form</Text>
-      </TouchableOpacity>
+  // Hide dialog helper
+  const hideDialog = (type) => {
+    setDialogs(prev => ({
+      ...prev,
+      [type]: { visible: false }
+    }));
+  };
+  useEffect(() => {
+    if (isAdmin) {
+      loadSupportQuestions();
+    }
+  }, [isAdmin]);
+
+  // Load support questions from Google Sheets
+  const loadSupportQuestions = async () => {
+    try {
+      setLoadingQuestions(true);
+      console.log('Loading support questions from Google Sheets...');
+      
+      const response = await axios.get(SUPPORT_QUESTIONS_API_ENDPOINT);
+      const questions = response.data || [];
+      
+      // Sort by submission date (newest first)
+      const sortedQuestions = questions.sort((a, b) => 
+        new Date(b.submittedAt) - new Date(a.submittedAt)
+      );
+      
+      setSupportQuestions(sortedQuestions);
+      console.log(`Loaded ${questions.length} support questions`);
+    } catch (error) {
+      console.error('Failed to load support questions:', error);
+      showDialog('error', { message: 'Failed to load support questions from database.' });
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  // Save question to Google Sheets
+  const saveQuestionToSheet = async (questionData) => {
+    try {
+      console.log('Saving question to Google Sheets:', questionData.subject);
+      
+      const sheetData = {
+        id: Date.now().toString(),
+        name: user?.name || user?.sNumber || 'Unknown User',
+        sNumber: user?.sNumber || 'N/A',
+        subject: questionData.subject,
+        message: questionData.message,
+        submittedAt: new Date().toISOString(),
+        status: 'new',
+        userType: isAdmin ? 'admin' : 'student',
+        resolved: 'false',
+        adminResponse: '',
+        respondedAt: '',
+        respondedBy: ''
+      };
+      
+      await axios.post(SUPPORT_QUESTIONS_API_ENDPOINT, sheetData);
+      console.log('Question saved to Google Sheets successfully');
+      
+      // Refresh questions list if admin
+      if (isAdmin) {
+        await loadSupportQuestions();
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to save question to Google Sheets:', error);
+      throw error;
+    }
+  };
+
+  // Export questions to CSV (admin only)
+  const exportQuestions = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      setExporting(true);
+      
+      // Create CSV content
+      const headers = [
+        'ID',
+        'Name',
+        'Student S-Number',
+        'Subject',
+        'Message',
+        'Submitted At',
+        'Status',
+        'User Type',
+        'Resolved',
+        'Admin Response',
+        'Responded At',
+        'Responded By'
+      ];
+      
+      const csvContent = [
+        headers.join(','),
+        ...supportQuestions.map(q => [
+          q.id || '',
+          `"${q.name || ''}"`,
+          q.sNumber || q.studentSNumber || '',
+          `"${q.subject || ''}"`,
+          `"${(q.message || '').replace(/"/g, '""')}"`,
+          q.submittedAt || '',
+          q.status || '',
+          q.userType || '',
+          q.resolved || '',
+          `"${(q.adminResponse || '').replace(/"/g, '""')}"`,
+          q.respondedAt || '',
+          q.respondedBy || ''
+        ].join(','))
+      ].join('\n');
+      
+      // In a real app, you would use a file system API to save the CSV
+      // For now, we'll show the count and simulate the export
+      showDialog('export', { 
+        message: `Exported ${supportQuestions.length} support questions.\n\nIn a production app, this would download a CSV file with all the question data.`
+      });
+      
+      console.log('CSV Content generated:', csvContent.slice(0, 200) + '...');
+      
+    } catch (error) {
+      console.error('Export failed:', error);
+      showDialog('error', { message: 'Could not export questions. Please try again.' });
+    } finally {
+      setExporting(false);
+    }
+  };
+  const videoGuides = [
+    {
+      id: 1,
+      title: "Getting Started with the Key Club App",
+      description: "A complete walkthrough of logging in and navigating the app",
+      thumbnail: "play-circle",
+      duration: "3:45",
+      url: "https://example.com/video1" // Replace with actual video URLs
+    },
+    {
+      id: 2,
+      title: "How to Submit Volunteer Hours",
+      description: "Step-by-step guide to requesting volunteer hour approval",
+      thumbnail: "play-circle",
+      duration: "2:30",
+      url: "https://example.com/video2"
+    },
+    {
+      id: 3,
+      title: "Event Registration Process",
+      description: "Learn how to browse and sign up for Key Club events",
+      thumbnail: "play-circle",
+      duration: "2:15",
+      url: "https://example.com/video3"
+    }
+  ];
+
+  // Initialize animated value for FAQ item
+  const initializeAnimation = (id) => {
+    if (!animatedValues[id]) {
+      animatedValues[id] = new Animated.Value(0);
+    }
+    return animatedValues[id];
+  };
+
+  // Toggle FAQ expansion
+  const toggleFaq = (id) => {
+    const animatedValue = initializeAnimation(id);
+    
+    if (expandedFaq === id) {
+      // Collapse
+      Animated.timing(animatedValue, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.ease,
+        useNativeDriver: false,
+      }).start();
+      setExpandedFaq(null);
+    } else {
+      // Collapse previous if any
+      if (expandedFaq !== null) {
+        const prevAnimatedValue = initializeAnimation(expandedFaq);
+        Animated.timing(prevAnimatedValue, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      }
+      
+      // Expand new
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.ease,
+        useNativeDriver: false,
+      }).start();
+      setExpandedFaq(id);
+    }
+  };
+
+  // Handle video guide press
+  const handleVideoPress = (video) => {
+    showDialog('video', { 
+      video,
+      message: "This would open the video guide. In a real app, this would link to your actual video content."
+    });
+  };
+
+  // Handle contact form submission
+  const handleContactSubmit = async () => {
+    if (!contactForm.subject || !contactForm.message) {
+      showDialog('error', { message: 'Please fill out all fields before submitting.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Save to Google Sheets
+      await saveQuestionToSheet(contactForm);
+      
+      showDialog('success', { 
+        message: 'Thank you for your message. Your question has been saved and an officer will get back to you within 24-48 hours.',
+        onConfirm: () => {
+          setContactForm({ 
+            subject: '', 
+            message: '' 
+          });
+          hideDialog('success');
+        }
+      });
+    } catch (error) {
+      console.error('Failed to submit question:', error);
+      showDialog('error', { 
+        message: 'Failed to save your question. Please try again or contact an officer directly.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Render FAQ item
+  const renderFaqItem = (item) => {
+    const animatedValue = initializeAnimation(item.id);
+    const isExpanded = expandedFaq === item.id;
+    
+    const maxHeight = animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 200],
+    });
+
+    const iconRotation = animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '180deg'],
+    });
+
+    return (
+      <View key={item.id} style={styles.faqItem}>
+        <TouchableOpacity
+          style={styles.faqQuestion}
+          onPress={() => toggleFaq(item.id)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.faqQuestionText}>{item.question}</Text>
+          <Animated.View style={{ transform: [{ rotate: iconRotation }] }}>
+            <Ionicons name="chevron-down" size={20} color="#59a2f0" />
+          </Animated.View>
+        </TouchableOpacity>
+        
+        <Animated.View style={[styles.faqAnswer, { maxHeight }]}>
+          <Text style={styles.faqAnswerText}>{item.answer}</Text>
+        </Animated.View>
+      </View>
+    );
+  };
+
+  // Render support question item (admin only)
+  const renderSupportQuestion = (question, index) => (
+    <View key={question.id || index} style={styles.questionItem}>
+      <View style={styles.questionHeader}>
+        <View style={styles.questionInfo}>
+          <Text style={styles.questionSubject}>{question.subject}</Text>
+          <Text style={styles.questionMeta}>
+            From: {question.name}
+          </Text>
+          <Text style={styles.questionMeta}>
+            S-Number: {question.sNumber || question.studentSNumber || 'N/A'}
+          </Text>
+          <Text style={styles.questionMeta}>
+            Submitted: {new Date(question.submittedAt).toLocaleDateString()}
+          </Text>
+        </View>
+        <View style={[
+          styles.statusBadge, 
+          { backgroundColor: question.resolved === 'true' ? '#27ae60' : '#f39c12' }
+        ]}>
+          <Text style={styles.statusText}>
+            {question.resolved === 'true' ? 'RESOLVED' : 'OPEN'}
+          </Text>
+        </View>
+      </View>
+      
+      <Text style={styles.questionMessage}>{question.message}</Text>
+      
+      {question.adminResponse && (
+        <View style={styles.adminResponseContainer}>
+          <Text style={styles.adminResponseLabel}>Admin Response:</Text>
+          <Text style={styles.adminResponseText}>{question.adminResponse}</Text>
+          <Text style={styles.adminResponseMeta}>
+            Responded by {question.respondedBy} on {new Date(question.respondedAt).toLocaleDateString()}
+          </Text>
+        </View>
+      )}
     </View>
+  );
+  const renderVideoGuide = (video) => (
+    <TouchableOpacity
+      key={video.id}
+      style={styles.videoItem}
+      onPress={() => handleVideoPress(video)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.videoThumbnail}>
+        <Ionicons name={video.thumbnail} size={40} color="#fff" />
+        <Text style={styles.videoDuration}>{video.duration}</Text>
+      </View>
+      <View style={styles.videoInfo}>
+        <Text style={styles.videoTitle}>{video.title}</Text>
+        <Text style={styles.videoDescription}>{video.description}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color="#666" />
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Ionicons name="help-circle" size={32} color="#ffd60a" />
+          <Text style={styles.headerTitle}>Help & Support</Text>
+          <Text style={styles.headerSubtitle}>
+            Find answers, watch guides, or contact us directly
+          </Text>
+        </View>
+
+        {/* Admin Section - Support Questions Management */}
+        {isAdmin && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="settings" size={24} color="#59a2f0" />
+              <Text style={styles.sectionTitle}>Support Questions Management</Text>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={exportQuestions}
+                disabled={exporting || supportQuestions.length === 0}
+              >
+                {exporting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="download" size={16} color="#0d1b2a" />
+                )}
+                <Text style={styles.exportButtonText}>
+                  {exporting ? 'Exporting...' : 'Export CSV'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            {loadingQuestions ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#59a2f0" />
+                <Text style={styles.loadingText}>Loading support questions...</Text>
+              </View>
+            ) : (
+              <View style={styles.questionsContainer}>
+                {supportQuestions.length > 0 ? (
+                  <>
+                    <Text style={styles.questionsCount}>
+                      {supportQuestions.length} total questions • {' '}
+                      {supportQuestions.filter(q => q.resolved !== 'true').length} open • {' '}
+                      {supportQuestions.filter(q => q.resolved === 'true').length} resolved
+                    </Text>
+                    
+                    <TouchableOpacity
+                      style={styles.refreshButton}
+                      onPress={loadSupportQuestions}
+                    >
+                      <Ionicons name="refresh" size={16} color="#59a2f0" />
+                      <Text style={styles.refreshButtonText}>Refresh</Text>
+                    </TouchableOpacity>
+                    
+                    <ScrollView 
+                      style={styles.questionsScrollView}
+                      nestedScrollEnabled={true}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {supportQuestions.slice(0, 10).map(renderSupportQuestion)}
+                      {supportQuestions.length > 10 && (
+                        <Text style={styles.moreQuestionsText}>
+                          Showing 10 of {supportQuestions.length} questions. 
+                          Export CSV to view all questions.
+                        </Text>
+                      )}
+                    </ScrollView>
+                  </>
+                ) : (
+                  <View style={styles.noQuestionsContainer}>
+                    <Ionicons name="chatbubbles-outline" size={40} color="#666" />
+                    <Text style={styles.noQuestionsText}>No support questions yet</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* FAQ Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="help-buoy" size={24} color="#59a2f0" />
+            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+          </View>
+          
+          <View style={styles.faqContainer}>
+            {faqData.map(renderFaqItem)}
+          </View>
+        </View>
+
+        {/* Video Guides Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="play-circle" size={24} color="#59a2f0" />
+            <Text style={styles.sectionTitle}>Video Guides</Text>
+          </View>
+          
+          <View style={styles.videoContainer}>
+            {videoGuides.map(renderVideoGuide)}
+          </View>
+        </View>
+
+        {/* Contact Form Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="mail" size={24} color="#59a2f0" />
+            <Text style={styles.sectionTitle}>Contact Us</Text>
+          </View>
+          
+          <View style={styles.contactForm}>
+            <Text style={styles.contactFormDescription}>
+              Can't find what you're looking for? Send us a message and we'll get back to you!
+            </Text>
+            
+            {/* Show user info */}
+            <View style={styles.userInfoDisplay}>
+              <Text style={styles.userInfoLabel}>Submitting as:</Text>
+              <Text style={styles.userInfoValue}>
+                {user?.name || user?.sNumber || 'Unknown User'}
+                {user?.sNumber && ` (${user.sNumber})`}
+              </Text>
+            </View>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Subject *</Text>
+              <TextInput
+                style={styles.input}
+                value={contactForm.subject}
+                onChangeText={(text) => setContactForm(prev => ({ ...prev, subject: text }))}
+                placeholder="Brief description of your inquiry"
+                placeholderTextColor="#999"
+              />
+            </View>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Message *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={contactForm.message}
+                onChangeText={(text) => setContactForm(prev => ({ ...prev, message: text }))}
+                placeholder="Please provide details about your question or issue..."
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+            
+            <TouchableOpacity
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              onPress={handleContactSubmit}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.submitButtonText}>
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </Text>
+              {!isSubmitting && <Ionicons name="send" size={16} color="#0d1b2a" style={styles.sendIcon} />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Quick Contact Info */}
+        <View style={styles.quickContact}>
+          <Text style={styles.quickContactTitle}>Need Immediate Help?</Text>
+          <Text style={styles.quickContactText}>
+            Speak with an officer during club meetings or contact your faculty sponsor directly.
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Error Dialog */}
+      <ConfirmationDialog
+        visible={dialogs.error.visible}
+        title="Error"
+        message={dialogs.error.message}
+        onCancel={() => hideDialog('error')}
+        onConfirm={() => hideDialog('error')}
+        cancelText=""
+        confirmText="OK"
+        icon="alert-circle"
+        iconColor="#ff4d4d"
+      />
+
+      {/* Success Dialog */}
+      <ConfirmationDialog
+        visible={dialogs.success.visible}
+        title="Success"
+        message={dialogs.success.message}
+        onCancel={() => {
+          if (dialogs.success.onConfirm) dialogs.success.onConfirm();
+          hideDialog('success');
+        }}
+        onConfirm={() => {
+          if (dialogs.success.onConfirm) dialogs.success.onConfirm();
+          hideDialog('success');
+        }}
+        cancelText=""
+        confirmText="OK"
+        icon="checkmark-circle"
+        iconColor="#4CAF50"
+      />
+
+      {/* Export Dialog */}
+      <ConfirmationDialog
+        visible={dialogs.export.visible}
+        title="Export Complete"
+        message={dialogs.export.message}
+        onCancel={() => hideDialog('export')}
+        onConfirm={() => hideDialog('export')}
+        cancelText=""
+        confirmText="OK"
+        icon="download"
+        iconColor="#4CAF50"
+      />
+
+      {/* Video Dialog */}
+      <ConfirmationDialog
+        visible={dialogs.video.visible}
+        title={dialogs.video.video?.title || "Video Guide"}
+        message={dialogs.video.message}
+        onCancel={() => hideDialog('video')}
+        onConfirm={() => {
+          // In a real app, you would open the video URL
+          // Linking.openURL(dialogs.video.video?.url);
+          console.log("Opening video:", dialogs.video.video?.title);
+          hideDialog('video');
+        }}
+        cancelText="Cancel"
+        confirmText="Watch"
+        icon="play-circle"
+        iconColor="#59a2f0"
+      />
+    </SafeAreaView>
   );
 }
 
@@ -20,25 +665,359 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0d1b2a',
-    justifyContent: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#0d1b2a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a3950',
   },
-  title: {
-    color: '#fff',
-    fontSize: 22,
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#ccc',
     textAlign: 'center',
-    marginBottom: 30,
   },
-  button: {
-    backgroundColor: '#ffc43b',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+  section: {
+    margin: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 15,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 10,
+  },
+  
+  // FAQ Styles
+  faqContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  faqItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  faqQuestion: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  faqQuestionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+    marginRight: 10,
+  },
+  faqAnswer: {
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  faqAnswerText: {
+    fontSize: 14,
+    color: '#ccc',
+    lineHeight: 20,
+    padding: 15,
+  },
+  
+  // Video Guide Styles
+  videoContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 8,
   },
-  buttonText: {
+  videoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  videoThumbnail: {
+    width: 60,
+    height: 45,
+    backgroundColor: '#59a2f0',
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+    position: 'relative',
+  },
+  videoDuration: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    fontSize: 10,
+    color: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderRadius: 2,
+  },
+  videoInfo: {
+    flex: 1,
+  },
+  videoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 3,
+  },
+  videoDescription: {
+    fontSize: 14,
+    color: '#ccc',
+  },
+  
+  // Contact Form Styles
+  contactForm: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+    padding: 15,
+  },
+  contactFormDescription: {
+    fontSize: 14,
+    color: '#ccc',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  userInfoDisplay: {
+    backgroundColor: 'rgba(89, 162, 240, 0.1)',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(89, 162, 240, 0.3)',
+  },
+  userInfoLabel: {
+    fontSize: 12,
+    color: '#59a2f0',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  userInfoValue: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  formGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#ffd60a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#666',
+  },
+  submitButtonText: {
     color: '#0d1b2a',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  sendIcon: {
+    marginLeft: 8,
+  },
+  
+  // Admin Question Management Styles
+  questionsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+    padding: 15,
+  },
+  questionsCount: {
+    fontSize: 14,
+    color: '#ccc',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(89, 162, 240, 0.2)',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 15,
+  },
+  refreshButtonText: {
+    color: '#59a2f0',
+    marginLeft: 5,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  questionsScrollView: {
+    maxHeight: 400,
+  },
+  questionItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#59a2f0',
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  questionInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  questionSubject: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  questionMeta: {
+    fontSize: 12,
+    color: '#ccc',
+    marginBottom: 2,
+  },
+  questionMessage: {
+    fontSize: 14,
+    color: '#ddd',
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  adminResponseContainer: {
+    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+    borderRadius: 6,
+    padding: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: '#27ae60',
+  },
+  adminResponseLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#27ae60',
+    marginBottom: 5,
+  },
+  adminResponseText: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 5,
+  },
+  adminResponseMeta: {
+    fontSize: 11,
+    color: '#aaa',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffd60a',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  exportButtonText: {
+    color: '#0d1b2a',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    color: '#ccc',
+    marginTop: 10,
+    fontSize: 14,
+  },
+  noQuestionsContainer: {
+    alignItems: 'center',
+    padding: 30,
+  },
+  noQuestionsText: {
+    color: '#666',
+    fontSize: 16,
+    marginTop: 10,
+  },
+  moreQuestionsText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 15,
+    padding: 10,
+  },
+  quickContact: {
+    margin: 15,
+    padding: 15,
+    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 10, 0.3)',
+    alignItems: 'center',
+  },
+  quickContactTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+    marginBottom: 5,
+  },
+  quickContactText: {
+    fontSize: 14,
+    color: '#ccc',
+    textAlign: 'center',
   },
 });
