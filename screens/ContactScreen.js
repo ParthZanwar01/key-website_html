@@ -122,8 +122,11 @@ export default function ContactScreen() {
     try {
       console.log('Submitting admin response for question:', question.id);
       
-      // Find the question index in Google Sheets
-      const currentQuestions = await loadSupportQuestions();
+      // Get current questions directly instead of calling loadSupportQuestions
+      const apiResponse = await axios.get(SUPPORT_QUESTIONS_API_ENDPOINT);
+      const currentQuestions = apiResponse.data || [];
+      
+      // Find the question index
       const questionIndex = currentQuestions.findIndex(q => q.id === question.id);
       
       if (questionIndex === -1) {
@@ -169,8 +172,11 @@ export default function ContactScreen() {
     try {
       console.log('Marking question as resolved:', question.id);
       
-      // Find the question index in Google Sheets
-      const currentQuestions = await loadSupportQuestions();
+      // Get current questions directly instead of calling loadSupportQuestions
+      const response = await axios.get(SUPPORT_QUESTIONS_API_ENDPOINT);
+      const currentQuestions = response.data || [];
+      
+      // Find the question index
       const questionIndex = currentQuestions.findIndex(q => q.id === question.id);
       
       if (questionIndex === -1) {
