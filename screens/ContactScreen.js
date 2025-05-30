@@ -146,6 +146,13 @@ export default function ContactScreen() {
       await axios.patch(`${SUPPORT_QUESTIONS_API_ENDPOINT}/${questionIndex}`, updatedQuestion);
       console.log('Admin response saved successfully');
       
+      // Immediately update local state
+      setSupportQuestions(prevQuestions => 
+        prevQuestions.map(q => 
+          q.id === question.id ? updatedQuestion : q
+        )
+      );
+      
       // Hide response dialog
       hideDialog('respond');
       
@@ -154,7 +161,7 @@ export default function ContactScreen() {
         message: 'Response sent successfully! The student has been notified.',
         onConfirm: () => {
           hideDialog('success');
-          // Refresh questions to show updated status
+          // Also refresh from server to ensure sync
           loadSupportQuestions();
         }
       });
@@ -195,11 +202,19 @@ export default function ContactScreen() {
       await axios.patch(`${SUPPORT_QUESTIONS_API_ENDPOINT}/${questionIndex}`, updatedQuestion);
       console.log('Question marked as resolved');
       
-      // Show success and refresh
+      // Immediately update local state
+      setSupportQuestions(prevQuestions => 
+        prevQuestions.map(q => 
+          q.id === question.id ? updatedQuestion : q
+        )
+      );
+      
+      // Show success message
       showDialog('success', { 
         message: 'Question marked as resolved.',
         onConfirm: () => {
           hideDialog('success');
+          // Also refresh from server to ensure sync
           loadSupportQuestions();
         }
       });
@@ -496,10 +511,10 @@ export default function ContactScreen() {
         </View>
         <View style={[
           styles.statusBadge, 
-          { backgroundColor: question.resolved === 'true' ? '#27ae60' : '#f39c12' }
+          { backgroundColor: (question.resolved === 'true' || question.status === 'resolved') ? '#27ae60' : '#f39c12' }
         ]}>
           <Text style={styles.statusText}>
-            {question.resolved === 'true' ? 'RESOLVED' : 'OPEN'}
+            {(question.resolved === 'true' || question.status === 'resolved') ? 'RESOLVED' : 'OPEN'}
           </Text>
         </View>
       </View>
@@ -519,7 +534,7 @@ export default function ContactScreen() {
       {/* Admin Action Buttons */}
       {isAdmin && (
         <View style={styles.adminActions}>
-          {question.resolved !== 'true' ? (
+          {(question.resolved !== 'true' && question.status !== 'resolved') ? (
             <View style={styles.actionButtonsRow}>
               <TouchableOpacity
                 style={styles.respondButton}
@@ -611,13 +626,16 @@ export default function ContactScreen() {
                   <>
                     <Text style={styles.questionsCount}>
                       {supportQuestions.length} total questions • {' '}
-                      {supportQuestions.filter(q => q.resolved !== 'true').length} open • {' '}
-                      {supportQuestions.filter(q => q.resolved === 'true').length} resolved
+                      {supportQuestions.filter(q => q.resolved !== 'true' && q.status !== 'resolved').length} open • {' '}
+                      {supportQuestions.filter(q => q.resolved === 'true' || q.status === 'resolved').length} resolved
                     </Text>
                     
                     <TouchableOpacity
                       style={styles.refreshButton}
-                      onPress={loadSupportQuestions}
+                      onPress={() => {
+                        console.log('Manual refresh triggered');
+                        loadSupportQuestions();
+                      }}
                     >
                       <Ionicons name="refresh" size={16} color="#59a2f0" />
                       <Text style={styles.refreshButtonText}>Refresh</Text>
