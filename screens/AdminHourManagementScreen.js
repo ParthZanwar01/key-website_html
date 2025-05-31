@@ -30,6 +30,9 @@ export default function AdminHourManagementScreen({ navigation }) {
   const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Track which requests are being processed to prevent double-clicks
+  const [processingRequests, setProcessingRequests] = useState(new Set());
+  
   // Modal states
   const [reviewModal, setReviewModal] = useState({
     visible: false,
@@ -69,7 +72,10 @@ export default function AdminHourManagementScreen({ navigation }) {
     setRefreshing(true);
     try {
       await refreshHourRequests();
-      await loadData();
+      // Wait a moment for the context to update
+      setTimeout(() => {
+        loadData();
+      }, 500);
     } catch (error) {
       console.error('Failed to refresh:', error);
     } finally {
@@ -82,16 +88,21 @@ export default function AdminHourManagementScreen({ navigation }) {
     
     // Apply status filter
     if (filterType !== 'all') {
-      filtered = filtered.filter(request => request.status === filterType);
+      filtered = filtered.filter(request => {
+        const status = request.status?.toLowerCase();
+        return status === filterType || 
+               (filterType === 'approved' && (status === 'approve' || status === 'approved')) ||
+               (filterType === 'rejected' && (status === 'reject' || status === 'rejected'));
+      });
     }
     
     // Apply search filter
     if (search.trim()) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(request =>
-        request.eventName.toLowerCase().includes(searchLower) ||
-        request.studentName.toLowerCase().includes(searchLower) ||
-        request.studentSNumber.toLowerCase().includes(searchLower)
+        request.eventName?.toLowerCase().includes(searchLower) ||
+        request.studentName?.toLowerCase().includes(searchLower) ||
+        request.studentSNumber?.toLowerCase().includes(searchLower)
       );
     }
     
@@ -111,6 +122,25 @@ export default function AdminHourManagementScreen({ navigation }) {
   };
 
   const handleReviewRequest = (request, action) => {
+    // Prevent action if request is already being processed
+    if (processingRequests.has(request.id)) {
+      console.log('Request already being processed:', request.id);
+      return;
+    }
+
+    // Check if request is already processed
+    const currentStatus = request.status?.toLowerCase();
+    if (currentStatus === 'approved' || currentStatus === 'approve' || 
+        currentStatus === 'rejected' || currentStatus === 'reject') {
+      setMessageDialog({
+        visible: true,
+        title: 'Request Already Processed',
+        message: `This request has already been ${currentStatus}. Please refresh the page to see the latest status.`,
+        isError: true
+      });
+      return;
+    }
+
     console.log('Starting review for request:', request.id, 'action:', action);
     setReviewModal({
       visible: true,
@@ -123,6 +153,12 @@ export default function AdminHourManagementScreen({ navigation }) {
   const submitReview = async () => {
     const { request, action, notes } = reviewModal;
     
+    // Prevent double submission
+    if (processingRequests.has(request.id)) {
+      console.log('Request already being processed, ignoring duplicate submission');
+      return;
+    }
+
     console.log('Submitting review:', {
       requestId: request.id,
       action: action,
@@ -131,12 +167,18 @@ export default function AdminHourManagementScreen({ navigation }) {
       hoursRequested: request.hoursRequested
     });
     
+    // Add to processing set
+    setProcessingRequests(prev => new Set(prev).add(request.id));
+    
     setReviewModal({ visible: false, request: null, action: null, notes: '' });
     
     try {
       console.log('Calling updateHourRequestStatus...');
       
-      await updateHourRequestStatus(request.id, action, notes);
+      // Use the correct status values that match the backend expectations
+      const statusToSubmit = action === 'approve' ? 'approved' : 'rejected';
+      
+      await updateHourRequestStatus(request.id, statusToSubmit, notes);
       
       console.log('updateHourRequestStatus completed successfully');
       
@@ -154,7 +196,11 @@ export default function AdminHourManagementScreen({ navigation }) {
       // Refresh data
       console.log('Refreshing data after status update...');
       await refreshHourRequests();
-      await loadData();
+      
+      // Wait for context to update and then reload local data
+      setTimeout(() => {
+        loadData();
+      }, 1000);
       
       console.log('Data refresh completed');
       
@@ -173,19 +219,42 @@ export default function AdminHourManagementScreen({ navigation }) {
         message: `Failed to ${action} request: ${error.message}. Please try again.`,
         isError: true
       });
+    } finally {
+      // Remove from processing set
+      setProcessingRequests(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(request.id);
+        return newSet;
+      });
     }
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
       case 'pending': return '#f39c12';
-      case 'approved': return '#27ae60';
-      case 'rejected': return '#e74c3c';
+      case 'approved': 
+      case 'approve': return '#27ae60';
+      case 'rejected': 
+      case 'reject': return '#e74c3c';
       default: return '#95a5a6';
     }
   };
 
+  const getDisplayStatus = (status) => {
+    const normalizedStatus = status?.toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending': return 'PENDING';
+      case 'approved': 
+      case 'approve': return 'APPROVED';
+      case 'rejected': 
+      case 'reject': return 'REJECTED';
+      default: return status?.toUpperCase() || 'UNKNOWN';
+    }
+  };
+
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -193,87 +262,117 @@ export default function AdminHourManagementScreen({ navigation }) {
     });
   };
 
-  const renderRequestItem = ({ item }) => (
-    <View style={styles.requestItem}>
-      <View style={styles.requestHeader}>
-        <View style={styles.studentInfo}>
-          <Text style={styles.studentName}>{item.studentName}</Text>
-          <Text style={styles.studentId}>{item.studentSNumber}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-        </View>
-      </View>
-      
-      <Text style={styles.eventName}>{item.eventName}</Text>
-      
-      <View style={styles.requestDetails}>
-        <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>Event: {formatDate(item.eventDate)}</Text>
+  const isRequestProcessed = (request) => {
+    const status = request.status?.toLowerCase();
+    return status === 'approved' || status === 'approve' || 
+           status === 'rejected' || status === 'reject';
+  };
+
+  const isRequestPending = (request) => {
+    const status = request.status?.toLowerCase();
+    return status === 'pending' || !status;
+  };
+
+  const renderRequestItem = ({ item }) => {
+    const isProcessed = isRequestProcessed(item);
+    const isPending = isRequestPending(item);
+    const isBeingProcessed = processingRequests.has(item.id);
+
+    return (
+      <View style={styles.requestItem}>
+        <View style={styles.requestHeader}>
+          <View style={styles.studentInfo}>
+            <Text style={styles.studentName}>{item.studentName || 'Unknown Student'}</Text>
+            <Text style={styles.studentId}>{item.studentSNumber || 'No ID'}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+            <Text style={styles.statusText}>{getDisplayStatus(item.status)}</Text>
+          </View>
         </View>
         
-        <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>Hours: {item.hoursRequested}</Text>
-        </View>
+        <Text style={styles.eventName}>{item.eventName || 'No Event Name'}</Text>
         
-        <View style={styles.detailRow}>
-          <Ionicons name="paper-plane-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>Submitted: {formatDate(item.submittedAt)}</Text>
-        </View>
-      </View>
-      
-      <Text style={styles.description} numberOfLines={3}>
-        {item.description}
-      </Text>
-      
-      {item.status === 'pending' && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.approveButton]}
-            onPress={() => {
-              console.log('Approve button pressed for request:', item.id);
-              handleReviewRequest(item, 'approve');
-            }}
-          >
-            <Ionicons name="checkmark" size={16} color="white" />
-            <Text style={styles.actionButtonText}>Approve</Text>
-          </TouchableOpacity>
+        <View style={styles.requestDetails}>
+          <View style={styles.detailRow}>
+            <Ionicons name="calendar-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>Event: {formatDate(item.eventDate)}</Text>
+          </View>
           
-          <TouchableOpacity
-            style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => {
-              console.log('Reject button pressed for request:', item.id);
-              handleReviewRequest(item, 'reject');
-            }}
-          >
-            <Ionicons name="close" size={16} color="white" />
-            <Text style={styles.actionButtonText}>Reject</Text>
-          </TouchableOpacity>
+          <View style={styles.detailRow}>
+            <Ionicons name="time-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>Hours: {item.hoursRequested || '0'}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Ionicons name="paper-plane-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>Submitted: {formatDate(item.submittedAt)}</Text>
+          </View>
         </View>
-      )}
-      
-      {item.status !== 'pending' && item.reviewedAt && (
-        <View style={styles.reviewInfo}>
-          <Text style={styles.reviewInfoText}>
-            {item.status === 'approved' ? '✓ Approved' : '✗ Rejected'} on {formatDate(item.reviewedAt)}
-            {item.reviewedBy && ` by ${item.reviewedBy}`}
-          </Text>
-          {item.adminNotes && (
-            <Text style={styles.adminNotes}>Notes: {item.adminNotes}</Text>
-          )}
-        </View>
-      )}
-    </View>
-  );
+        
+        <Text style={styles.description} numberOfLines={3}>
+          {item.description || 'No description provided'}
+        </Text>
+        
+        {isPending && !isBeingProcessed && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.approveButton]}
+              onPress={() => {
+                console.log('Approve button pressed for request:', item.id);
+                handleReviewRequest(item, 'approve');
+              }}
+            >
+              <Ionicons name="checkmark" size={16} color="white" />
+              <Text style={styles.actionButtonText}>Approve</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => {
+                console.log('Reject button pressed for request:', item.id);
+                handleReviewRequest(item, 'reject');
+              }}
+            >
+              <Ionicons name="close" size={16} color="white" />
+              <Text style={styles.actionButtonText}>Reject</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {isBeingProcessed && (
+          <View style={styles.processingIndicator}>
+            <ActivityIndicator size="small" color="#59a2f0" />
+            <Text style={styles.processingText}>Processing...</Text>
+          </View>
+        )}
+        
+        {isProcessed && item.reviewedAt && (
+          <View style={styles.reviewInfo}>
+            <Text style={styles.reviewInfoText}>
+              {getDisplayStatus(item.status)} on {formatDate(item.reviewedAt)}
+              {item.reviewedBy && ` by ${item.reviewedBy}`}
+            </Text>
+            {item.adminNotes && (
+              <Text style={styles.adminNotes}>Notes: {item.adminNotes}</Text>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const getFilterCounts = () => {
     return {
       all: allRequests.length,
-      pending: allRequests.filter(r => r.status === 'pending').length,
-      approved: allRequests.filter(r => r.status === 'approved').length,
-      rejected: allRequests.filter(r => r.status === 'rejected').length
+      pending: allRequests.filter(r => isRequestPending(r)).length,
+      approved: allRequests.filter(r => {
+        const status = r.status?.toLowerCase();
+        return status === 'approved' || status === 'approve';
+      }).length,
+      rejected: allRequests.filter(r => {
+        const status = r.status?.toLowerCase();
+        return status === 'rejected' || status === 'reject';
+      }).length
     };
   };
 
@@ -345,7 +444,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         <FlatList
           data={filteredRequests}
           renderItem={renderRequestItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id || Math.random().toString()}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
@@ -355,6 +454,7 @@ export default function AdminHourManagementScreen({ navigation }) {
             />
           }
           showsVerticalScrollIndicator={false}
+          extraData={processingRequests} // Re-render when processing state changes
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -378,7 +478,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.reviewModalContainer}>
             <Text style={styles.reviewModalTitle}>
-              {reviewModal.action === 'approved' ? 'Approve' : 'Reject'} Request
+              {reviewModal.action === 'approve' ? 'Approve' : 'Reject'} Request
             </Text>
             
             {reviewModal.request && (
@@ -396,7 +496,7 @@ export default function AdminHourManagementScreen({ navigation }) {
             )}
             
             <Text style={styles.notesLabel}>
-              {reviewModal.action === 'approved' ? 'Notes (optional):' : 'Reason for rejection:'}
+              {reviewModal.action === 'approve' ? 'Notes (optional):' : 'Reason for rejection:'}
             </Text>
             <TextInput
               style={styles.notesInput}
@@ -420,7 +520,7 @@ export default function AdminHourManagementScreen({ navigation }) {
               <TouchableOpacity
                 style={[
                   styles.confirmModalButton,
-                  { backgroundColor: reviewModal.action === 'approved' ? '#27ae60' : '#e74c3c' }
+                  { backgroundColor: reviewModal.action === 'approve' ? '#27ae60' : '#e74c3c' }
                 ]}
                 onPress={() => {
                   console.log('Confirm button pressed in modal');
@@ -428,7 +528,7 @@ export default function AdminHourManagementScreen({ navigation }) {
                 }}
               >
                 <Text style={styles.confirmModalButtonText}>
-                  {reviewModal.action === 'approved' ? 'Approve' : 'Reject'}
+                  {reviewModal.action === 'approve' ? 'Approve' : 'Reject'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -625,6 +725,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     marginLeft: 5,
+  },
+  processingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  processingText: {
+    marginLeft: 8,
+    color: '#59a2f0',
+    fontWeight: 'bold',
   },
   reviewInfo: {
     backgroundColor: '#f8f9fa',

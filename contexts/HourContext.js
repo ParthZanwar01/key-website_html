@@ -120,32 +120,24 @@ export function HourProvider({ children }) {
       const newTotalHours = currentHours + hoursToAddFloat;
       console.log(`Updating hours: ${currentHours} + ${hoursToAddFloat} = ${newTotalHours}`);
       
-      // Prepare update data
+      // Prepare update data with all required fields
       const updateData = {
+        sNumber: student.sNumber,
+        name: student.name,
+        password: student.password,
         totalHours: newTotalHours.toString(),
-        lastHourUpdate: new Date().toISOString()
+        lastLogin: student.lastLogin,
+        lastHourUpdate: new Date().toISOString(),
+        accountCreated: student.accountCreated,
+        id: student.id
       };
       
-      // Try different update methods for better reliability
-      let updateResponse;
-      try {
-        // Try PATCH first
-        updateResponse = await axios.patch(`${STUDENTS_API_ENDPOINT}/${studentIndex}`, updateData);
-        console.log('Hours updated successfully via PATCH');
-      } catch (patchError) {
-        console.log('PATCH failed, trying PUT...');
-        // Try PUT with full student data
-        const fullUpdateData = {
-          ...student,
-          totalHours: newTotalHours.toString(),
-          lastHourUpdate: new Date().toISOString()
-        };
-        updateResponse = await axios.put(`${STUDENTS_API_ENDPOINT}/${studentIndex}`, fullUpdateData);
-        console.log('Hours updated successfully via PUT');
-      }
+      // Use PATCH to update the student record
+      const updateResponse = await axios.patch(`${STUDENTS_API_ENDPOINT}/${studentIndex}`, updateData);
+      console.log('Hours updated successfully via PATCH');
       
       // Wait for API to process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       console.log('Student hours update completed');
       return true;
@@ -161,8 +153,11 @@ export function HourProvider({ children }) {
     try {
       console.log('Updating hour request status:', requestId, 'to:', status);
       
+      // Get current requests from the API (fresh data)
+      const currentResponse = await axios.get(HOUR_REQUESTS_API_ENDPOINT);
+      const currentRequests = currentResponse.data || [];
+      
       // Find the request index in Google Sheets
-      const currentRequests = await loadHourRequestsFromCloud();
       const requestIndex = currentRequests.findIndex(r => r.id === requestId);
       
       if (requestIndex === -1) {
@@ -170,6 +165,17 @@ export function HourProvider({ children }) {
       }
       
       const request = currentRequests[requestIndex];
+      
+      // Check if request is already processed to prevent duplicate processing
+      if (request.status && request.status.toLowerCase() !== 'pending') {
+        console.log('Request already processed with status:', request.status);
+        throw new Error(`Request already ${request.status}. Please refresh to see current status.`);
+      }
+      
+      // Normalize status to ensure consistency
+      const normalizedStatus = status.toLowerCase();
+      const finalStatus = normalizedStatus === 'approve' ? 'approved' : 
+                         normalizedStatus === 'reject' ? 'rejected' : normalizedStatus;
       
       const updatedRequest = {
         id: request.id || '',
@@ -179,22 +185,22 @@ export function HourProvider({ children }) {
         eventDate: request.eventDate || '',
         hoursRequested: request.hoursRequested || '',
         description: request.description || '',
-        status: status,
+        status: finalStatus,
         submittedAt: request.submittedAt || '',
         reviewedAt: new Date().toISOString(),
         reviewedBy: reviewedBy,
         adminNotes: adminNotes || ''
       };
       
-      // Update the request status
+      // Update the request status first
       await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, updatedRequest);
       console.log('Request status updated successfully');
       
-      // Wait for API to process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for API to process the status update
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // If approved, update student's total hours
-      if (status === 'approved' || status === 'approve') {
+      if (finalStatus === 'approved') {
         console.log('Request approved - updating student hours...');
         const hoursToAdd = parseFloat(request.hoursRequested);
         
@@ -207,19 +213,25 @@ export function HourProvider({ children }) {
           console.log('Student hours updated successfully');
         } catch (hourUpdateError) {
           console.error('Failed to update student hours:', hourUpdateError);
+          
           // Revert the request status since hours update failed
-          await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, {
-            ...updatedRequest,
-            status: 'pending',
-            reviewedAt: '',
-            reviewedBy: '',
-            adminNotes: 'Hours update failed - reverted to pending'
-          });
+          try {
+            await axios.patch(`${HOUR_REQUESTS_API_ENDPOINT}/${requestIndex}`, {
+              ...updatedRequest,
+              status: 'pending',
+              reviewedAt: '',
+              reviewedBy: '',
+              adminNotes: 'Hours update failed - reverted to pending'
+            });
+          } catch (revertError) {
+            console.error('Failed to revert request status:', revertError);
+          }
+          
           throw new Error('Request approved but failed to update student hours: ' + hourUpdateError.message);
         }
       }
       
-      // Update local state immediately
+      // Update local state immediately to reflect changes
       setHourRequests(prevRequests => 
         prevRequests.map(req => 
           req.id === requestId 
@@ -228,7 +240,7 @@ export function HourProvider({ children }) {
         )
       );
       
-      // Wait and refresh from cloud
+      // Wait a bit more and refresh from cloud to ensure sync
       await new Promise(resolve => setTimeout(resolve, 1000));
       await loadHourRequestsFromCloud();
       
@@ -275,7 +287,10 @@ export function HourProvider({ children }) {
 
   // Get pending requests for admin
   const getPendingRequests = useCallback(() => {
-    return hourRequests.filter(request => request.status === 'pending');
+    return hourRequests.filter(request => {
+      const status = request.status?.toLowerCase();
+      return status === 'pending' || !status;
+    });
   }, [hourRequests]);
 
   // Get student's hour requests
