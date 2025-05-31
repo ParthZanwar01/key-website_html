@@ -3,8 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AdminLoginScreen({ navigation }) {
-  const [email, setEmail] = useState(); // Pre-fill for testing
-  const [password, setPassword] = useState(); // Pre-fill for testing
+  const [email, setEmail] = useState(''); // Remove pre-fill for production
+  const [password, setPassword] = useState(''); // Remove pre-fill for production
   const [loading, setLoading] = useState(false);
   const { loginAsAdmin } = useAuth();
 
@@ -21,12 +21,9 @@ export default function AdminLoginScreen({ navigation }) {
       console.log("LoginAsAdmin result:", success);
       
       if (success) {
-        // Explicitly navigate to Main screen on success
-        console.log("Navigating to Main screen");
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Main', params: { screen: 'Home' } }],
-        });
+        // Don't manually navigate - let the AppNavigator handle this
+        // The AppNavigator will automatically redirect based on authentication state
+        console.log("Login successful - AppNavigator will handle navigation");
       } else {
         Alert.alert('Login Failed', 'Invalid credentials or account creation failed');
       }

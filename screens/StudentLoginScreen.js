@@ -38,11 +38,9 @@ export default function StudentLoginScreen({ navigation }) {
       const success = await loginAsStudent(sNumber.toLowerCase(), password);
       
       if (success) {
-        // Explicitly navigate to Main screen on success
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Main', params: { screen: 'Home' } }],
-        });
+        // Don't manually navigate - let the AppNavigator handle this
+        // The AppNavigator will automatically redirect based on authentication state
+        console.log("Student login successful - AppNavigator will handle navigation");
       }
       // If not successful, the AuthContext will display appropriate alerts
     } catch (error) {
