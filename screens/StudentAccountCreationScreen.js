@@ -51,7 +51,12 @@ export default function StudentAccountCreationScreen(props) {
     };
   }, [redirectTimer]);
 
-  const handleCreateAccount = async () => {
+  const handleCreateAccount = async (event) => {
+    // Prevent any default form submission behavior
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
+    
     // Reset state
     setErrorMessage('');
     setSuccessMessage('');
@@ -179,6 +184,10 @@ export default function StudentAccountCreationScreen(props) {
                 editable={!loading && !successMessage}
                 autoComplete="off"
                 autoCorrect={false}
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  // Focus next field or do nothing to prevent submission
+                }}
               />
             </View>
             
@@ -191,10 +200,14 @@ export default function StudentAccountCreationScreen(props) {
                 style={styles.input}
                 secureTextEntry
                 editable={!loading && !successMessage}
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect={false}
-                textContentType="none"
+                textContentType="newPassword"
                 passwordRules="minlength: 6;"
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  // Focus next field or do nothing to prevent submission
+                }}
               />
             </View>
             
@@ -207,9 +220,16 @@ export default function StudentAccountCreationScreen(props) {
                 style={styles.input}
                 secureTextEntry
                 editable={!loading && !successMessage}
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect={false}
-                textContentType="none"
+                textContentType="newPassword"
+                returnKeyType="done"
+                onSubmitEditing={(event) => {
+                  // Prevent automatic submission on Enter
+                  if (event && event.preventDefault) {
+                    event.preventDefault();
+                  }
+                }}
               />
             </View>
             
@@ -217,8 +237,12 @@ export default function StudentAccountCreationScreen(props) {
               <>
                 <TouchableOpacity 
                   style={[styles.button, (loading || Boolean(successMessage)) && styles.disabledButton]} 
-                  onPress={handleCreateAccount} 
+                  onPress={(event) => {
+                    event.preventDefault();
+                    handleCreateAccount(event);
+                  }} 
                   disabled={loading || Boolean(successMessage)}
+                  activeOpacity={0.8}
                 >
                   {loading ? (
                     <ActivityIndicator color="#fff" size="small" />
