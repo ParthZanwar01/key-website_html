@@ -177,6 +177,8 @@ export default function StudentAccountCreationScreen(props) {
                 onChangeText={setName}
                 style={styles.input}
                 editable={!loading && !successMessage}
+                autoComplete="off"
+                autoCorrect={false}
               />
             </View>
             
@@ -189,6 +191,10 @@ export default function StudentAccountCreationScreen(props) {
                 style={styles.input}
                 secureTextEntry
                 editable={!loading && !successMessage}
+                autoComplete="off"
+                autoCorrect={false}
+                textContentType="none"
+                passwordRules="minlength: 6;"
               />
             </View>
             
@@ -201,6 +207,9 @@ export default function StudentAccountCreationScreen(props) {
                 style={styles.input}
                 secureTextEntry
                 editable={!loading && !successMessage}
+                autoComplete="off"
+                autoCorrect={false}
+                textContentType="none"
               />
             </View>
             
