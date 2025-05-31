@@ -4,7 +4,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
 
 // Screens
 import LandingScreen from '../screens/LandingScreen';
@@ -27,24 +26,18 @@ import AdminHourManagementScreen from '../screens/AdminHourManagementScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function CalendarStack({ navigation }) {
+function CalendarStack() {
   const { logout } = useAuth();
   
   const handleLogout = async () => {
     try {
-      const success = await logout();
-      // Always navigate regardless of success to ensure user can get back to login screen
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Landing' }],
-      });
+      await logout();
+      // Don't manually navigate - let the AppNavigator handle this automatically
+      // The auth state change will trigger the navigation
     } catch (error) {
       console.error("Logout error:", error);
-      // Still navigate to Landing screen even if there's an error
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Landing' }],
-      });
+      // Still attempt logout even if there's an error
+      await logout();
     }
   };
 
@@ -76,25 +69,19 @@ function CalendarStack({ navigation }) {
   );
 }
 
-function MainTabNavigator({ navigation }) {
+function MainTabNavigator() {
   const { logout, isAdmin } = useAuth();
 
   // Centralized logout handler
   const handleLogout = async () => {
     try {
       await logout();
-      // Navigate to Landing screen
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Landing' }],
-      });
+      // Don't manually navigate - let the AppNavigator handle this automatically
+      // The auth state change will trigger the navigation to auth screens
     } catch (error) {
       console.error("Logout error:", error);
-      // Still try to navigate even if there's an error
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Landing' }],
-      });
+      // Still attempt logout even if there's an error
+      await logout();
     }
   };
 
