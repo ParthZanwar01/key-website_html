@@ -7,7 +7,7 @@ const HourContext = createContext();
 // Google Sheets API endpoint for hour requests
 const HOUR_REQUESTS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/a13c2d54-fe27-4fbd-9fb6-2da4d0136928';
 // Google Sheets API endpoint for students (to update hours)
-const STUDENTS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/216a1c49-0ea0-48d4-be6d-d9245fd7896e';
+const STUDENTS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/0b911400-5cc3-45c6-981e-dd6a551b3a5a';
 
 export function useHours() {
   return useContext(HourContext);
