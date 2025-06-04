@@ -1,4 +1,4 @@
-// services/SupabaseService.js - FIXED VERSION
+// services/SupabaseService.js - UPDATED with all missing methods
 import { supabase } from '../supabase/supabaseClient';
 import * as Crypto from 'expo-crypto';
 
@@ -393,7 +393,6 @@ class SupabaseService {
     try {
       console.log('📅 Getting all events...');
       
-      // Simple query first - don't try to join tables if they might not exist
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -459,6 +458,99 @@ class SupabaseService {
       return data;
     } catch (error) {
       console.error('Error creating event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update event
+   */
+  static async updateEvent(eventId, eventData) {
+    try {
+      console.log('📅 Updating event:', eventId);
+      
+      const { data, error } = await supabase
+        .from('events')
+        .update({
+          title: eventData.title,
+          description: eventData.description,
+          location: eventData.location,
+          event_date: eventData.date,
+          start_time: eventData.startTime,
+          end_time: eventData.endTime,
+          capacity: eventData.capacity,
+          color: eventData.color,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating event:', error);
+        throw error;
+      }
+      
+      console.log('✅ Event updated:', data);
+      return data;
+    } catch (error) {
+      console.error('Error updating event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete event
+   */
+  static async deleteEvent(eventId) {
+    try {
+      console.log('🗑️ Deleting event:', eventId);
+      
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) {
+        console.error('❌ Error deleting event:', error);
+        throw error;
+      }
+      
+      console.log('✅ Event deleted:', eventId);
+      return true;
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sign up for event
+   */
+  static async signupForEvent(eventId, attendeeData) {
+    try {
+      console.log('✍️ Signing up for event:', eventId, attendeeData);
+      
+      const { data, error } = await supabase
+        .from('event_attendees')
+        .insert([{
+          event_id: eventId,
+          name: attendeeData.name,
+          email: attendeeData.email,
+          signed_up_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error signing up for event:', error);
+        throw error;
+      }
+      
+      console.log('✅ Event signup successful:', data);
+      return data;
+    } catch (error) {
+      console.error('Error signing up for event:', error);
       throw error;
     }
   }
@@ -615,6 +707,33 @@ class SupabaseService {
       return data || [];
     } catch (error) {
       console.error('Error getting support questions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update support question (admin response)
+   */
+  static async updateSupportQuestion(questionId, updateData) {
+    try {
+      console.log('📝 Updating support question:', questionId, updateData);
+      
+      const { data, error } = await supabase
+        .from('support_questions')
+        .update(updateData)
+        .eq('id', questionId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating support question:', error);
+        throw error;
+      }
+      
+      console.log('✅ Support question updated:', data);
+      return data;
+    } catch (error) {
+      console.error('Error updating support question:', error);
       throw error;
     }
   }

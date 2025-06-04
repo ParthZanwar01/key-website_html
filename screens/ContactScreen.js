@@ -14,11 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import SupabaseService from '../services/SupabaseService';
 import ConfirmationDialog from '../components/ConfirmationDialog';
-
-// Google Sheets API endpoint for support questions
-const SUPPORT_QUESTIONS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/d3774c6a-2047-4086-9f06-c9485205ec2e';
 
 export default function ContactScreen() {
   const { user, isAdmin } = useAuth();
@@ -108,16 +105,16 @@ export default function ContactScreen() {
     
     switch (criteria) {
       case 'newest':
-        return questionsCopy.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+        return questionsCopy.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
       case 'oldest':
-        return questionsCopy.sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+        return questionsCopy.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
       case 'status':
         return questionsCopy.sort((a, b) => {
           const aResolved = (a.resolved === 'true' || a.status === 'resolved');
           const bResolved = (b.resolved === 'true' || b.status === 'resolved');
           if (aResolved === bResolved) {
             // If same status, sort by newest
-            return new Date(b.submittedAt) - new Date(a.submittedAt);
+            return new Date(b.submitted_at) - new Date(a.submitted_at);
           }
           // Open questions first, then resolved
           return aResolved - bResolved;
@@ -128,7 +125,7 @@ export default function ContactScreen() {
           const nameB = (b.name || '').toLowerCase();
           if (nameA === nameB) {
             // If same name, sort by newest
-            return new Date(b.submittedAt) - new Date(a.submittedAt);
+            return new Date(b.submitted_at) - new Date(a.submitted_at);
           }
           return nameA.localeCompare(nameB);
         });
@@ -138,12 +135,12 @@ export default function ContactScreen() {
           const subjectB = (b.subject || '').toLowerCase();
           if (subjectA === subjectB) {
             // If same subject, sort by newest
-            return new Date(b.submittedAt) - new Date(a.submittedAt);
+            return new Date(b.submitted_at) - new Date(a.submitted_at);
           }
           return subjectA.localeCompare(subjectB);
         });
       default:
-        return questionsCopy.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+        return questionsCopy.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
     }
   };
 
@@ -175,7 +172,7 @@ export default function ContactScreen() {
       respond: { 
         visible: true, 
         question: question,
-        response: question.adminResponse || '' // Pre-fill if already has response
+        response: question.admin_response || '' // Pre-fill if already has response
       }
     }));
   };
@@ -192,34 +189,28 @@ export default function ContactScreen() {
     try {
       console.log('Submitting admin response for question:', question.id);
       
-      // Get current questions directly instead of calling loadSupportQuestions
-      const apiResponse = await axios.get(SUPPORT_QUESTIONS_API_ENDPOINT);
-      const currentQuestions = apiResponse.data || [];
-      
-      // Find the question index
-      const questionIndex = currentQuestions.findIndex(q => q.id === question.id);
-      
-      if (questionIndex === -1) {
-        throw new Error('Question not found');
-      }
-      
-      // Update the question with admin response
-      const updatedQuestion = {
-        ...question,
-        adminResponse: response.trim(),
-        respondedAt: new Date().toISOString(),
-        respondedBy: user?.name || 'Admin',
-        resolved: 'true',
+      // Update the question with admin response using Supabase
+      await SupabaseService.updateSupportQuestion(question.id, {
+        admin_response: response.trim(),
+        responded_at: new Date().toISOString(),
+        responded_by: user?.name || 'Admin',
+        resolved: true,
         status: 'resolved'
-      };
+      });
       
-      await axios.patch(`${SUPPORT_QUESTIONS_API_ENDPOINT}/${questionIndex}`, updatedQuestion);
       console.log('Admin response saved successfully');
       
-      // Immediately update local state
+      // Update local state
       setSupportQuestions(prevQuestions => 
         prevQuestions.map(q => 
-          q.id === question.id ? updatedQuestion : q
+          q.id === question.id ? {
+            ...q,
+            admin_response: response.trim(),
+            responded_at: new Date().toISOString(),
+            responded_by: user?.name || 'Admin',
+            resolved: true,
+            status: 'resolved'
+          } : q
         )
       );
       
@@ -231,7 +222,7 @@ export default function ContactScreen() {
         message: 'Response sent successfully! The student has been notified.',
         onConfirm: () => {
           hideDialog('success');
-          // Also refresh from server to ensure sync
+          // Refresh from server to ensure sync
           loadSupportQuestions();
         }
       });
@@ -249,33 +240,26 @@ export default function ContactScreen() {
     try {
       console.log('Marking question as resolved:', question.id);
       
-      // Get current questions directly instead of calling loadSupportQuestions
-      const response = await axios.get(SUPPORT_QUESTIONS_API_ENDPOINT);
-      const currentQuestions = response.data || [];
-      
-      // Find the question index
-      const questionIndex = currentQuestions.findIndex(q => q.id === question.id);
-      
-      if (questionIndex === -1) {
-        throw new Error('Question not found');
-      }
-      
-      // Update the question status
-      const updatedQuestion = {
-        ...question,
-        resolved: 'true',
+      // Update the question status using Supabase
+      await SupabaseService.updateSupportQuestion(question.id, {
+        resolved: true,
         status: 'resolved',
-        respondedAt: new Date().toISOString(),
-        respondedBy: user?.name || 'Admin'
-      };
+        responded_at: new Date().toISOString(),
+        responded_by: user?.name || 'Admin'
+      });
       
-      await axios.patch(`${SUPPORT_QUESTIONS_API_ENDPOINT}/${questionIndex}`, updatedQuestion);
       console.log('Question marked as resolved');
       
-      // Immediately update local state
+      // Update local state
       setSupportQuestions(prevQuestions => 
         prevQuestions.map(q => 
-          q.id === question.id ? updatedQuestion : q
+          q.id === question.id ? {
+            ...q,
+            resolved: true,
+            status: 'resolved',
+            responded_at: new Date().toISOString(),
+            responded_by: user?.name || 'Admin'
+          } : q
         )
       );
       
@@ -284,7 +268,7 @@ export default function ContactScreen() {
         message: 'Question marked as resolved.',
         onConfirm: () => {
           hideDialog('success');
-          // Also refresh from server to ensure sync
+          // Refresh from server to ensure sync
           loadSupportQuestions();
         }
       });
@@ -296,27 +280,22 @@ export default function ContactScreen() {
       });
     }
   };
+
   useEffect(() => {
     if (isAdmin) {
       loadSupportQuestions();
     }
   }, [isAdmin]);
 
-  // Load support questions from Google Sheets
+  // Load support questions from Supabase
   const loadSupportQuestions = async () => {
     try {
       setLoadingQuestions(true);
-      console.log('Loading support questions from Google Sheets...');
+      console.log('Loading support questions from Supabase...');
       
-      const response = await axios.get(SUPPORT_QUESTIONS_API_ENDPOINT);
-      const questions = response.data || [];
+      const questions = await SupabaseService.getAllSupportQuestions();
       
-      // Sort by submission date (newest first)
-      const sortedQuestions = questions.sort((a, b) => 
-        new Date(b.submittedAt) - new Date(a.submittedAt)
-      );
-      
-      setSupportQuestions(sortedQuestions);
+      setSupportQuestions(questions);
       console.log(`Loaded ${questions.length} support questions`);
     } catch (error) {
       console.error('Failed to load support questions:', error);
@@ -326,22 +305,22 @@ export default function ContactScreen() {
     }
   };
 
-  // Save question to Google Sheets
-  const saveQuestionToSheet = async (questionData) => {
+  // Save question to Supabase
+  const saveQuestionToSupabase = async (questionData) => {
     try {
-    await SupabaseService.submitSupportQuestion({
-      studentId: user?.id,
-      name: user?.name || user?.sNumber || 'Unknown User',
-      sNumber: user?.sNumber || 'N/A',
-      subject: questionData.subject,
-      message: questionData.message,
-      userType: isAdmin ? 'admin' : 'student'
-    });
-    return true;
-  } catch (error) {
-    console.error('Failed to save question to Supabase:', error);
-    throw error;
-  }
+      await SupabaseService.submitSupportQuestion({
+        studentId: user?.id,
+        name: user?.name || user?.sNumber || 'Unknown User',
+        sNumber: user?.sNumber || 'N/A',
+        subject: questionData.subject,
+        message: questionData.message,
+        userType: isAdmin ? 'admin' : 'student'
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to save question to Supabase:', error);
+      throw error;
+    }
   };
 
   // Export questions to CSV (admin only)
@@ -372,16 +351,16 @@ export default function ContactScreen() {
         ...supportQuestions.map(q => [
           q.id || '',
           `"${q.name || ''}"`,
-          q.sNumber || q.studentSNumber || '',
+          q.s_number || q.studentSNumber || '',
           `"${q.subject || ''}"`,
           `"${(q.message || '').replace(/"/g, '""')}"`,
-          q.submittedAt || '',
+          q.submitted_at || '',
           q.status || '',
-          q.userType || '',
+          q.user_type || '',
           q.resolved || '',
-          `"${(q.adminResponse || '').replace(/"/g, '""')}"`,
-          q.respondedAt || '',
-          q.respondedBy || ''
+          `"${(q.admin_response || '').replace(/"/g, '""')}"`,
+          q.responded_at || '',
+          q.responded_by || ''
         ].join(','))
       ].join('\n');
       
@@ -400,6 +379,7 @@ export default function ContactScreen() {
       setExporting(false);
     }
   };
+
   const videoGuides = [
     {
       id: 1,
@@ -488,8 +468,8 @@ export default function ContactScreen() {
     setIsSubmitting(true);
     
     try {
-      // Save to Google Sheets
-      await saveQuestionToSheet(contactForm);
+      // Save to Supabase
+      await saveQuestionToSupabase(contactForm);
       
       showDialog('success', { 
         message: 'Thank you for your message. Your question has been saved and an officer will get back to you within 24-48 hours.',
@@ -556,30 +536,30 @@ export default function ContactScreen() {
             From: {question.name}
           </Text>
           <Text style={styles.questionMeta}>
-            S-Number: {question.sNumber || question.studentSNumber || 'N/A'}
+            S-Number: {question.s_number || question.studentSNumber || 'N/A'}
           </Text>
           <Text style={styles.questionMeta}>
-            Submitted: {new Date(question.submittedAt).toLocaleDateString()}
+            Submitted: {new Date(question.submitted_at).toLocaleDateString()}
           </Text>
         </View>
         <View style={[
           styles.statusBadge, 
-          { backgroundColor: (question.resolved === 'true' || question.status === 'resolved') ? '#27ae60' : '#f39c12' }
+          { backgroundColor: (question.resolved === true || question.status === 'resolved') ? '#27ae60' : '#f39c12' }
         ]}>
           <Text style={styles.statusText}>
-            {(question.resolved === 'true' || question.status === 'resolved') ? 'RESOLVED' : 'OPEN'}
+            {(question.resolved === true || question.status === 'resolved') ? 'RESOLVED' : 'OPEN'}
           </Text>
         </View>
       </View>
       
       <Text style={styles.questionMessage}>{question.message}</Text>
       
-      {question.adminResponse && (
+      {question.admin_response && (
         <View style={styles.adminResponseContainer}>
           <Text style={styles.adminResponseLabel}>Admin Response:</Text>
-          <Text style={styles.adminResponseText}>{question.adminResponse}</Text>
+          <Text style={styles.adminResponseText}>{question.admin_response}</Text>
           <Text style={styles.adminResponseMeta}>
-            Responded by {question.respondedBy} on {new Date(question.respondedAt).toLocaleDateString()}
+            Responded by {question.responded_by} on {new Date(question.responded_at).toLocaleDateString()}
           </Text>
         </View>
       )}
@@ -587,7 +567,7 @@ export default function ContactScreen() {
       {/* Admin Action Buttons */}
       {isAdmin && (
         <View style={styles.adminActions}>
-          {(question.resolved !== 'true' && question.status !== 'resolved') ? (
+          {(question.resolved !== true && question.status !== 'resolved') ? (
             <View style={styles.actionButtonsRow}>
               <TouchableOpacity
                 style={styles.respondButton}
@@ -615,6 +595,7 @@ export default function ContactScreen() {
       )}
     </View>
   );
+
   const renderVideoGuide = (video) => (
     <TouchableOpacity
       key={video.id}
@@ -722,8 +703,8 @@ export default function ContactScreen() {
                   <>
                     <Text style={styles.questionsCount}>
                       {supportQuestions.length} total questions • {' '}
-                      {supportQuestions.filter(q => q.resolved !== 'true' && q.status !== 'resolved').length} open • {' '}
-                      {supportQuestions.filter(q => q.resolved === 'true' || q.status === 'resolved').length} resolved
+                      {supportQuestions.filter(q => q.resolved !== true && q.status !== 'resolved').length} open • {' '}
+                      {supportQuestions.filter(q => q.resolved === true || q.status === 'resolved').length} resolved
                       {sortBy !== 'newest' && (
                         <Text style={styles.sortIndicator}> • Sorted by {sortOptions.find(o => o.key === sortBy)?.label}</Text>
                       )}
@@ -920,7 +901,7 @@ export default function ContactScreen() {
                 <Text style={styles.questionPreviewTitle}>Question:</Text>
                 <Text style={styles.questionPreviewSubject}>{dialogs.respond.question.subject}</Text>
                 <Text style={styles.questionPreviewFrom}>
-                  From: {dialogs.respond.question.name} ({dialogs.respond.question.sNumber || dialogs.respond.question.studentSNumber})
+                  From: {dialogs.respond.question.name} ({dialogs.respond.question.s_number || dialogs.respond.question.studentSNumber})
                 </Text>
                 <Text style={styles.questionPreviewMessage}>{dialogs.respond.question.message}</Text>
               </View>

@@ -11,13 +11,11 @@ import {
   ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import axios from 'axios';
-
-// Google Sheets API endpoint
-const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/0b911400-5cc3-45c6-981e-dd6a551b3a5a';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentAccountCreationScreen(props) {
   const { route, navigation } = props;
+  const { registerStudent } = useAuth();
   const params = route?.params || {};
   const sNumber = params.sNumber || '';
   const studentData = params.studentData || {};
@@ -76,66 +74,34 @@ export default function StudentAccountCreationScreen(props) {
     try {
       console.log('Creating account for:', sNumber);
       
-      // Find the student index in Google Sheets
-      const response = await axios.get(`${GOOGLE_SHEET_API_ENDPOINT}`);
-      const allStudents = response.data;
+      // Use the AuthContext registerStudent method which uses Supabase
+      const success = await registerStudent(sNumber, password, name.trim());
       
-      console.log('Found students:', allStudents.length);
-      
-      const rowIndex = allStudents.findIndex(s => 
-        s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
-      );
-      
-      if (rowIndex === -1) {
-        setErrorMessage('Student record not found.');
-        setLoading(false);
-        return;
+      if (success) {
+        console.log('Account creation successful');
+        
+        // Display success message
+        setSuccessMessage('Your account has been successfully created! Redirecting you to the login page...');
+        
+        // Set a timer to redirect to login
+        const timer = setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              { name: 'Landing' },
+              { name: 'StudentLogin' }
+            ],
+          });
+        }, 3000);
+        
+        setRedirectTimer(timer);
+      } else {
+        setErrorMessage('Could not create your account. Please try again later.');
       }
-      
-      console.log('Updating student at index:', rowIndex);
-      
-      // Update with ALL required headers - consistent with sheet structure
-      const updateData = {
-        sNumber: sNumber, // Keep existing sNumber
-        name: name.trim(),
-        password: password,
-        totalHours: '0',
-        lastLogin: new Date().toISOString(),
-        lastHourUpdate: new Date().toISOString(),
-        accountCreated: new Date().toISOString(),
-        id: allStudents[rowIndex].id || Date.now().toString()
-      };
-      
-      console.log('Account creation - updating with data:', updateData);
-      
-      const updateResponse = await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, updateData);
-      
-      console.log('Account creation successful, response:', updateResponse.status);
-      
-      // Display success message
-      setSuccessMessage('Your account has been successfully created! Redirecting you to the login page...');
-      
-      // Set a timer to redirect to login
-      const timer = setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [
-            { name: 'Landing' },
-            { name: 'StudentLogin' }
-          ],
-        });
-      }, 3000);
-      
-      setRedirectTimer(timer);
       
     } catch (error) {
       console.error('Account creation error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      setErrorMessage('Could not create your account. Please try again later.');
+      setErrorMessage(error.message || 'Could not create your account. Please try again later.');
     } finally {
       setLoading(false);
     }
