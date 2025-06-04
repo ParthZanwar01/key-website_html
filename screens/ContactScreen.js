@@ -329,36 +329,19 @@ export default function ContactScreen() {
   // Save question to Google Sheets
   const saveQuestionToSheet = async (questionData) => {
     try {
-      console.log('Saving question to Google Sheets:', questionData.subject);
-      
-      const sheetData = {
-        id: Date.now().toString(),
-        name: user?.name || user?.sNumber || 'Unknown User',
-        sNumber: user?.sNumber || 'N/A',
-        subject: questionData.subject,
-        message: questionData.message,
-        submittedAt: new Date().toISOString(),
-        status: 'new',
-        userType: isAdmin ? 'admin' : 'student',
-        resolved: 'false',
-        adminResponse: '',
-        respondedAt: '',
-        respondedBy: ''
-      };
-      
-      await axios.post(SUPPORT_QUESTIONS_API_ENDPOINT, sheetData);
-      console.log('Question saved to Google Sheets successfully');
-      
-      // Refresh questions list if admin
-      if (isAdmin) {
-        await loadSupportQuestions();
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to save question to Google Sheets:', error);
-      throw error;
-    }
+    await SupabaseService.submitSupportQuestion({
+      studentId: user?.id,
+      name: user?.name || user?.sNumber || 'Unknown User',
+      sNumber: user?.sNumber || 'N/A',
+      subject: questionData.subject,
+      message: questionData.message,
+      userType: isAdmin ? 'admin' : 'student'
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to save question to Supabase:', error);
+    throw error;
+  }
   };
 
   // Export questions to CSV (admin only)

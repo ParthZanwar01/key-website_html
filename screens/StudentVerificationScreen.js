@@ -1,3 +1,4 @@
+// screens/StudentVerificationScreen.js - Updated for Supabase
 import React, { useState } from 'react';
 import { 
   View, 
@@ -11,13 +12,9 @@ import {
   ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import axios from 'axios';
+import SupabaseService from '../services/SupabaseService';
 
-// Google Sheets API endpoint
-const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/0b911400-5cc3-45c6-981e-dd6a551b3a5a';
-
-export default function StudentVerificationScreen(props) {
-  const { navigation } = props;
+export default function StudentVerificationScreen({ navigation }) {
   const [sNumber, setSNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -41,44 +38,40 @@ export default function StudentVerificationScreen(props) {
 
     setLoading(true);
     try {
-      // Fetch student data from Google Sheets
-      const response = await axios.get(`${GOOGLE_SHEET_API_ENDPOINT}`);
-      const allStudents = response.data;
+      console.log('🔍 Verifying S-Number:', sNumber);
+
+      // Check if student exists in Supabase
+      const student = await SupabaseService.getStudent(sNumber);
       
-      // Look for the student by S-Number
-      const studentInSheet = allStudents.find(s => 
-        s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
-      );
-      
-      if (!studentInSheet) {
+      if (!student) {
         setErrorMessage('Your S-Number was not found in our system. Please contact your Key Club sponsor to be added to the roster.');
         setLoading(false);
         return;
       }
+
+      console.log('✅ Found student:', student);
+
+      // Check if they already have an auth account
+      const authUser = await SupabaseService.getAuthUser(sNumber);
       
-      // Check if student has already set up an account (has a password)
-      if (studentInSheet.password) {
+      if (authUser) {
+        // Already has account - redirect to login
         setIsSuccess(true);
-        setErrorMessage('An account with this S-Number already exists. Please go to the login page.');
+        setErrorMessage('An account with this S-Number already exists. Redirecting to login...');
         setTimeout(() => {
           navigation.navigate('StudentLogin');
         }, 2000);
       } else {
-        // Make sure we're sending a proper name value (empty string if undefined)
-        const studentData = {
-          ...studentInSheet,
-          name: studentInSheet.name || ""
-        };
-        
-        // Student exists but doesn't have a password - proceed to account creation
+        // No account yet - proceed to account creation
+        console.log('👤 Student exists but no auth account - proceeding to registration');
         navigation.navigate('StudentAccountCreation', { 
           sNumber: sNumber,
-          studentData: studentData 
+          studentData: student
         });
       }
     } catch (error) {
-      console.error('Verification error:', error);
-      setErrorMessage('Could not connect to the student database. Please check your internet connection and try again.');
+      console.error('❌ Verification error:', error);
+      setErrorMessage('Could not connect to the database. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -104,7 +97,7 @@ export default function StudentVerificationScreen(props) {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Student ID Number</Text>
               <TextInput
-                placeholder="s123456"
+                placeholder="s150712"
                 value={sNumber}
                 onChangeText={setSNumber}
                 style={styles.input}
@@ -136,6 +129,14 @@ export default function StudentVerificationScreen(props) {
             >
               <Text style={styles.linkText}>Already have an account? Log in</Text>
             </TouchableOpacity>
+
+            {/* Debug info for testing */}
+            <View style={styles.debugContainer}>
+              <Text style={styles.debugTitle}>🧪 For Testing:</Text>
+              <Text style={styles.debugText}>Try: s150712</Text>
+              <Text style={styles.debugText}>If it says "account exists", go to Login</Text>
+              <Text style={styles.debugText}>If it takes you to registration, complete setup</Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -244,5 +245,24 @@ const styles = StyleSheet.create({
     color: '#59a2f0',
     fontSize: 14,
     fontWeight: '500',
-  }
+  },
+  debugContainer: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddeeff',
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
 });

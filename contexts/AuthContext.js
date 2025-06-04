@@ -1,13 +1,11 @@
+// contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SupabaseService from '../services/SupabaseService';
 
 // Create context
 const AuthContext = createContext();
-
-// Google Sheets API endpoint
-const GOOGLE_SHEET_API_ENDPOINT = 'https://api.sheetbest.com/sheets/0b911400-5cc3-45c6-981e-dd6a551b3a5a';
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,11 +13,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Enhanced authentication check that handles web refreshes better
+  // Enhanced authentication check
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // For web, also check localStorage as fallback
         let userData;
         
         try {
@@ -68,7 +65,6 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        // On error, clear any potentially corrupted auth data
         await clearAuthData();
       } finally {
         setLoading(false);
@@ -78,7 +74,7 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
-  // Helper function to clear auth data from both storage methods
+  // Helper function to clear auth data
   const clearAuthData = async () => {
     try {
       await AsyncStorage.removeItem('user');
@@ -118,189 +114,138 @@ export function AuthProvider({ children }) {
     try {
       console.log("Attempting admin login:", email);
       
-      if (email === 'admin@example.com') {
-        try {
-          // Simple check for admin credentials
-          if (password === 'password') {
-            const adminUser = {
-              sNumber: 'admin',
-              name: 'Admin User',
-              role: 'admin',
-              totalHours: '0',
-              id: 'admin-user',
-              loginTime: new Date().toISOString()
-            };
-            
-            // Store user data using enhanced storage
-            await storeUserData(adminUser);
-            
-            // Update state
-            setUser(adminUser);
-            setIsAuthenticated(true);
-            setIsAdmin(true);
-            
-            console.log("Admin login successful");
-            return true;
-          } else {
-            console.log("Admin password incorrect");
-            return false;
-          }
-        } catch (error) {
-          console.error("Login error:", error);
-          return false;
-        }
+      // Simple admin check - you can enhance this with Supabase later
+      if (email === 'admin@example.com' && password === 'password') {
+        const adminUser = {
+          sNumber: 'admin',
+          name: 'Admin User',
+          role: 'admin',
+          totalHours: '0',
+          id: 'admin-user',
+          loginTime: new Date().toISOString()
+        };
+        
+        await storeUserData(adminUser);
+        setUser(adminUser);
+        setIsAuthenticated(true);
+        setIsAdmin(true);
+        
+        console.log("Admin login successful");
+        return true;
       }
       
-      Alert.alert('Invalid Email', 'Please use the admin@example.com email to log in.');
+      Alert.alert('Login Failed', 'Invalid admin credentials.');
       return false;
     } catch (error) {
-      console.error('Admin login process error:', error);
+      console.error('Admin login error:', error);
       Alert.alert('Error', 'An unexpected error occurred during login.');
       return false;
     }
   };
 
-  // Student login with Google Sheets
+  // Student login with Supabase
   const loginAsStudent = async (sNumber, password) => {
     try {
       console.log("Attempting student login with S-Number:", sNumber);
       
-      if (sNumber.startsWith('s')) {
-        try {
-          // Query the Google Sheet for all students
-          const response = await axios.get(`${GOOGLE_SHEET_API_ENDPOINT}`);
-          const allStudents = response.data;
-          
-          console.log("Retrieved students from sheet:", allStudents.length);
-          
-          // Look for the student by S-Number in the existing sheet
-          const studentInSheet = allStudents.find(s => 
-            s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
-          );
-          
-          // If S-Number doesn't exist in sheet, reject login
-          if (!studentInSheet) {
-            console.log("Student S-Number not found in database");
-            Alert.alert('Login Failed', 'Your S-Number was not found in our system. Please contact your administrator.');
-            return false;
-          }
-          
-          console.log("Found student in sheet:", studentInSheet);
-          
-          // Check if student has already set up an account (has a password)
-          if (studentInSheet.password) {
-            // Existing account - verify password
-            if (studentInSheet.password === password) {
-              // Password matches - login successful
-              const studentUser = {
-                sNumber: studentInSheet.sNumber,
-                name: studentInSheet.name || sNumber,
-                role: 'student',
-                id: studentInSheet.id || Date.now().toString(),
-                totalHours: studentInSheet.totalHours || '0',
-                loginTime: new Date().toISOString()
-              };
-              
-              console.log("Student user object created:", studentUser);
-              
-              // Store user data using enhanced storage
-              await storeUserData(studentUser);
-              
-              // Update state
-              setUser(studentUser);
-              setIsAuthenticated(true);
-              setIsAdmin(false);
-              
-              console.log("Student login successful");
-              return true;
-            } else {
-              // Password doesn't match
-              console.log("Student password incorrect");
-              Alert.alert('Login Failed', 'Incorrect password. Please try again.');
-              return false;
-            }
-          } else {
-            // First time login - set up account with provided password
-            try {
-              console.log("Setting up first-time account for:", sNumber);
-              
-              // Find the row index of the student to update
-              const rowIndex = allStudents.findIndex(s => 
-                s.sNumber && s.sNumber.toLowerCase() === sNumber.toLowerCase()
-              );
-              
-              if (rowIndex === -1) {
-                throw new Error("Failed to locate student row");
-              }
-              
-              console.log("Updating student at row index:", rowIndex);
-              
-              // Prepare the update data with ALL required headers
-              const updateData = {
-                sNumber: studentInSheet.sNumber,
-                name: studentInSheet.name || sNumber,
-                password: password,
-                totalHours: '0',
-                lastLogin: new Date().toISOString(),
-                lastHourUpdate: new Date().toISOString(),
-                accountCreated: new Date().toISOString(),
-                id: studentInSheet.id || Date.now().toString()
-              };
-              
-              console.log("Sending update data:", updateData);
-              
-              // Update the student entry
-              const updateResponse = await axios.patch(`${GOOGLE_SHEET_API_ENDPOINT}/${rowIndex}`, updateData);
-              
-              console.log("Update response:", updateResponse.status, updateResponse.data);
-              
-              // Create user object
-              const newStudentUser = {
-                sNumber: studentInSheet.sNumber,
-                name: studentInSheet.name || sNumber,
-                role: 'student',
-                id: updateData.id,
-                totalHours: '0',
-                loginTime: new Date().toISOString()
-              };
-              
-              console.log("New student user object created:", newStudentUser);
-              
-              // Store user data using enhanced storage
-              await storeUserData(newStudentUser);
-              
-              // Update state
-              setUser(newStudentUser);
-              setIsAuthenticated(true);
-              setIsAdmin(false);
-              
-              console.log("First-time student login successful with hour initialization");
-              return true;
-            } catch (setupError) {
-              console.error("Failed to set up student account:", setupError);
-              console.error("Setup error details:", {
-                message: setupError.message,
-                response: setupError.response?.data,
-                status: setupError.response?.status
-              });
-              Alert.alert('Account Setup Failed', 'Could not set up your account. Please try again later.');
-              return false;
-            }
-          }
-        } catch (error) {
-          console.error("Google Sheets API error:", error);
-          Alert.alert(
-            'Connection Error',
-            'Could not connect to the student database. Please check your internet connection and try again.'
-          );
-          return false;
-        }
-      } else {
+      if (!sNumber.startsWith('s')) {
         Alert.alert('Invalid S-Number', 'Please enter a valid S-Number starting with "s".');
         return false;
       }
+      
+      const result = await SupabaseService.loginStudent(sNumber, password);
+      
+      if (result.success) {
+        const studentUser = {
+          ...result.user,
+          loginTime: new Date().toISOString()
+        };
+        
+        console.log("Student user object created:", studentUser);
+        
+        await storeUserData(studentUser);
+        setUser(studentUser);
+        setIsAuthenticated(true);
+        setIsAdmin(false);
+        
+        console.log("Student login successful");
+        return true;
+      }
+      
+      return false;
     } catch (error) {
-      console.error('Student login process error:', error);
+      console.error('Student login error:', error);
+      Alert.alert('Login Failed', error.message || 'An unexpected error occurred during login.');
+      return false;
+    }
+  };
+
+  // Student registration
+  const registerStudent = async (sNumber, password, name) => {
+    try {
+      console.log("Attempting student registration:", sNumber);
+      
+      if (!sNumber.startsWith('s')) {
+        Alert.alert('Invalid S-Number', 'Please enter a valid S-Number starting with "s".');
+        return false;
+      }
+      
+      const result = await SupabaseService.registerStudent(sNumber, password, name);
+      
+      if (result.success) {
+        console.log("Student registration successful");
+        Alert.alert('Success', 'Account created successfully! You can now log in.');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Student registration error:', error);
+      Alert.alert('Registration Failed', error.message || 'An unexpected error occurred during registration.');
+      return false;
+    }
+  };
+
+  // Change password
+  const changePassword = async (oldPassword, newPassword) => {
+    try {
+      if (!user?.sNumber) {
+        throw new Error('No user logged in');
+      }
+      
+      const result = await SupabaseService.changePassword(user.sNumber, oldPassword, newPassword);
+      
+      if (result.success) {
+        Alert.alert('Success', 'Password changed successfully');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Password change error:', error);
+      Alert.alert('Error', error.message || 'Failed to change password');
+      return false;
+    }
+  };
+
+  // Reset password (admin function)
+  const resetPassword = async (sNumber, newPassword) => {
+    try {
+      if (!isAdmin) {
+        throw new Error('Only admins can reset passwords');
+      }
+      
+      const result = await SupabaseService.resetPassword(sNumber, newPassword);
+      
+      if (result.success) {
+        Alert.alert('Success', 'Password reset successfully');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Password reset error:', error);
+      Alert.alert('Error', error.message || 'Failed to reset password');
       return false;
     }
   };
@@ -308,15 +253,11 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       console.log("Logging out user");
-      
-      // Clear stored user data from both storage methods
       await clearAuthData();
-      
       console.log("User logged out");
       return true;
     } catch (error) {
       console.error('Logout error:', error);
-      // Still clear the state even if storage clearing fails
       setUser(null);
       setIsAuthenticated(false);
       setIsAdmin(false);
@@ -326,8 +267,7 @@ export function AuthProvider({ children }) {
 
   // Show loading component while checking authentication
   if (loading) {
-    // You can customize this loading component
-    return null; // or return a loading spinner component
+    return null;
   }
 
   return (
@@ -338,6 +278,9 @@ export function AuthProvider({ children }) {
         user,
         loginAsAdmin,
         loginAsStudent,
+        registerStudent,
+        changePassword,
+        resetPassword,
         logout,
         loading,
       }}
