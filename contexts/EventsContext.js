@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const EventsContext = createContext();
 
 // Google Sheets API endpoint for events
-const EVENTS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/82b6e8aa-1a12-44ea-8e86-0af7ae875d96';
+const EVENTS_API_ENDPOINT = 'https://api.sheetbest.com/sheets/5cffbe63-c25b-4fb8-b66b-8d86bf1450b6';
 
 export function useEvents() {
   return useContext(EventsContext);
