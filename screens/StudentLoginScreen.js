@@ -13,14 +13,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function StudentLoginScreen({ navigation }) {
   const [sNumber, setSNumber] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { loginAsStudent } = useAuth();
   
-  // Login with S-Number/password (Google Sheets)
+  // Login with S-Number/password
   const handleLogin = async () => {
     // Input validation
     if (!sNumber.trim() || !password.trim()) {
@@ -51,6 +53,10 @@ export default function StudentLoginScreen({ navigation }) {
     }
   };
 
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -59,34 +65,64 @@ export default function StudentLoginScreen({ navigation }) {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.loginCard}>
-            <Text style={styles.title}>Student Login</Text>
-            <Text style={styles.subtitle}>Sign in with your S-Number</Text>
+            <View style={styles.headerContainer}>
+              <Ionicons name="person-circle" size={80} color="#59a2f0" />
+              <Text style={styles.title}>Student Login</Text>
+              <Text style={styles.subtitle}>Sign in with your S-Number</Text>
+            </View>
             
             {/* S-Number input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Student ID Number</Text>
-              <TextInput
-                placeholder="s123456"
-                value={sNumber}
-                onChangeText={setSNumber}
-                style={styles.input}
-                keyboardType="default"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View style={styles.inputWrapper}>
+                <Ionicons name="card" size={20} color="#666" style={styles.inputIcon} />
+                <TextInput
+                  placeholder="s123456"
+                  value={sNumber}
+                  onChangeText={setSNumber}
+                  style={styles.input}
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                />
+              </View>
             </View>
             
             {/* Password input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
-                style={styles.input}
-                secureTextEntry
-              />
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
+                <TextInput
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.input}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#666" 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
+            
+            {/* Forgot password link */}
+            <TouchableOpacity 
+              style={styles.forgotPasswordContainer}
+              onPress={handleForgotPassword}
+              disabled={loading}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
+            </TouchableOpacity>
             
             {/* Login button */}
             <TouchableOpacity 
@@ -97,19 +133,36 @@ export default function StudentLoginScreen({ navigation }) {
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.buttonText}>Log In</Text>
+                <>
+                  <Text style={styles.buttonText}>Log In</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#0d1b2a" style={styles.buttonIcon} />
+                </>
               )}
             </TouchableOpacity>
             
-            {/* First-time login info */}
-            <Text style={styles.infoText}>
-              First time? Enter your S-Number and create a password. Your S-Number must be in our system to log in.
-            </Text>
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            
+            {/* Sign up link */}
+            <TouchableOpacity 
+              style={styles.signupButton}
+              onPress={() => navigation.navigate('StudentVerification')}
+              disabled={loading}
+            >
+              <Text style={styles.signupButtonText}>Don't have an account? Sign Up</Text>
+            </TouchableOpacity>
             
             {/* Help text */}
-            <Text style={styles.helpText}>
-              Need help? Contact your Key Club sponsor.
-            </Text>
+            <View style={styles.helpContainer}>
+              <Ionicons name="information-circle" size={16} color="#666" />
+              <Text style={styles.helpText}>
+                Need help? Contact your Key Club sponsor.
+              </Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -140,17 +193,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#0d1b2a',
-    marginBottom: 10,
-    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 5,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 24,
     textAlign: 'center',
   },
   inputContainer: {
@@ -162,20 +218,43 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontWeight: '500',
   },
-  input: {
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  inputIcon: {
+    marginLeft: 15,
+  },
+  input: {
+    flex: 1,
+    paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 15,
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 25,
+  },
+  forgotPasswordText: {
+    color: '#59a2f0',
+    fontSize: 14,
+    fontWeight: '500',
   },
   button: {
     backgroundColor: '#fcd53f',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 16,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginBottom: 20,
   },
   disabledButton: {
     backgroundColor: '#e0e0e0',
@@ -185,15 +264,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  infoText: {
-    fontSize: 14,
+  buttonIcon: {
+    marginLeft: 8,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e0e0e0',
+  },
+  dividerText: {
     color: '#666',
-    textAlign: 'center',
-    marginBottom: 16,
+    fontSize: 14,
+    marginHorizontal: 15,
+  },
+  signupButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#59a2f0',
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  signupButtonText: {
+    color: '#59a2f0',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  helpContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 10,
   },
   helpText: {
     fontSize: 12,
-    color: '#888',
+    color: '#666',
+    marginLeft: 5,
     textAlign: 'center',
-  }
+  },
 });
+            

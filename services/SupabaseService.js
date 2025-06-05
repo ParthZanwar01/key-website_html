@@ -737,6 +737,123 @@ class SupabaseService {
       throw error;
     }
   }
+
+  // Add this method to your existing SupabaseService.js file
+
+/**
+ * Reset student password (simple version - just requires S-Number and new password)
+ * The verification of S-Number + Name is done in the UI before calling this
+ */
+static async resetStudentPassword(sNumber, newPassword) {
+  try {
+    console.log('🔒 Resetting password for:', sNumber);
+    
+    // 1. Check if student exists
+    const student = await this.getStudent(sNumber);
+    if (!student) {
+      throw new Error('Student not found in system');
+    }
+
+    // 2. Check if auth user exists
+    const authUser = await this.getAuthUser(sNumber);
+    if (!authUser) {
+      throw new Error('No account found for this S-Number');
+    }
+
+    // 3. Hash the new password
+    const newPasswordHash = await this.hashPassword(newPassword);
+
+    // 4. Update the password in auth_users table
+    const { error: updateError } = await supabase
+      .from('auth_users')
+      .update({ 
+        password_hash: newPasswordHash,
+        password_updated_at: new Date().toISOString()
+      })
+      .eq('s_number', sNumber.toLowerCase());
+
+    if (updateError) {
+      console.error('❌ Error updating password:', updateError);
+      throw updateError;
+    }
+
+    // 5. Update student record to track password reset
+    await this.updateStudent(sNumber, {
+      last_password_reset: new Date().toISOString(),
+      account_status: 'active'
+    });
+
+    console.log('✅ Password reset completed successfully for:', sNumber);
+
+    return {
+      success: true,
+      message: 'Password reset successfully'
+    };
+  } catch (error) {
+    console.error('❌ Password reset failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify student credentials for password reset (S-Number + Name)
+ * Returns true if the S-Number exists and the name matches
+ */
+static async verifyStudentForPasswordReset(sNumber, name) {
+  try {
+    console.log('🔍 Verifying student credentials for password reset:', sNumber);
+    
+    // Get student record
+    const student = await this.getStudent(sNumber);
+    if (!student) {
+      throw new Error('S-Number not found in our system');
+    }
+
+    // Check if they have an auth account
+    const authUser = await this.getAuthUser(sNumber);
+    if (!authUser) {
+      throw new Error('No account found for this S-Number');
+    }
+
+    // Verify name matches (case-insensitive, trimmed)
+    const storedName = student.name.toLowerCase().trim();
+    const enteredName = name.toLowerCase().trim();
+    
+    if (storedName !== enteredName) {
+      throw new Error('Name does not match our records');
+    }
+
+    console.log('✅ Student credentials verified for password reset');
+    
+    return {
+      success: true,
+      student: {
+        sNumber: student.s_number,
+        name: student.name
+      }
+    };
+  } catch (error) {
+    console.error('❌ Student verification failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get password reset history for a student (optional - for tracking)
+ */
+static async getStudentPasswordResetHistory(sNumber) {
+  try {
+    const student = await this.getStudent(sNumber);
+    
+    return {
+      lastPasswordReset: student?.last_password_reset || null,
+      accountStatus: student?.account_status || 'unknown'
+    };
+  } catch (error) {
+    console.error('Error getting password reset history:', error);
+    throw error;
+  }
+}
 }
 
 export default SupabaseService;
