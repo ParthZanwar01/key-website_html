@@ -738,50 +738,90 @@ class SupabaseService {
     }
   }
 
-  // Add this method to your existing SupabaseService.js file
+// Updated resetStudentPassword method with better error handling and debugging
+// Add this to your SupabaseService.js file
 
 /**
- * Reset student password (simple version - just requires S-Number and new password)
- * The verification of S-Number + Name is done in the UI before calling this
+ * Reset student password with enhanced debugging and error handling
  */
 static async resetStudentPassword(sNumber, newPassword) {
   try {
-    console.log('🔒 Resetting password for:', sNumber);
+    console.log('🔒 Starting password reset for:', sNumber);
     
-    // 1. Check if student exists
+    // 1. Validate inputs
+    if (!sNumber || !newPassword) {
+      throw new Error('S-Number and password are required');
+    }
+    
+    if (newPassword.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
+    }
+    
+    // 2. Check if student exists
+    console.log('🔍 Checking if student exists...');
     const student = await this.getStudent(sNumber);
     if (!student) {
+      console.error('❌ Student not found:', sNumber);
       throw new Error('Student not found in system');
     }
+    console.log('✅ Student found:', student.s_number);
 
-    // 2. Check if auth user exists
+    // 3. Check if auth user exists
+    console.log('🔍 Checking if auth user exists...');
     const authUser = await this.getAuthUser(sNumber);
     if (!authUser) {
+      console.error('❌ Auth user not found:', sNumber);
       throw new Error('No account found for this S-Number');
     }
+    console.log('✅ Auth user found:', authUser.s_number);
 
-    // 3. Hash the new password
+    // 4. Hash the new password
+    console.log('🔐 Hashing new password...');
     const newPasswordHash = await this.hashPassword(newPassword);
+    console.log('✅ Password hashed successfully');
 
-    // 4. Update the password in auth_users table
-    const { error: updateError } = await supabase
+    // 5. Update the password in auth_users table
+    console.log('💾 Updating password in database...');
+    console.log('Update data:', {
+      s_number: sNumber.toLowerCase(),
+      password_hash: newPasswordHash.substring(0, 20) + '...', // Only log first 20 chars for security
+      password_updated_at: new Date().toISOString()
+    });
+
+    const { data: updateData, error: updateError } = await supabase
       .from('auth_users')
       .update({ 
         password_hash: newPasswordHash,
         password_updated_at: new Date().toISOString()
       })
-      .eq('s_number', sNumber.toLowerCase());
+      .eq('s_number', sNumber.toLowerCase())
+      .select(); // Add select to get the updated row
 
     if (updateError) {
-      console.error('❌ Error updating password:', updateError);
-      throw updateError;
+      console.error('❌ Database update error details:', {
+        error: updateError,
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint
+      });
+      throw new Error(`Database update failed: ${updateError.message}`);
     }
 
-    // 5. Update student record to track password reset
-    await this.updateStudent(sNumber, {
-      last_password_reset: new Date().toISOString(),
-      account_status: 'active'
-    });
+    console.log('✅ Password updated in database:', updateData);
+
+    // 6. Update student record to track password reset
+    console.log('📝 Updating student record...');
+    try {
+      await this.updateStudent(sNumber, {
+        last_password_reset: new Date().toISOString(),
+        account_status: 'active'
+      });
+      console.log('✅ Student record updated');
+    } catch (studentUpdateError) {
+      console.warn('⚠️ Student record update failed (non-critical):', studentUpdateError);
+      // Don't throw here - password was already updated successfully
+    }
 
     console.log('✅ Password reset completed successfully for:', sNumber);
 
@@ -790,68 +830,90 @@ static async resetStudentPassword(sNumber, newPassword) {
       message: 'Password reset successfully'
     };
   } catch (error) {
-    console.error('❌ Password reset failed:', error);
+    console.error('❌ Password reset failed:', {
+      error: error,
+      message: error.message,
+      stack: error.stack,
+      sNumber: sNumber
+    });
+    
+    // Re-throw with more specific error message
+    if (error.message.includes('Database update failed')) {
+      throw error;
+    } else if (error.message.includes('not found')) {
+      throw error;
+    } else {
+      throw new Error(`Password reset failed: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * Alternative simpler password reset method if the above doesn't work
+ * This version does minimal operations to isolate the issue
+ */
+static async resetStudentPasswordSimple(sNumber, newPassword) {
+  try {
+    console.log('🔒 Simple password reset for:', sNumber);
+    
+    // Just hash and update - minimal operations
+    const newPasswordHash = await this.hashPassword(newPassword);
+    
+    const { error } = await supabase
+      .from('auth_users')
+      .update({ password_hash: newPasswordHash })
+      .eq('s_number', sNumber.toLowerCase());
+
+    if (error) {
+      console.error('Simple update error:', error);
+      throw error;
+    }
+
+    console.log('✅ Simple password reset successful');
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Simple password reset failed:', error);
     throw error;
   }
 }
 
 /**
- * Verify student credentials for password reset (S-Number + Name)
- * Returns true if the S-Number exists and the name matches
+ * Debug method to check auth_users table structure
  */
-static async verifyStudentForPasswordReset(sNumber, name) {
+static async debugAuthUsersTable() {
   try {
-    console.log('🔍 Verifying student credentials for password reset:', sNumber);
+    console.log('🔍 Debugging auth_users table...');
     
-    // Get student record
-    const student = await this.getStudent(sNumber);
-    if (!student) {
-      throw new Error('S-Number not found in our system');
+    // Get table info
+    const { data, error } = await supabase
+      .from('auth_users')
+      .select('*')
+      .limit(1);
+
+    if (error) {
+      console.error('❌ Error querying auth_users:', error);
+      return;
     }
 
-    // Check if they have an auth account
-    const authUser = await this.getAuthUser(sNumber);
-    if (!authUser) {
-      throw new Error('No account found for this S-Number');
-    }
-
-    // Verify name matches (case-insensitive, trimmed)
-    const storedName = student.name.toLowerCase().trim();
-    const enteredName = name.toLowerCase().trim();
+    console.log('✅ Auth users table structure:', data);
     
-    if (storedName !== enteredName) {
-      throw new Error('Name does not match our records');
-    }
-
-    console.log('✅ Student credentials verified for password reset');
-    
-    return {
-      success: true,
-      student: {
-        sNumber: student.s_number,
-        name: student.name
+    // Check if table has expected columns
+    if (data && data.length > 0) {
+      const columns = Object.keys(data[0]);
+      console.log('📋 Available columns:', columns);
+      
+      const expectedColumns = ['s_number', 'password_hash', 'created_at'];
+      const missingColumns = expectedColumns.filter(col => !columns.includes(col));
+      
+      if (missingColumns.length > 0) {
+        console.warn('⚠️ Missing expected columns:', missingColumns);
+      } else {
+        console.log('✅ All expected columns present');
       }
-    };
-  } catch (error) {
-    console.error('❌ Student verification failed:', error);
-    throw error;
-  }
-}
-
-/**
- * Get password reset history for a student (optional - for tracking)
- */
-static async getStudentPasswordResetHistory(sNumber) {
-  try {
-    const student = await this.getStudent(sNumber);
+    }
     
-    return {
-      lastPasswordReset: student?.last_password_reset || null,
-      accountStatus: student?.account_status || 'unknown'
-    };
   } catch (error) {
-    console.error('Error getting password reset history:', error);
-    throw error;
+    console.error('❌ Debug failed:', error);
   }
 }
 }
