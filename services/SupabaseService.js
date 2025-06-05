@@ -737,6 +737,147 @@ class SupabaseService {
       throw error;
     }
   }
+
+// Replace your resetStudentPassword method with this version
+// This matches your actual database schema
+
+/**
+ * Reset student password (corrected for your actual table structure)
+ */
+static async resetStudentPassword(sNumber, newPassword) {
+  try {
+    console.log('🔒 Starting password reset for:', sNumber);
+    
+    // 1. Validate inputs
+    if (!sNumber || !newPassword) {
+      throw new Error('S-Number and password are required');
+    }
+    
+    if (newPassword.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
+    }
+    
+    // 2. Check if student exists
+    console.log('🔍 Checking if student exists...');
+    const student = await this.getStudent(sNumber);
+    if (!student) {
+      console.error('❌ Student not found:', sNumber);
+      throw new Error('Student not found in system');
+    }
+    console.log('✅ Student found:', student.s_number);
+
+    // 3. Check if auth user exists
+    console.log('🔍 Checking if auth user exists...');
+    const authUser = await this.getAuthUser(sNumber);
+    if (!authUser) {
+      console.error('❌ Auth user not found:', sNumber);
+      throw new Error('No account found for this S-Number');
+    }
+    console.log('✅ Auth user found:', authUser.s_number);
+
+    // 4. Hash the new password
+    console.log('🔐 Hashing new password...');
+    const newPasswordHash = await this.hashPassword(newPassword);
+    console.log('✅ Password hashed successfully');
+
+    // 5. Update the password using your actual table columns
+    console.log('💾 Updating password in database...');
+    
+    const { data: updateData, error: updateError } = await supabase
+      .from('auth_users')
+      .update({ 
+        password_hash: newPasswordHash,
+        updated_at: new Date().toISOString() // Use your existing updated_at column
+      })
+      .eq('s_number', sNumber.toLowerCase())
+      .select();
+
+    if (updateError) {
+      console.error('❌ Database update error details:', {
+        error: updateError,
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint
+      });
+      throw new Error(`Database update failed: ${updateError.message}`);
+    }
+
+    console.log('✅ Password updated in database:', updateData);
+
+    // 6. Update student record to track password reset (optional)
+    console.log('📝 Updating student record...');
+    try {
+      await this.updateStudent(sNumber, {
+        last_password_reset: new Date().toISOString(),
+        account_status: 'active'
+      });
+      console.log('✅ Student record updated');
+    } catch (studentUpdateError) {
+      console.warn('⚠️ Student record update failed (non-critical):', studentUpdateError);
+      // Don't throw here - password was already updated successfully
+    }
+
+    console.log('✅ Password reset completed successfully for:', sNumber);
+
+    return {
+      success: true,
+      message: 'Password reset successfully'
+    };
+  } catch (error) {
+    console.error('❌ Password reset failed:', {
+      error: error,
+      message: error.message,
+      stack: error.stack,
+      sNumber: sNumber
+    });
+    
+    // Re-throw with more specific error message
+    if (error.message.includes('Database update failed')) {
+      throw error;
+    } else if (error.message.includes('not found')) {
+      throw error;
+    } else {
+      throw new Error(`Password reset failed: ${error.message}`);
+    }
+  }
+}
+
+// Alternative minimal version if you prefer simplicity:
+static async resetStudentPasswordSimple(sNumber, newPassword) {
+  try {
+    console.log('🔒 Resetting password for:', sNumber);
+    
+    // Hash password
+    const newPasswordHash = await this.hashPassword(newPassword);
+    
+    // Update password and timestamp
+    const { data, error } = await supabase
+      .from('auth_users')
+      .update({ 
+        password_hash: newPasswordHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq('s_number', sNumber.toLowerCase())
+      .select();
+
+    if (error) {
+      console.error('Update error:', error);
+      throw new Error(`Failed to update password: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('No user found with that S-Number');
+    }
+
+    console.log('✅ Password updated successfully');
+    return { success: true, message: 'Password reset successfully' };
+  } catch (error) {
+    console.error('Password reset error:', error);
+    throw error;
+  }
+}
+
 }
 
 export default SupabaseService;

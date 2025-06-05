@@ -11,6 +11,7 @@ import AdminLoginScreen from '../screens/AdminLoginScreen';
 import StudentLoginScreen from '../screens/StudentLoginScreen';
 import StudentVerificationScreen from '../screens/StudentVerificationScreen';
 import StudentAccountCreationScreen from '../screens/StudentAccountCreationScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen'; // Add this import
 import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
@@ -251,6 +252,17 @@ export default function AppNavigator() {
           <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
           <Stack.Screen name="StudentVerification" component={StudentVerificationScreen} />
           <Stack.Screen name="StudentAccountCreation" component={StudentAccountCreationScreen} />
+          <Stack.Screen 
+            name="ForgotPassword" 
+            component={ForgotPasswordScreen} 
+            options={{ 
+              title: "Reset Password",
+              headerShown: true,
+              headerStyle: { backgroundColor: '#add8e6' },
+              headerTintColor: '#fff',
+              headerTitleStyle: { fontWeight: 'bold' }
+            }} 
+          />
         </>
       )}
     </Stack.Navigator>
