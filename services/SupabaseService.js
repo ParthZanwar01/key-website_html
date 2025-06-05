@@ -738,11 +738,11 @@ class SupabaseService {
     }
   }
 
-// Updated resetStudentPassword method with better error handling and debugging
-// Add this to your SupabaseService.js file
+// Replace your resetStudentPassword method with this version
+// This matches your actual database schema
 
 /**
- * Reset student password with enhanced debugging and error handling
+ * Reset student password (corrected for your actual table structure)
  */
 static async resetStudentPassword(sNumber, newPassword) {
   try {
@@ -780,22 +780,17 @@ static async resetStudentPassword(sNumber, newPassword) {
     const newPasswordHash = await this.hashPassword(newPassword);
     console.log('✅ Password hashed successfully');
 
-    // 5. Update the password in auth_users table
+    // 5. Update the password using your actual table columns
     console.log('💾 Updating password in database...');
-    console.log('Update data:', {
-      s_number: sNumber.toLowerCase(),
-      password_hash: newPasswordHash.substring(0, 20) + '...', // Only log first 20 chars for security
-      password_updated_at: new Date().toISOString()
-    });
-
+    
     const { data: updateData, error: updateError } = await supabase
       .from('auth_users')
       .update({ 
         password_hash: newPasswordHash,
-        password_updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString() // Use your existing updated_at column
       })
       .eq('s_number', sNumber.toLowerCase())
-      .select(); // Add select to get the updated row
+      .select();
 
     if (updateError) {
       console.error('❌ Database update error details:', {
@@ -810,7 +805,7 @@ static async resetStudentPassword(sNumber, newPassword) {
 
     console.log('✅ Password updated in database:', updateData);
 
-    // 6. Update student record to track password reset
+    // 6. Update student record to track password reset (optional)
     console.log('📝 Updating student record...');
     try {
       await this.updateStudent(sNumber, {
@@ -848,74 +843,41 @@ static async resetStudentPassword(sNumber, newPassword) {
   }
 }
 
-/**
- * Alternative simpler password reset method if the above doesn't work
- * This version does minimal operations to isolate the issue
- */
+// Alternative minimal version if you prefer simplicity:
 static async resetStudentPasswordSimple(sNumber, newPassword) {
   try {
-    console.log('🔒 Simple password reset for:', sNumber);
+    console.log('🔒 Resetting password for:', sNumber);
     
-    // Just hash and update - minimal operations
+    // Hash password
     const newPasswordHash = await this.hashPassword(newPassword);
     
-    const { error } = await supabase
+    // Update password and timestamp
+    const { data, error } = await supabase
       .from('auth_users')
-      .update({ password_hash: newPasswordHash })
-      .eq('s_number', sNumber.toLowerCase());
+      .update({ 
+        password_hash: newPasswordHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq('s_number', sNumber.toLowerCase())
+      .select();
 
     if (error) {
-      console.error('Simple update error:', error);
-      throw error;
+      console.error('Update error:', error);
+      throw new Error(`Failed to update password: ${error.message}`);
     }
 
-    console.log('✅ Simple password reset successful');
-    return { success: true };
+    if (!data || data.length === 0) {
+      throw new Error('No user found with that S-Number');
+    }
+
+    console.log('✅ Password updated successfully');
+    return { success: true, message: 'Password reset successfully' };
   } catch (error) {
-    console.error('❌ Simple password reset failed:', error);
+    console.error('Password reset error:', error);
     throw error;
   }
 }
 
-/**
- * Debug method to check auth_users table structure
- */
-static async debugAuthUsersTable() {
-  try {
-    console.log('🔍 Debugging auth_users table...');
-    
-    // Get table info
-    const { data, error } = await supabase
-      .from('auth_users')
-      .select('*')
-      .limit(1);
-
-    if (error) {
-      console.error('❌ Error querying auth_users:', error);
-      return;
-    }
-
-    console.log('✅ Auth users table structure:', data);
-    
-    // Check if table has expected columns
-    if (data && data.length > 0) {
-      const columns = Object.keys(data[0]);
-      console.log('📋 Available columns:', columns);
-      
-      const expectedColumns = ['s_number', 'password_hash', 'created_at'];
-      const missingColumns = expectedColumns.filter(col => !columns.includes(col));
-      
-      if (missingColumns.length > 0) {
-        console.warn('⚠️ Missing expected columns:', missingColumns);
-      } else {
-        console.log('✅ All expected columns present');
-      }
-    }
-    
-  } catch (error) {
-    console.error('❌ Debug failed:', error);
-  }
-}
 }
 
 export default SupabaseService;
