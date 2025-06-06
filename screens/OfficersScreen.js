@@ -79,7 +79,7 @@ export default function OfficersScreen() {
       position: "Web Master",
       classYear: "2027",
       memberYears: "3",
-      imageSource: require('../assets/images/officers/soon.png'),
+      imageSource: require('../assets/images/officers/parth.png'),
     },
     {
       id: '9',
