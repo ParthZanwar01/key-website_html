@@ -90,7 +90,7 @@ export default function OfficersScreen() {
       position: "Secretary",
       classYear: "2026",
       memberYears: "4",
-      imageSource: require('../assets/images/officers/soon.png'),
+      imageSource: require('../assets/images/officers/nisha.png'),
     },
     {
       id: '7',
@@ -98,7 +98,7 @@ export default function OfficersScreen() {
       position: "Secretary",
       classYear: "2028",
       memberYears: "2",
-      imageSource: require('../assets/images/officers/soon.png'),
+      imageSource: require('../assets/images/officers/simran.png'),
     },
     {
       id: '8',
@@ -146,7 +146,7 @@ export default function OfficersScreen() {
       position: "Editor",
       classYear: "2028",
       memberYears: "2",
-      imageSource: require('../assets/images/officers/soon.png'),
+      imageSource: require('../assets/images/officers/anika.png'),
     },
     {
       id: '14',
@@ -154,7 +154,7 @@ export default function OfficersScreen() {
       position: "Editor",
       classYear: "2026",
       memberYears: "4",
-      imageSource: require('../assets/images/officers/soon.png'),
+      imageSource: require('../assets/images/officers/yuyan.png'),
     },
     {
       id: '15',
@@ -162,7 +162,7 @@ export default function OfficersScreen() {
       position: "Editor",
       classYear: "2027",
       memberYears: "2",
-      imageSource: require('../assets/images/officers/soon.png'),
+      imageSource: require('../assets/images/officers/arjun.png'),
     },
     {
       id: '16',
