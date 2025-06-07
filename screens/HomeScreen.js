@@ -28,9 +28,12 @@ const CircularProgressLogo = ({
     console.log('Target Hours:', targetHours, 'Current Hours:', currentHours, 'Percentage:', percentage);
   }, [targetHours, currentHours, percentage]);
   
-  // Circle properties - make the progress ring go all the way around
+  // Circle properties - adjusted to touch the logo
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+  
+  // Logo size - make it slightly smaller so the progress ring touches it
+  const logoSize = size * 0.9; // Increased from 0.6 to 0.75
   
   // Animate progress
   useEffect(() => {
@@ -142,8 +145,8 @@ const CircularProgressLogo = ({
           <Image 
             source={require('../assets/images/keyclublogo-modified.png')} 
             style={[styles.logo, { 
-              width: size * 0.6, 
-              height: size * 0.6 
+              width: logoSize, 
+              height: logoSize 
             }]}
             resizeMode="contain"
           />
@@ -157,7 +160,11 @@ const CircularProgressLogo = ({
             { transform: [{ rotateY: backInterpolate }] }
           ]}
         >
-          <View style={styles.progressDetails}>
+          <View style={[styles.progressDetails, {
+            width: logoSize,
+            height: logoSize,
+            borderRadius: logoSize / 2
+          }]}>
             <Text style={styles.progressHours}>{currentHours.toFixed(1)}</Text>
             <Text style={styles.progressHoursLabel}>hours</Text>
             <Text style={styles.progressPercentage}>{percentage}%</Text>
@@ -207,7 +214,7 @@ export default function HomeScreen() {
             currentHours={currentHours}
             targetHours={25}
             size={240}
-            strokeWidth={8}
+            strokeWidth={12} // Increased stroke width for better visibility
             animated={true}
           />
         </View>
@@ -328,9 +335,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    borderRadius: 120,
-    width: 240 * 0.6,
-    height: 240 * 0.6,
     borderWidth: 2,
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
@@ -352,27 +356,6 @@ const styles = StyleSheet.create({
   progressTarget: {
     fontSize: 12,
     color: '#ccc',
-  },
-  progressTextContainer: {
-    position: 'absolute',
-    bottom: -50,
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  hoursText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffd60a',
-  },
-  hoursLabel: {
-    fontSize: 12,
-    color: '#ccc',
-    marginBottom: 2,
-  },
-  progressText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffd60a',
   },
   welcome: {
     fontSize: 22,
