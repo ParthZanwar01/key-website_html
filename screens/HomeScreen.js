@@ -9,7 +9,7 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 const CircularProgressLogo = ({ 
   currentHours = 0, 
   targetHours = 25, 
-  size = 100, 
+  size = 1000, 
   strokeWidth = 8,
   animated = true,
   onPress
@@ -128,7 +128,7 @@ const CircularProgressLogo = ({
           ]}
         >
           <Image 
-            source={require('../assets/images/keyclublogo.png')} 
+            source={require('../assets/images/keyclublogo-modified.png')} 
             style={[styles.logo, { 
               width: size * 0.6, 
               height: size * 0.6 
