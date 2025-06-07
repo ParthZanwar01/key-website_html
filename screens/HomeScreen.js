@@ -222,9 +222,10 @@ export default function HomeScreen() {
         /* Simple logo for admins */
         <Image source={require('../assets/images/keyclublogo-modified.png')} style={styles.simpleLogo} />
       )}
-      
-      <Text style={styles.title}>Cypress Ranch Key Club</Text>
-      
+
+
+        <Text style={styles.title}>Cypress Ranch Key Club</Text>
+     
       {/* Hours Card for Students */}
       {!isAdmin && (
         <View style={styles.hoursCard}>
@@ -279,6 +280,7 @@ export default function HomeScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -289,7 +291,7 @@ const styles = StyleSheet.create({
   },
   header: {
     position: 'absolute',
-    top: 60,
+    top: 310,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -362,7 +364,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
+    position: 'absolute',
   },
+
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -375,7 +379,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 50,
+    marginBottom: 20,
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
