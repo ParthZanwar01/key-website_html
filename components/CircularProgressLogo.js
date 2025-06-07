@@ -4,8 +4,8 @@ import Svg, { Circle } from 'react-native-svg';
 
 const CircularProgressLogo = ({ 
   currentHours = 0, 
-  targetHours = 100, 
-  size = 200, 
+  targetHours = 25, 
+  size = 10000, 
   strokeWidth = 8,
   animated = true 
 }) => {

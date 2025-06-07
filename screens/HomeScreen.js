@@ -9,7 +9,7 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 const CircularProgressLogo = ({ 
   currentHours = 0, 
   targetHours = 25, 
-  size = 1000, 
+  size = 200, 
   strokeWidth = 8,
   animated = true,
   onPress
@@ -128,7 +128,7 @@ const CircularProgressLogo = ({
           ]}
         >
           <Image 
-            source={require('../assets/images/keyclublogo-modified.png')} 
+            source={require('../assets/images/keyclublogo.png')} 
             style={[styles.logo, { 
               width: size * 0.6, 
               height: size * 0.6 
@@ -193,7 +193,7 @@ export default function HomeScreen() {
         <View style={styles.logoSection}>
           <CircularProgressLogo 
             currentHours={currentHours}
-            targetHours={100}
+            targetHours={25}
             size={240}
             strokeWidth={8}
             animated={true}
@@ -214,7 +214,7 @@ export default function HomeScreen() {
             <View style={styles.hoursInfo}>
               <Text style={styles.hoursCardLabel}>Your Progress</Text>
               <Text style={styles.hoursCardValue}>
-                {loading ? '...' : `${currentHours.toFixed(1)} / 100 hours`}
+                {loading ? '...' : `${currentHours.toFixed(1)} / 75 hours`}
               </Text>
             </View>
           </View>
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 60,
-    marginTop: 30,
+    marginTop: 0,
   },
   hoursCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
