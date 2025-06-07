@@ -8,7 +8,7 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 const CircularProgressLogo = ({ 
   currentHours = 0, 
-  targetHours = 25, 
+  targetHours = 100, 
   size = 200, 
   strokeWidth = 8,
   animated = true,
@@ -23,7 +23,12 @@ const CircularProgressLogo = ({
   const targetProgress = Math.min(currentHours / targetHours, 1);
   const percentage = Math.round(targetProgress * 100);
   
-  // Circle properties
+  // Debug logging - only log once when values change
+  useEffect(() => {
+    console.log('Target Hours:', targetHours, 'Current Hours:', currentHours, 'Percentage:', percentage);
+  }, [targetHours, currentHours, percentage]);
+  
+  // Circle properties - make the progress ring go all the way around
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   
@@ -34,19 +39,26 @@ const CircularProgressLogo = ({
       return;
     }
 
+    let animationId;
     const animateProgress = () => {
       const diff = targetProgress - animatedValue.current;
       if (Math.abs(diff) > 0.001) {
         animatedValue.current += diff * 0.08; // Smooth easing
         setDisplayProgress(animatedValue.current);
-        requestAnimationFrame(animateProgress);
+        animationId = requestAnimationFrame(animateProgress);
       } else {
         animatedValue.current = targetProgress;
         setDisplayProgress(targetProgress);
       }
     };
     
-    requestAnimationFrame(animateProgress);
+    animationId = requestAnimationFrame(animateProgress);
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
   }, [targetProgress, animated]);
 
   // Calculate stroke dash offset for progress
@@ -92,7 +104,7 @@ const CircularProgressLogo = ({
           </LinearGradient>
         </Defs>
         
-        {/* Background track */}
+        {/* Background track - complete circle */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -100,10 +112,10 @@ const CircularProgressLogo = ({
           stroke="rgba(255, 214, 10, 0.15)"
           strokeWidth={strokeWidth}
           fill="transparent"
-          strokeLinecap="round"
+          strokeLinecap="butt"
         />
         
-        {/* Progress circle */}
+        {/* Progress circle - starts from top and goes clockwise */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -113,7 +125,7 @@ const CircularProgressLogo = ({
           fill="transparent"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
@@ -128,7 +140,7 @@ const CircularProgressLogo = ({
           ]}
         >
           <Image 
-            source={require('../assets/images/keyclublogo.png')} 
+            source={require('../assets/images/keyclublogo-modified.png')} 
             style={[styles.logo, { 
               width: size * 0.6, 
               height: size * 0.6 
@@ -201,7 +213,7 @@ export default function HomeScreen() {
         </View>
       ) : (
         /* Simple logo for admins */
-        <Image source={require('../assets/images/keyclublogo.png')} style={styles.simpleLogo} />
+        <Image source={require('../assets/images/keyclublogo-modified.png')} style={styles.simpleLogo} />
       )}
       
       <Text style={styles.title}>Cypress Ranch Key Club</Text>
