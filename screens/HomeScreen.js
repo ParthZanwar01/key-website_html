@@ -1,9 +1,161 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useHours } from '../contexts/HourContext';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+
+const CircularProgressLogo = ({ 
+  currentHours = 0, 
+  targetHours = 25, 
+  size = 100, 
+  strokeWidth = 8,
+  animated = true,
+  onPress
+}) => {
+  const animatedValue = useRef(0);
+  const [displayProgress, setDisplayProgress] = useState(0);
+  const flipAnimation = useRef(new Animated.Value(0)).current;
+  const [showDetails, setShowDetails] = useState(false);
+  
+  // Calculate progress percentage (0-1)
+  const targetProgress = Math.min(currentHours / targetHours, 1);
+  const percentage = Math.round(targetProgress * 100);
+  
+  // Circle properties
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  
+  // Animate progress
+  useEffect(() => {
+    if (!animated) {
+      setDisplayProgress(targetProgress);
+      return;
+    }
+
+    const animateProgress = () => {
+      const diff = targetProgress - animatedValue.current;
+      if (Math.abs(diff) > 0.001) {
+        animatedValue.current += diff * 0.08; // Smooth easing
+        setDisplayProgress(animatedValue.current);
+        requestAnimationFrame(animateProgress);
+      } else {
+        animatedValue.current = targetProgress;
+        setDisplayProgress(targetProgress);
+      }
+    };
+    
+    requestAnimationFrame(animateProgress);
+  }, [targetProgress, animated]);
+
+  // Calculate stroke dash offset for progress
+  const strokeDashoffset = circumference - (displayProgress * circumference);
+
+  // Handle logo press
+  const handleLogoPress = () => {
+    setShowDetails(!showDetails);
+    
+    Animated.timing(flipAnimation, {
+      toValue: showDetails ? 0 : 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+    
+    if (onPress) onPress();
+  };
+
+  // Interpolate rotation values
+  const frontInterpolate = flipAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const backInterpolate = flipAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['180deg', '360deg'],
+  });
+
+  return (
+    <TouchableOpacity 
+      style={styles.progressContainer}
+      onPress={handleLogoPress}
+      activeOpacity={0.8}
+    >
+      {/* SVG Progress Ring */}
+      <Svg width={size} height={size} style={styles.progressSvg}>
+        <Defs>
+          <LinearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#ffd60a" />
+            <Stop offset="50%" stopColor="#ffca3b" />
+            <Stop offset="100%" stopColor="#f1ca3b" />
+          </LinearGradient>
+        </Defs>
+        
+        {/* Background track */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255, 214, 10, 0.15)"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeLinecap="round"
+        />
+        
+        {/* Progress circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="url(#progressGradient)"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      
+      {/* Animated Logo Container */}
+      <View style={styles.logoContainer}>
+        {/* Front side - Logo */}
+        <Animated.View 
+          style={[
+            styles.logoSide,
+            { transform: [{ rotateY: frontInterpolate }] }
+          ]}
+        >
+          <Image 
+            source={require('../assets/images/keyclublogo.png')} 
+            style={[styles.logo, { 
+              width: size * 0.6, 
+              height: size * 0.6 
+            }]}
+            resizeMode="contain"
+          />
+        </Animated.View>
+
+        {/* Back side - Progress Details */}
+        <Animated.View 
+          style={[
+            styles.logoSide,
+            styles.backSide,
+            { transform: [{ rotateY: backInterpolate }] }
+          ]}
+        >
+          <View style={styles.progressDetails}>
+            <Text style={styles.progressHours}>{currentHours.toFixed(1)}</Text>
+            <Text style={styles.progressHoursLabel}>hours</Text>
+            <Text style={styles.progressPercentage}>{percentage}%</Text>
+            <Text style={styles.progressTarget}>of {targetHours}</Text>
+          </View>
+        </Animated.View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export default function HomeScreen() {
   const { user, isAdmin } = useAuth();
@@ -31,19 +183,38 @@ export default function HomeScreen() {
   
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/images/keyclublogo.png')} style={styles.logo} />
-      <Text style={styles.welcome}>Welcome, {user?.name || user?.sNumber || 'Member'}</Text>
+      {/* Header with Welcome Message */}
+      <View style={styles.header}>
+        <Text style={styles.welcome}>Welcome, {user?.name || user?.sNumber || 'Member'}</Text>
+      </View>
+
+      {/* Logo with Progress Ring for Students */}
+      {!isAdmin ? (
+        <View style={styles.logoSection}>
+          <CircularProgressLogo 
+            currentHours={currentHours}
+            targetHours={100}
+            size={240}
+            strokeWidth={8}
+            animated={true}
+          />
+        </View>
+      ) : (
+        /* Simple logo for admins */
+        <Image source={require('../assets/images/keyclublogo.png')} style={styles.simpleLogo} />
+      )}
+      
       <Text style={styles.title}>Cypress Ranch Key Club</Text>
       
-      {/* Hours Display for Students */}
+      {/* Hours Card for Students */}
       {!isAdmin && (
         <View style={styles.hoursCard}>
           <View style={styles.hoursHeader}>
-            <Ionicons name="time" size={32} color="#ffd60a" />
+            <Ionicons name="trophy" size={32} color="#ffd60a" />
             <View style={styles.hoursInfo}>
-              <Text style={styles.hoursLabel}>Your Volunteer Hours</Text>
-              <Text style={styles.hoursValue}>
-                {loading ? '...' : `${currentHours.toFixed(1)} hours`}
+              <Text style={styles.hoursCardLabel}>Your Progress</Text>
+              <Text style={styles.hoursCardValue}>
+                {loading ? '...' : `${currentHours.toFixed(1)} / 100 hours`}
               </Text>
             </View>
           </View>
@@ -97,31 +268,119 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  logo: {
+  header: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  logoSection: {
+    marginBottom: 60,
+    alignItems: 'center',
+  },
+  simpleLogo: {
     width: 200,
     height: 200,
     marginBottom: 20,
     resizeMode: 'contain',
+  },
+  progressContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressSvg: {
+    position: 'absolute',
+  },
+  logoContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  logoSide: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backfaceVisibility: 'hidden',
+  },
+  backSide: {
+    transform: [{ rotateY: '180deg' }],
+  },
+  logo: {
+    opacity: 0.95,
+  },
+  progressDetails: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+    borderRadius: 120,
+    width: 240 * 0.6,
+    height: 240 * 0.6,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 214, 10, 0.3)',
+  },
+  progressHours: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+  },
+  progressHoursLabel: {
+    fontSize: 14,
+    color: '#ccc',
+    marginBottom: 8,
+  },
+  progressPercentage: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+  },
+  progressTarget: {
+    fontSize: 12,
+    color: '#ccc',
+  },
+  progressTextContainer: {
+    position: 'absolute',
+    bottom: -50,
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  hoursText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+  },
+  hoursLabel: {
+    fontSize: 12,
+    color: '#ccc',
+    marginBottom: 2,
+  },
+  progressText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffd60a',
   },
   welcome: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
-    marginBottom: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 60,
+    marginTop: 30,
   },
   hoursCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 50,
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
@@ -135,13 +394,13 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     flex: 1,
   },
-  hoursLabel: {
+  hoursCardLabel: {
     fontSize: 16,
     color: '#ccc',
     marginBottom: 5,
   },
-  hoursValue: {
-    fontSize: 24,
+  hoursCardValue: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffd60a',
   },
@@ -164,7 +423,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 50,
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
