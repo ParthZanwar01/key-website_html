@@ -209,8 +209,11 @@ export default function HomeScreen() {
         progressRingSize: 240,
         strokeWidth: 14,
         iconSize: 32,
-        padding: 30,
-        cardPadding: 24,
+        padding: 20,
+        cardPadding: 20,
+        welcomePadding: 15,
+        titlePadding: 10,
+        bottomPadding: 20,
       };
     } else if (isTablet) {
       return {
@@ -221,8 +224,11 @@ export default function HomeScreen() {
         progressRingSize: 220,
         strokeWidth: 12,
         iconSize: 28,
-        padding: 25,
-        cardPadding: 20,
+        padding: 18,
+        cardPadding: 18,
+        welcomePadding: 12,
+        titlePadding: 8,
+        bottomPadding: 18,
       };
     } else {
       return {
@@ -233,8 +239,11 @@ export default function HomeScreen() {
         progressRingSize: 180,
         strokeWidth: 10,
         iconSize: 24,
-        padding: 20,
+        padding: 16,
         cardPadding: 16,
+        welcomePadding: 10,
+        titlePadding: 6,
+        bottomPadding: 15,
       };
     }
   };
@@ -261,7 +270,10 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       {/* Welcome Message at Top */}
-      <View style={[styles.welcomeSection, { paddingHorizontal: sizes.padding }]}>
+      <View style={[styles.welcomeSection, { 
+        paddingHorizontal: sizes.padding,
+        paddingBottom: sizes.welcomePadding 
+      }]}>
         <Text style={[styles.welcome, { fontSize: sizes.welcomeFontSize }]}>
           Welcome, {user?.name || user?.sNumber || 'Member'}
         </Text>
@@ -287,7 +299,10 @@ export default function HomeScreen() {
       </View>
 
       {/* Title Section */}
-      <View style={[styles.titleSection, { paddingHorizontal: sizes.padding }]}>
+      <View style={[styles.titleSection, { 
+        paddingHorizontal: sizes.padding,
+        paddingVertical: sizes.titlePadding 
+      }]}>
         <Text style={[styles.title, { fontSize: sizes.titleFontSize }]}>
           Cypress Ranch Key Club
         </Text>
@@ -297,7 +312,10 @@ export default function HomeScreen() {
       </View>
 
       {/* Bottom Section - Hours Card or Admin Dashboard */}
-      <View style={[styles.bottomSection, { paddingHorizontal: sizes.padding }]}>
+      <View style={[styles.bottomSection, { 
+        paddingHorizontal: sizes.padding,
+        paddingBottom: sizes.bottomPadding 
+      }]}>
         {!isAdmin ? (
           /* Hours Card for Students */
           <View style={[styles.hoursCard, { padding: sizes.cardPadding }]}>
@@ -314,7 +332,9 @@ export default function HomeScreen() {
             </View>
             
             <TouchableOpacity
-              style={[styles.requestButton, { paddingVertical: isMobile ? 10 : 12 }]}
+              style={[styles.requestButton, { 
+                paddingVertical: isMobile ? 10 : isTablet ? 11 : 12 
+              }]}
               onPress={() => navigation.navigate('Hours')}
             >
               <Ionicons name="add-circle-outline" size={sizes.iconSize - 8} color="#0d1b2a" />
@@ -331,7 +351,9 @@ export default function HomeScreen() {
             </Text>
             <View style={styles.adminButtons}>
               <TouchableOpacity
-                style={[styles.adminButton, { paddingVertical: isMobile ? 8 : 10 }]}
+                style={[styles.adminButton, { 
+                  paddingVertical: isMobile ? 8 : isTablet ? 9 : 10 
+                }]}
                 onPress={() => navigation.navigate('Calendar', { screen: 'EventCreation' })}
               >
                 <Ionicons name="calendar" size={sizes.iconSize - 8} color="#0d1b2a" />
@@ -341,7 +363,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.adminButton, { paddingVertical: isMobile ? 8 : 10 }]}
+                style={[styles.adminButton, { 
+                  paddingVertical: isMobile ? 8 : isTablet ? 9 : 10 
+                }]}
                 onPress={() => navigation.navigate('Hours')}
               >
                 <Ionicons name="time" size={sizes.iconSize - 8} color="#0d1b2a" />
@@ -365,8 +389,7 @@ const styles = StyleSheet.create({
   
   // Welcome Section at Top
   welcomeSection: {
-    paddingTop: 20,
-    paddingBottom: 15,
+    paddingTop: 15,
     alignItems: 'center',
   },
   welcome: {
@@ -381,7 +404,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 200,
+    minHeight: 180,
   },
   simpleLogo: {
     resizeMode: 'contain',
@@ -441,26 +464,25 @@ const styles = StyleSheet.create({
   
   // Title Section
   titleSection: {
-    paddingVertical: 15,
     alignItems: 'center',
   },
   title: {
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     lineHeight: 1.2,
   },
   subtitle: {
     color: '#ccc',
     textAlign: 'center',
-    lineHeight: 1.4,
+    lineHeight: 1.3,
     paddingHorizontal: 10,
   },
   
   // Bottom Section
   bottomSection: {
-    paddingBottom: 30,
+    // paddingBottom handled dynamically
   },
   hoursCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
@@ -471,7 +493,7 @@ const styles = StyleSheet.create({
   hoursHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   hoursInfo: {
     marginLeft: 12,
@@ -479,7 +501,7 @@ const styles = StyleSheet.create({
   },
   hoursCardLabel: {
     color: '#ccc',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   hoursCardValue: {
     fontWeight: 'bold',
@@ -508,7 +530,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   adminButtons: {
     flexDirection: 'row',
