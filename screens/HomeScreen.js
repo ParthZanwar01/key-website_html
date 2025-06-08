@@ -233,7 +233,7 @@ export default function HomeScreen() {
             <View style={styles.hoursInfo}>
               <Text style={styles.hoursCardLabel}>Your Progress</Text>
               <Text style={styles.hoursCardValue}>
-                {loading ? '...' : `${currentHours.toFixed(1)} / 75 hours`}
+                {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
               </Text>
             </View>
           </View>
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   logoSection: {
-    marginBottom: 60,
+    marginBottom: 0,
     alignItems: 'center',
   },
   simpleLogo: {
@@ -358,10 +358,12 @@ const styles = StyleSheet.create({
     color: '#ccc',
   },
   welcome: {
-    fontSize: 22,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
+    marginBottom: -60,
+    marginTop: -20,
   },
   title: {
     fontSize: 28,
@@ -369,7 +371,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 60,
-    marginTop: 0,
+    marginTop: 100,
   },
   hoursCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
