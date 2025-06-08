@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useHours } from '../contexts/HourContext';
 import { useNavigation } from '@react-navigation/native';
@@ -182,6 +182,64 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const [currentHours, setCurrentHours] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [screenData, setScreenData] = useState(Dimensions.get('window'));
+  
+  useEffect(() => {
+    const onChange = (result) => {
+      setScreenData(result.window);
+    };
+    
+    const subscription = Dimensions.addEventListener('change', onChange);
+    return () => subscription?.remove();
+  }, []);
+
+  // Calculate responsive layout like OfficersScreen
+  const isWeb = screenData.width > 768;
+  const isTablet = screenData.width > 480 && screenData.width <= 768;
+  const isMobile = screenData.width <= 480;
+  
+  // Responsive sizing calculations
+  const getResponsiveSizes = () => {
+    if (isWeb) {
+      return {
+        welcomeFontSize: 36,
+        titleFontSize: 28,
+        subtitleFontSize: 18,
+        logoSize: 200,
+        progressRingSize: 240,
+        strokeWidth: 14,
+        iconSize: 32,
+        padding: 30,
+        cardPadding: 24,
+      };
+    } else if (isTablet) {
+      return {
+        welcomeFontSize: 32,
+        titleFontSize: 24,
+        subtitleFontSize: 16,
+        logoSize: 180,
+        progressRingSize: 220,
+        strokeWidth: 12,
+        iconSize: 28,
+        padding: 25,
+        cardPadding: 20,
+      };
+    } else {
+      return {
+        welcomeFontSize: 24,
+        titleFontSize: 20,
+        subtitleFontSize: 14,
+        logoSize: 140,
+        progressRingSize: 180,
+        strokeWidth: 10,
+        iconSize: 24,
+        padding: 20,
+        cardPadding: 16,
+      };
+    }
+  };
+
+  const sizes = getResponsiveSizes();
 
   // Load current hours when component mounts
   useEffect(() => {
@@ -203,81 +261,93 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       {/* Welcome Message at Top */}
-      <View style={styles.welcomeSection}>
-        <Text style={styles.welcome}>
+      <View style={[styles.welcomeSection, { paddingHorizontal: sizes.padding }]}>
+        <Text style={[styles.welcome, { fontSize: sizes.welcomeFontSize }]}>
           Welcome, {user?.name || user?.sNumber || 'Member'}
         </Text>
       </View>
 
       {/* Logo with Progress Ring for Students */}
-      <View style={styles.logoSection}>
+      <View style={[styles.logoSection, { paddingHorizontal: sizes.padding }]}>
         {!isAdmin ? (
           <CircularProgressLogo 
             currentHours={currentHours}
             targetHours={25}
-            size={220}
-            strokeWidth={12}
+            size={sizes.progressRingSize}
+            strokeWidth={sizes.strokeWidth}
             animated={true}
           />
         ) : (
           /* Simple logo for admins */
           <Image 
             source={require('../assets/images/keyclublogo-modified.png')} 
-            style={styles.simpleLogo} 
+            style={[styles.simpleLogo, { width: sizes.logoSize, height: sizes.logoSize }]} 
           />
         )}
       </View>
 
       {/* Title Section */}
-      <View style={styles.titleSection}>
-        <Text style={styles.title}>Cypress Ranch Key Club</Text>
-        <Text style={styles.subtitle}>
+      <View style={[styles.titleSection, { paddingHorizontal: sizes.padding }]}>
+        <Text style={[styles.title, { fontSize: sizes.titleFontSize }]}>
+          Cypress Ranch Key Club
+        </Text>
+        <Text style={[styles.subtitle, { fontSize: sizes.subtitleFontSize }]}>
           {isAdmin ? 'Manage events and oversee club activities' : 'Track events, hours, and stay connected'}
         </Text>
       </View>
 
       {/* Bottom Section - Hours Card or Admin Dashboard */}
-      <View style={styles.bottomSection}>
+      <View style={[styles.bottomSection, { paddingHorizontal: sizes.padding }]}>
         {!isAdmin ? (
           /* Hours Card for Students */
-          <View style={styles.hoursCard}>
+          <View style={[styles.hoursCard, { padding: sizes.cardPadding }]}>
             <View style={styles.hoursHeader}>
-              <Ionicons name="trophy" size={32} color="#ffd60a" />
+              <Ionicons name="trophy" size={sizes.iconSize} color="#ffd60a" />
               <View style={styles.hoursInfo}>
-                <Text style={styles.hoursCardLabel}>Your Progress</Text>
-                <Text style={styles.hoursCardValue}>
+                <Text style={[styles.hoursCardLabel, { fontSize: sizes.subtitleFontSize - 2 }]}>
+                  Your Progress
+                </Text>
+                <Text style={[styles.hoursCardValue, { fontSize: sizes.subtitleFontSize + 2 }]}>
                   {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
                 </Text>
               </View>
             </View>
             
             <TouchableOpacity
-              style={styles.requestButton}
+              style={[styles.requestButton, { paddingVertical: isMobile ? 10 : 12 }]}
               onPress={() => navigation.navigate('Hours')}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#0d1b2a" />
-              <Text style={styles.requestButtonText}>Request Hours</Text>
+              <Ionicons name="add-circle-outline" size={sizes.iconSize - 8} color="#0d1b2a" />
+              <Text style={[styles.requestButtonText, { fontSize: sizes.subtitleFontSize }]}>
+                Request Hours
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           /* Admin Dashboard */
-          <View style={styles.adminCard}>
-            <Text style={styles.adminTitle}>Admin Dashboard</Text>
+          <View style={[styles.adminCard, { padding: sizes.cardPadding }]}>
+            <Text style={[styles.adminTitle, { fontSize: sizes.titleFontSize - 4 }]}>
+              Admin Dashboard
+            </Text>
             <View style={styles.adminButtons}>
               <TouchableOpacity
-                style={styles.adminButton}
+                style={[styles.adminButton, { paddingVertical: isMobile ? 8 : 10 }]}
                 onPress={() => navigation.navigate('Calendar', { screen: 'EventCreation' })}
               >
-                <Ionicons name="calendar" size={20} color="#0d1b2a" />
-                <Text style={styles.adminButtonText}>Create Event</Text>
+                <Ionicons name="calendar" size={sizes.iconSize - 8} color="#0d1b2a" />
+                <Text style={[styles.adminButtonText, { fontSize: sizes.subtitleFontSize - 2 }]}>
+                  Create Event
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={styles.adminButton}
+                style={[styles.adminButton, { paddingVertical: isMobile ? 8 : 10 }]}
                 onPress={() => navigation.navigate('Hours')}
               >
-                <Ionicons name="time" size={20} color="#0d1b2a" />
-                <Text style={styles.adminButtonText}>Manage Hours</Text>
+                <Ionicons name="time" size={sizes.iconSize - 8} color="#0d1b2a" />
+                <Text style={[styles.adminButtonText, { fontSize: sizes.subtitleFontSize - 2 }]}>
+                  Manage Hours
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -295,16 +365,15 @@ const styles = StyleSheet.create({
   
   // Welcome Section at Top
   welcomeSection: {
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
     alignItems: 'center',
   },
   welcome: {
-    fontSize: 32,
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
+    lineHeight: 1.2,
   },
   
   // Logo Section in Middle
@@ -312,11 +381,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    minHeight: 200,
   },
   simpleLogo: {
-    width: 180,
-    height: 180,
     resizeMode: 'contain',
   },
   progressContainer: {
@@ -353,73 +420,68 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
   progressHours: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#ffd60a',
   },
   progressHoursLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#ccc',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   progressPercentage: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#ffd60a',
   },
   progressTarget: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#ccc',
   },
   
   // Title Section
   titleSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 15,
     alignItems: 'center',
   },
   title: {
-    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
+    lineHeight: 1.2,
   },
   subtitle: {
-    fontSize: 16,
     color: '#ccc',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 1.4,
+    paddingHorizontal: 10,
   },
   
   // Bottom Section
   bottomSection: {
-    paddingHorizontal: 20,
     paddingBottom: 30,
   },
   hoursCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
-    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
   hoursHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   hoursInfo: {
-    marginLeft: 15,
+    marginLeft: 12,
     flex: 1,
   },
   hoursCardLabel: {
-    fontSize: 16,
     color: '#ccc',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   hoursCardValue: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffd60a',
   },
@@ -428,7 +490,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffd60a',
-    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
@@ -436,21 +497,18 @@ const styles = StyleSheet.create({
     color: '#0d1b2a',
     fontWeight: 'bold',
     marginLeft: 8,
-    fontSize: 16,
   },
   adminCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
-    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
   adminTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   adminButtons: {
     flexDirection: 'row',
@@ -460,8 +518,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffd60a',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 8,
     flex: 0.48,
     justifyContent: 'center',
@@ -469,7 +526,6 @@ const styles = StyleSheet.create({
   adminButtonText: {
     color: '#0d1b2a',
     fontWeight: 'bold',
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: 6,
   },
 });
