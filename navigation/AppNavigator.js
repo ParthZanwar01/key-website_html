@@ -23,6 +23,9 @@ import ContactScreen from '../screens/ContactScreen';
 import HourRequestScreen from '../screens/HourRequestScreen';
 import StudentHourRequestsScreen from '../screens/StudentHourRequestsScreen';
 import AdminHourManagementScreen from '../screens/AdminHourManagementScreen';
+import AnnouncementsScreen from '../screens/AnnouncementsScreen';
+import CreateAnnouncementScreen from '../screens/CreateAnnouncementScreen';
+import AnnouncementsStackNavigator from '../screens/AnnouncementsStackNavigator';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,6 +87,17 @@ function MainTabNavigator() {
       // Still attempt logout even if there's an error
       await logout();
     }
+
+  const AnnouncementsStack = createStackNavigator();
+
+function AnnouncementsStackNavigator() {
+  return (
+    <AnnouncementsStack.Navigator screenOptions={{ headerShown: false }}>
+      <AnnouncementsStack.Screen name="Announcements" component={AnnouncementsScreen} />
+      <AnnouncementsStack.Screen name="CreateAnnouncement" component={CreateAnnouncementScreen} />
+    </AnnouncementsStack.Navigator>
+  );
+}
   };
 
   return (
@@ -149,6 +163,21 @@ function MainTabNavigator() {
         }}
       />
 
+<Tab.Screen
+  name="Announcements"
+  component={AnnouncementsStackNavigator}
+  options={{
+    tabBarIcon: ({ color, size }) => (
+      <Ionicons name="megaphone" color={color} size={size} />
+    ),
+    headerRight: () => (
+      <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
+        <Ionicons name="log-out-outline" size={24} color="black" />
+      </TouchableOpacity>
+    ),
+  }}
+/>
+
       {/* Officers tab - Available to all users */}
       <Tab.Screen
         name="Officers"
@@ -170,7 +199,7 @@ function MainTabNavigator() {
         name="Contact"
         component={ContactScreen}
         options={{
-          title: isAdmin ? 'Support Center' : 'Contact',
+          title: isAdmin ? 'Support' : 'Contact',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={isAdmin ? (focused ? 'help-circle' : 'help-circle-outline') : (focused ? 'mail' : 'mail-outline')}
@@ -188,31 +217,6 @@ function MainTabNavigator() {
           ),
         }}
       />
-
-      {/* Create Event tab - Only visible to admins */}
-      {isAdmin && (
-        <Tab.Screen
-          name="Create Event"
-          component={EventCreationScreen}
-          options={{
-            tabBarIcon: ({ focused, size, color }) => (
-              <Ionicons
-                name={focused ? 'add-circle' : 'add-circle-outline'}
-                size={size}
-                color={color}
-              />
-            ),
-            headerRight: () => (
-              <TouchableOpacity
-                onPress={handleLogout}
-                style={{ marginRight: 15 }}
-              >
-                <Ionicons name="log-out-outline" size={24} color="black" />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-      )}
     </Tab.Navigator>
   );
 }
@@ -252,6 +256,8 @@ export default function AppNavigator() {
           <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
           <Stack.Screen name="StudentVerification" component={StudentVerificationScreen} />
           <Stack.Screen name="StudentAccountCreation" component={StudentAccountCreationScreen} />
+          <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
+          <Stack.Screen name="CreateAnnouncement" component={CreateAnnouncementScreen} />
           <Stack.Screen 
             name="ForgotPassword" 
             component={ForgotPasswordScreen} 
