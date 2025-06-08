@@ -202,109 +202,121 @@ export default function HomeScreen() {
   
   return (
     <View style={styles.container}>
-      {/* Header with Welcome Message */}
-      <View style={styles.header}>
-        <Text style={styles.welcome}>Welcome, {user?.name || user?.sNumber || 'Member'}</Text>
+      {/* Welcome Message at Top */}
+      <View style={styles.welcomeSection}>
+        <Text style={styles.welcome}>
+          Welcome, {user?.name || user?.sNumber || 'Member'}
+        </Text>
       </View>
 
       {/* Logo with Progress Ring for Students */}
-      {!isAdmin ? (
-        <View style={styles.logoSection}>
+      <View style={styles.logoSection}>
+        {!isAdmin ? (
           <CircularProgressLogo 
             currentHours={currentHours}
             targetHours={25}
-            size={240}
-            strokeWidth={12} // Increased stroke width for better visibility
+            size={220}
+            strokeWidth={12}
             animated={true}
           />
-        </View>
-      ) : (
-        /* Simple logo for admins */
-        <Image source={require('../assets/images/keyclublogo-modified.png')} style={styles.simpleLogo} />
-      )}
+        ) : (
+          /* Simple logo for admins */
+          <Image 
+            source={require('../assets/images/keyclublogo-modified.png')} 
+            style={styles.simpleLogo} 
+          />
+        )}
+      </View>
 
-
+      {/* Title Section */}
+      <View style={styles.titleSection}>
         <Text style={styles.title}>Cypress Ranch Key Club</Text>
-     
-      {/* Hours Card for Students */}
-      {!isAdmin && (
-        <View style={styles.hoursCard}>
-          <View style={styles.hoursHeader}>
-            <Ionicons name="trophy" size={32} color="#ffd60a" />
-            <View style={styles.hoursInfo}>
-              <Text style={styles.hoursCardLabel}>Your Progress</Text>
-              <Text style={styles.hoursCardValue}>
-                {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
-              </Text>
-            </View>
-          </View>
-          
-          <TouchableOpacity
-            style={styles.requestButton}
-            onPress={() => navigation.navigate('Hours')}
-          >
-            <Ionicons name="add-circle-outline" size={20} color="#0d1b2a" />
-            <Text style={styles.requestButtonText}>Request Hours</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        <Text style={styles.subtitle}>
+          {isAdmin ? 'Manage events and oversee club activities' : 'Track events, hours, and stay connected'}
+        </Text>
+      </View>
 
-      {/* Admin Dashboard */}
-      {isAdmin && (
-        <View style={styles.adminCard}>
-          <Text style={styles.adminTitle}>Admin Dashboard</Text>
-          <View style={styles.adminButtons}>
-            <TouchableOpacity
-              style={styles.adminButton}
-              onPress={() => navigation.navigate('Calendar', { screen: 'EventCreation' })}
-            >
-              <Ionicons name="calendar" size={20} color="#0d1b2a" />
-              <Text style={styles.adminButtonText}>Create Event</Text>
-            </TouchableOpacity>
+      {/* Bottom Section - Hours Card or Admin Dashboard */}
+      <View style={styles.bottomSection}>
+        {!isAdmin ? (
+          /* Hours Card for Students */
+          <View style={styles.hoursCard}>
+            <View style={styles.hoursHeader}>
+              <Ionicons name="trophy" size={32} color="#ffd60a" />
+              <View style={styles.hoursInfo}>
+                <Text style={styles.hoursCardLabel}>Your Progress</Text>
+                <Text style={styles.hoursCardValue}>
+                  {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
+                </Text>
+              </View>
+            </View>
             
             <TouchableOpacity
-              style={styles.adminButton}
+              style={styles.requestButton}
               onPress={() => navigation.navigate('Hours')}
             >
-              <Ionicons name="time" size={20} color="#0d1b2a" />
-              <Text style={styles.adminButtonText}>Manage Hours</Text>
+              <Ionicons name="add-circle-outline" size={20} color="#0d1b2a" />
+              <Text style={styles.requestButtonText}>Request Hours</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      )}
-      
-      <Text style={styles.subtitle}>
-        {isAdmin ? 'Manage events and oversee club activities' : 'Track events, hours, and stay connected'}
-      </Text>
+        ) : (
+          /* Admin Dashboard */
+          <View style={styles.adminCard}>
+            <Text style={styles.adminTitle}>Admin Dashboard</Text>
+            <View style={styles.adminButtons}>
+              <TouchableOpacity
+                style={styles.adminButton}
+                onPress={() => navigation.navigate('Calendar', { screen: 'EventCreation' })}
+              >
+                <Ionicons name="calendar" size={20} color="#0d1b2a" />
+                <Text style={styles.adminButtonText}>Create Event</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.adminButton}
+                onPress={() => navigation.navigate('Hours')}
+              >
+                <Ionicons name="time" size={20} color="#0d1b2a" />
+                <Text style={styles.adminButtonText}>Manage Hours</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0d1b2a',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
   },
-  header: {
-    position: 'absolute',
-    top: 310,
-    left: 0,
-    right: 0,
+  
+  // Welcome Section at Top
+  welcomeSection: {
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     alignItems: 'center',
-    zIndex: 10,
   },
+  welcome: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffd60a',
+    textAlign: 'center',
+  },
+  
+  // Logo Section in Middle
   logoSection: {
-    marginBottom: 0,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   simpleLogo: {
-    width: 200,
-    height: 200,
-    marginBottom: 20,
+    width: 180,
+    height: 180,
     resizeMode: 'contain',
   },
   progressContainer: {
@@ -359,29 +371,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ccc',
   },
-  welcome: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#ffd60a',
-    textAlign: 'center',
-    marginBottom: -60,
-    marginTop: -20,
+  
+  // Title Section
+  titleSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
   },
-
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 60,
-    marginTop: 100,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#ccc',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  
+  // Bottom Section
+  bottomSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
   },
   hoursCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 20,
-    width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
@@ -423,8 +442,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 50,
-    width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
@@ -454,11 +471,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 8,
     fontSize: 14,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#ccc',
-    textAlign: 'center',
-    lineHeight: 22,
   },
 });
