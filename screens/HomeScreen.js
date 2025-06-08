@@ -202,21 +202,6 @@ export default function HomeScreen() {
   const getResponsiveSizes = () => {
     if (isWeb) {
       return {
-        welcomeFontSize: 36,
-        titleFontSize: 28,
-        subtitleFontSize: 18,
-        logoSize: 200,
-        progressRingSize: 240,
-        strokeWidth: 14,
-        iconSize: 32,
-        padding: 20,
-        cardPadding: 20,
-        welcomePadding: 15,
-        titlePadding: 10,
-        bottomPadding: 20,
-      };
-    } else if (isTablet) {
-      return {
         welcomeFontSize: 32,
         titleFontSize: 24,
         subtitleFontSize: 16,
@@ -224,11 +209,26 @@ export default function HomeScreen() {
         progressRingSize: 220,
         strokeWidth: 12,
         iconSize: 28,
-        padding: 18,
-        cardPadding: 18,
-        welcomePadding: 12,
-        titlePadding: 8,
-        bottomPadding: 18,
+        padding: 15,
+        cardPadding: 16,
+        welcomePadding: 8,
+        titlePadding: 6,
+        bottomPadding: 15,
+      };
+    } else if (isTablet) {
+      return {
+        welcomeFontSize: 28,
+        titleFontSize: 22,
+        subtitleFontSize: 15,
+        logoSize: 160,
+        progressRingSize: 200,
+        strokeWidth: 10,
+        iconSize: 26,
+        padding: 15,
+        cardPadding: 16,
+        welcomePadding: 8,
+        titlePadding: 6,
+        bottomPadding: 15,
       };
     } else {
       return {
@@ -389,14 +389,14 @@ const styles = StyleSheet.create({
   
   // Welcome Section at Top
   welcomeSection: {
-    paddingTop: 15,
+    paddingTop: 10,
     alignItems: 'center',
   },
   welcome: {
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
-    lineHeight: 1.2,
+    lineHeight: 1.1,
   },
   
   // Logo Section in Middle
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 180,
+    minHeight: 160,
   },
   simpleLogo: {
     resizeMode: 'contain',
@@ -443,22 +443,22 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 214, 10, 0.3)',
   },
   progressHours: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#ffd60a',
   },
   progressHoursLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#ccc',
-    marginBottom: 6,
+    marginBottom: 5,
   },
   progressPercentage: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffd60a',
   },
   progressTarget: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#ccc',
   },
   
@@ -470,14 +470,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 1.2,
+    marginBottom: 4,
+    lineHeight: 1.1,
   },
   subtitle: {
     color: '#ccc',
     textAlign: 'center',
-    lineHeight: 1.3,
-    paddingHorizontal: 10,
+    lineHeight: 1.2,
+    paddingHorizontal: 8,
   },
   
   // Bottom Section
@@ -493,15 +493,15 @@ const styles = StyleSheet.create({
   hoursHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   hoursInfo: {
-    marginLeft: 12,
+    marginLeft: 10,
     flex: 1,
   },
   hoursCardLabel: {
     color: '#ccc',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   hoursCardValue: {
     fontWeight: 'bold',
@@ -512,13 +512,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffd60a',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderRadius: 8,
   },
   requestButtonText: {
     color: '#0d1b2a',
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   adminCard: {
     backgroundColor: 'rgba(255, 214, 10, 0.1)',
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffd60a',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   adminButtons: {
     flexDirection: 'row',
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffd60a',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 8,
     flex: 0.48,
     justifyContent: 'center',
@@ -548,6 +548,6 @@ const styles = StyleSheet.create({
   adminButtonText: {
     color: '#0d1b2a',
     fontWeight: 'bold',
-    marginLeft: 6,
+    marginLeft: 5,
   },
 });
