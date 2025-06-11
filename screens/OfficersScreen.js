@@ -54,7 +54,7 @@ export default function OfficersScreen() {
     },
     {
       id: '2',
-      name: "Jacob Harred",
+      name: "Jacob",
       position: "Vice President",
       classYear: "2026",
       memberYears: "4",
