@@ -2,16 +2,17 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, View, ActivityIndicator, Dimensions } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
 // Screens
 import LandingScreen from '../screens/LandingScreen';
+import AuthScreen from '../screens/AuthScreen';
 import AdminLoginScreen from '../screens/AdminLoginScreen';
 import StudentLoginScreen from '../screens/StudentLoginScreen';
 import StudentVerificationScreen from '../screens/StudentVerificationScreen';
 import StudentAccountCreationScreen from '../screens/StudentAccountCreationScreen';
-import ForgotPasswordScreen from '../screens/ForgotPasswordScreen'; // Add this import
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventScreen from '../screens/EventScreen';
 import EventCreationScreen from '../screens/EventCreationScreen';
@@ -25,22 +26,19 @@ import StudentHourRequestsScreen from '../screens/StudentHourRequestsScreen';
 import AdminHourManagementScreen from '../screens/AdminHourManagementScreen';
 import AnnouncementsScreen from '../screens/AnnouncementsScreen';
 import CreateAnnouncementScreen from '../screens/CreateAnnouncementScreen';
-import AnnouncementsStackNavigator from '../screens/AnnouncementsStackNavigator';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Calendar Stack Navigator
 function CalendarStack() {
   const { logout } = useAuth();
   
   const handleLogout = async () => {
     try {
       await logout();
-      // Don't manually navigate - let the AppNavigator handle this automatically
-      // The auth state change will trigger the navigation
     } catch (error) {
       console.error("Logout error:", error);
-      // Still attempt logout even if there's an error
       await logout();
     }
   };
@@ -60,44 +58,93 @@ function CalendarStack() {
         component={CalendarScreen} 
         options={{ title: "Calendar" }}
       />
-      <Stack.Screen name="Event" component={EventScreen} options={{ title: "Event Details" }} />
-      <Stack.Screen name="EventCreation" component={EventCreationScreen} options={{ title: "Create Event" }} />
-      <Stack.Screen name="EventDeletion" component={EventDeletionScreen} options={{ title: "Manage Events" }} />
-      <Stack.Screen name="AttendeeList" component={AttendeeListScreen} options={{ title: "Attendees" }} />
-      
-      {/* Hour Management Screens */}
-      <Stack.Screen name="HourRequest" component={HourRequestScreen} options={{ title: "Request Hours" }} />
-      <Stack.Screen name="HourRequests" component={StudentHourRequestsScreen} options={{ title: "My Hour Requests" }} />
-      <Stack.Screen name="AdminHourManagement" component={AdminHourManagementScreen} options={{ title: "Manage Hour Requests" }} />
+      <Stack.Screen 
+        name="Event" 
+        component={EventScreen} 
+        options={{ title: "Event Details" }} 
+      />
+      <Stack.Screen 
+        name="EventCreation" 
+        component={EventCreationScreen} 
+        options={{ title: "Create Event" }} 
+      />
+      <Stack.Screen 
+        name="EventDeletion" 
+        component={EventDeletionScreen} 
+        options={{ title: "Manage Events" }} 
+      />
+      <Stack.Screen 
+        name="AttendeeList" 
+        component={AttendeeListScreen} 
+        options={{ title: "Attendees" }} 
+      />
+      <Stack.Screen 
+        name="HourRequest" 
+        component={HourRequestScreen} 
+        options={{ title: "Request Hours" }} 
+      />
+      <Stack.Screen 
+        name="HourRequests" 
+        component={StudentHourRequestsScreen} 
+        options={{ title: "My Hour Requests" }} 
+      />
+      <Stack.Screen 
+        name="AdminHourManagement" 
+        component={AdminHourManagementScreen} 
+        options={{ title: "Manage Hour Requests" }} 
+      />
     </Stack.Navigator>
   );
 }
 
-function MainTabNavigator() {
-  const { logout, isAdmin } = useAuth();
+// Announcements Stack Navigator
+function AnnouncementsStack() {
+  const { logout } = useAuth();
 
-  // Centralized logout handler
   const handleLogout = async () => {
     try {
       await logout();
-      // Don't manually navigate - let the AppNavigator handle this automatically
-      // The auth state change will trigger the navigation to auth screens
     } catch (error) {
       console.error("Logout error:", error);
-      // Still attempt logout even if there's an error
       await logout();
     }
+  };
 
-  const AnnouncementsStack = createStackNavigator();
-
-function AnnouncementsStackNavigator() {
   return (
-    <AnnouncementsStack.Navigator screenOptions={{ headerShown: false }}>
-      <AnnouncementsStack.Screen name="Announcements" component={AnnouncementsScreen} />
-      <AnnouncementsStack.Screen name="CreateAnnouncement" component={CreateAnnouncementScreen} />
-    </AnnouncementsStack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerRight: () => (
+          <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
+            <Ionicons name="log-out-outline" size={24} color="black" />
+          </TouchableOpacity>
+        ),
+      }}
+    >
+      <Stack.Screen 
+        name="AnnouncementsMain" 
+        component={AnnouncementsScreen} 
+        options={{ title: "Announcements" }}
+      />
+      <Stack.Screen 
+        name="CreateAnnouncement" 
+        component={CreateAnnouncementScreen} 
+        options={{ title: "Create Announcement" }}
+      />
+    </Stack.Navigator>
   );
 }
+
+// Main Tab Navigator
+function MainTabNavigator() {
+  const { logout, isAdmin } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+      await logout();
+    }
   };
 
   return (
@@ -105,26 +152,42 @@ function AnnouncementsStackNavigator() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Calendar') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
-          } else if (route.name === 'Hours') {
-            iconName = focused ? 'time' : 'time-outline';
-          } else if (route.name === 'Officers') {
-            iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'Create Event') {
-            iconName = focused ? 'add-circle' : 'add-circle-outline';
-          } else if (route.name === 'Contact') {
-            iconName = focused ? 'help-circle' : 'help-circle-outline';
+          
+          switch (route.name) {
+            case 'Home':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'Calendar':
+              iconName = focused ? 'calendar' : 'calendar-outline';
+              break;
+            case 'Hours':
+              iconName = focused ? 'time' : 'time-outline';
+              break;
+            case 'Announcements':
+              iconName = focused ? 'megaphone' : 'megaphone-outline';
+              break;
+            case 'Officers':
+              iconName = focused ? 'people' : 'people-outline';
+              break;
+            case 'Contact':
+              iconName = isAdmin 
+                ? (focused ? 'help-circle' : 'help-circle-outline')
+                : (focused ? 'mail' : 'mail-outline');
+              break;
+            default:
+              iconName = 'ellipse';
           }
+          
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#ffca3b',
         tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          paddingBottom: 5,
+          height: 60,
+        },
       })}
     >
-      {/* Home tab - Available to all users */}
       <Tab.Screen
         name="Home"
         component={HomeScreen}
@@ -140,18 +203,17 @@ function AnnouncementsStackNavigator() {
         }}
       />
 
-      {/* Calendar tab - Available to all users */}
       <Tab.Screen
         name="Calendar"
         component={CalendarStack}
         options={{ headerShown: false }}
       />
 
-      {/* Hours tab - Different screens for admin vs student */}
       <Tab.Screen
         name="Hours"
         component={isAdmin ? AdminHourManagementScreen : HourRequestScreen}
         options={{
+          title: isAdmin ? 'Manage Hours' : 'Hours',
           headerRight: () => (
             <TouchableOpacity
               onPress={handleLogout}
@@ -163,22 +225,21 @@ function AnnouncementsStackNavigator() {
         }}
       />
 
-<Tab.Screen
-  name="Announcements"
-  component={AnnouncementsStackNavigator}
-  options={{
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="megaphone" color={color} size={size} />
-    ),
-    headerRight: () => (
-      <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
-        <Ionicons name="log-out-outline" size={24} color="black" />
-      </TouchableOpacity>
-    ),
-  }}
-/>
+      <Tab.Screen
+        name="Announcements"
+        component={AnnouncementsStack}
+        options={{ 
+          headerShown: false,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? "megaphone" : "megaphone-outline"} 
+              color={color} 
+              size={size} 
+            />
+          ),
+        }}
+      />
 
-      {/* Officers tab - Available to all users */}
       <Tab.Screen
         name="Officers"
         component={OfficersScreen}
@@ -194,19 +255,11 @@ function AnnouncementsStackNavigator() {
         }}
       />
 
-      {/* Contact/Support tab - Available to all users but with different functionality */}
       <Tab.Screen
         name="Contact"
         component={ContactScreen}
         options={{
           title: isAdmin ? 'Support' : 'Contact',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={isAdmin ? (focused ? 'help-circle' : 'help-circle-outline') : (focused ? 'mail' : 'mail-outline')}
-              size={size}
-              color={color}
-            />
-          ),
           headerRight: () => (
             <TouchableOpacity
               onPress={handleLogout}
@@ -221,7 +274,7 @@ function AnnouncementsStackNavigator() {
   );
 }
 
-// Loading component
+// Loading Screen Component
 function LoadingScreen() {
   return (
     <View style={{ 
@@ -235,6 +288,87 @@ function LoadingScreen() {
   );
 }
 
+// Auth Stack Navigator
+function AuthNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: 'transparent' },
+        cardStyleInterpolator: ({ current: { progress } }) => ({
+          cardStyle: {
+            opacity: progress,
+          },
+        }),
+      }}
+    >
+      <Stack.Screen 
+        name="Landing" 
+        component={LandingScreen} 
+      />
+      <Stack.Screen 
+        name="AuthScreen" 
+        component={AuthScreen}
+        options={{
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
+      <Stack.Screen 
+        name="AdminLogin" 
+        component={AdminLoginScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Admin Login',
+          headerStyle: { backgroundColor: '#add8e6' },
+          headerTintColor: '#333',
+        }}
+      />
+      <Stack.Screen 
+        name="StudentLogin" 
+        component={StudentLoginScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Student Login',
+          headerStyle: { backgroundColor: '#add8e6' },
+          headerTintColor: '#333',
+        }}
+      />
+      <Stack.Screen 
+        name="StudentVerification" 
+        component={StudentVerificationScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Verify Student',
+          headerStyle: { backgroundColor: '#add8e6' },
+          headerTintColor: '#333',
+        }}
+      />
+      <Stack.Screen 
+        name="StudentAccountCreation" 
+        component={StudentAccountCreationScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Create Account',
+          headerStyle: { backgroundColor: '#add8e6' },
+          headerTintColor: '#333',
+        }}
+      />
+      <Stack.Screen 
+        name="ForgotPassword" 
+        component={ForgotPasswordScreen} 
+        options={{ 
+          headerShown: true,
+          headerTitle: 'Reset Password',
+          headerStyle: { backgroundColor: '#add8e6' },
+          headerTintColor: '#333',
+        }} 
+      />
+    </Stack.Navigator>
+  );
+}
+
+// Main App Navigator
 export default function AppNavigator() {
   const { isAuthenticated, loading } = useAuth();
 
@@ -246,30 +380,23 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        // User is authenticated - show main app
-        <Stack.Screen name="Main" component={MainTabNavigator} />
+        <Stack.Screen 
+          name="Main" 
+          component={MainTabNavigator}
+          options={{
+            animationEnabled: true,
+            animationTypeForReplace: 'push',
+          }}
+        />
       ) : (
-        // User is not authenticated - show auth screens
-        <>
-          <Stack.Screen name="Landing" component={LandingScreen} />
-          <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
-          <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
-          <Stack.Screen name="StudentVerification" component={StudentVerificationScreen} />
-          <Stack.Screen name="StudentAccountCreation" component={StudentAccountCreationScreen} />
-          <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
-          <Stack.Screen name="CreateAnnouncement" component={CreateAnnouncementScreen} />
-          <Stack.Screen 
-            name="ForgotPassword" 
-            component={ForgotPasswordScreen} 
-            options={{ 
-              title: "Reset Password",
-              headerShown: true,
-              headerStyle: { backgroundColor: '#add8e6' },
-              headerTintColor: '#fff',
-              headerTitleStyle: { fontWeight: 'bold' }
-            }} 
-          />
-        </>
+        <Stack.Screen 
+          name="Auth" 
+          component={AuthNavigator}
+          options={{
+            animationEnabled: true,
+            animationTypeForReplace: 'pop',
+          }}
+        />
       )}
     </Stack.Navigator>
   );

@@ -16,16 +16,9 @@ export default function LandingScreen({ navigation }) {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('StudentVerification')}
+          onPress={() => navigation.navigate('AuthScreen')}
         >
-          <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('StudentLogin')}
-        >
-          <Text style={styles.buttonText}>Login</Text>
+          <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -34,6 +27,10 @@ export default function LandingScreen({ navigation }) {
         >
           <Text style={styles.buttonText}>Admin Login</Text>
         </TouchableOpacity>
+      </View>
+      
+      <View style={styles.helpContainer}>
+        <Text style={styles.helpText}>Need help? Contact your Key Club sponsor</Text>
       </View>
     </View>
   );
@@ -85,5 +82,13 @@ const styles = StyleSheet.create({
     color: '#0d1b2a', 
     fontSize: 16, 
     fontWeight: 'bold' 
+  },
+  helpContainer: {
+    position: 'absolute',
+    bottom: 40,
+  },
+  helpText: {
+    color: '#999',
+    fontSize: 14,
   }
 });
