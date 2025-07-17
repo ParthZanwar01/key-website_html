@@ -12,7 +12,6 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
   // Enhanced authentication check
   useEffect(() => {
     const checkAuth = async () => {
