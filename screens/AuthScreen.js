@@ -331,11 +331,11 @@ export default function AuthScreen({ navigation }) {
               ]}
             >
               <View style={styles.overlay}>
-                {/* Right Overlay Panel */}
+                {/* Right Overlay Panel - Shows when Sign In is active */}
                 <View style={[styles.overlayPanel, styles.overlayRight]}>
-                  <Text style={styles.overlayTitle}>Hello, Friend!</Text>
+                  <Text style={styles.overlayTitle}>New to Key Club?</Text>
                   <Text style={styles.overlayText}>
-                    Register with your personal details to use all site features
+                    Create an account to track your volunteer hours and participate in events
                   </Text>
                   <TouchableOpacity 
                     style={styles.ghostBtn}
@@ -345,11 +345,11 @@ export default function AuthScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Left Overlay Panel */}
+                {/* Left Overlay Panel - Shows when Sign Up is active */}
                 <View style={[styles.overlayPanel, styles.overlayLeft]}>
-                  <Text style={styles.overlayTitle}>Welcome Back!</Text>
+                  <Text style={styles.overlayTitle}>Already a Member?</Text>
                   <Text style={styles.overlayText}>
-                    To keep connected with us please login with your personal info
+                    Welcome back! Sign in to access your account and continue tracking your progress
                   </Text>
                   <TouchableOpacity 
                     style={styles.ghostBtn}
