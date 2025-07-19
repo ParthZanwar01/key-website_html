@@ -368,13 +368,6 @@ export default function AuthScreen({ navigation }) {
               </View>
             </Animated.View>
           </View>
-          
-          {/* Demo Info */}
-          <View style={styles.demoInfo}>
-            <Text style={styles.demoInfoTitle}>Demo Credentials:</Text>
-            <Text style={styles.demoInfoText}>S-Number: s150712</Text>
-            <Text style={styles.demoInfoText}>Password: password</Text>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -576,24 +569,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     letterSpacing: 1,
-  },
-  demoInfo: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 15,
-    borderRadius: 10,
-    zIndex: 1000,
-  },
-  demoInfoTitle: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  demoInfoText: {
-    color: '#fff',
-    fontSize: 12,
   },
 });
