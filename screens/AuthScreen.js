@@ -11,7 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -143,11 +144,6 @@ export default function AuthScreen({ navigation }) {
     }
   };
   
-  // Social login placeholder
-  const handleSocialLogin = (provider) => {
-    Alert.alert('Coming Soon', `${provider} login will be available soon!`);
-  };
-  
   // Animation interpolations
   const signInOpacity = slideAnim.interpolate({
     inputRange: [0, 1],
@@ -186,29 +182,18 @@ export default function AuthScreen({ navigation }) {
                 ]}
                 pointerEvents={isSignUpActive ? 'none' : 'auto'}
               >
-                <View style={styles.keyClubLogo}>
-                  <Text style={styles.logoText}>KC</Text>
+                <View style={styles.keyClubLogoContainer}>
+                  <Image 
+                    source={require('../assets/images/keyclublogo.png')} 
+                    style={styles.keyClubLogo}
+                    resizeMode="contain"
+                  />
                 </View>
                 
                 <Text style={styles.formTitle}>Sign In</Text>
                 <Text style={styles.formSubtitle}>Use your S-Number to access your account</Text>
                 
-                <View style={styles.socialButtons}>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('Google')}>
-                    <Text style={styles.socialBtnText}>G</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')}>
-                    <Text style={styles.socialBtnText}>f</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('LinkedIn')}>
-                    <Text style={styles.socialBtnText}>Li</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('Email')}>
-                    <Text style={styles.socialBtnText}>@</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <Text style={styles.orText}>or use your S-Number</Text>
+                <Text style={styles.orText}>Enter your credentials</Text>
                 
                 <View style={styles.inputGroup}>
                   <Ionicons name="person" size={20} color="#666" style={styles.inputIcon} />
@@ -264,29 +249,18 @@ export default function AuthScreen({ navigation }) {
                 ]}
                 pointerEvents={isSignUpActive ? 'auto' : 'none'}
               >
-                <View style={styles.keyClubLogo}>
-                  <Text style={styles.logoText}>KC</Text>
+                <View style={styles.keyClubLogoContainer}>
+                  <Image 
+                    source={require('../assets/images/keyclublogo.png')} 
+                    style={styles.keyClubLogo}
+                    resizeMode="contain"
+                  />
                 </View>
                 
                 <Text style={styles.formTitle}>Create Account</Text>
                 <Text style={styles.formSubtitle}>Register with your personal details to join Key Club</Text>
                 
-                <View style={styles.socialButtons}>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('Google')}>
-                    <Text style={styles.socialBtnText}>G</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')}>
-                    <Text style={styles.socialBtnText}>f</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('LinkedIn')}>
-                    <Text style={styles.socialBtnText}>Li</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialBtn} onPress={() => handleSocialLogin('Email')}>
-                    <Text style={styles.socialBtnText}>@</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <Text style={styles.orText}>or use your S-Number for registration</Text>
+                <Text style={styles.orText}>Use your S-Number for registration</Text>
                 
                 <View style={styles.inputGroup}>
                   <Ionicons name="card" size={20} color="#666" style={styles.inputIcon} />
@@ -458,19 +432,16 @@ const styles = StyleSheet.create({
     transform: [{ translateX: 384 }], // Half of container width
     zIndex: 2,
   },
-  keyClubLogo: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#ffd60a',
-    borderRadius: 30,
+  keyClubLogoContainer: {
+    width: 80,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0d1b2a',
+  keyClubLogo: {
+    width: 80,
+    height: 80,
   },
   formTitle: {
     fontSize: 32,
@@ -484,25 +455,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 20,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    marginVertical: 20,
-  },
-  socialBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  socialBtnText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   orText: {
     fontSize: 12,
