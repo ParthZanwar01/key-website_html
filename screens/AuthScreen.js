@@ -45,7 +45,7 @@ export default function AuthScreen({ navigation }) {
     Animated.timing(slideAnim, {
       toValue,
       duration: 600,
-      useNativeDriver: true,
+      useNativeDriver: false, // Changed to false to fix the warning
     }).start();
     
     setIsSignUpActive(!isSignUpActive);
@@ -159,6 +159,27 @@ export default function AuthScreen({ navigation }) {
     inputRange: [0, 1],
     outputRange: [0, -384] // Half of container width (768/2)
   });
+  
+  // Dynamic content based on current state
+  const getOverlayContent = () => {
+    if (isSignUpActive) {
+      // User is on Sign Up, show Sign In option
+      return {
+        title: "Already a Member?",
+        text: "Welcome back! Sign in to access your account and continue tracking your progress",
+        buttonText: "SIGN IN"
+      };
+    } else {
+      // User is on Sign In, show Sign Up option
+      return {
+        title: "New to Key Club?",
+        text: "Create an account to track your volunteer hours and participate in events",
+        buttonText: "SIGN UP"
+      };
+    }
+  };
+  
+  const overlayContent = getOverlayContent();
   
   return (
     <SafeAreaView style={styles.container}>
@@ -331,31 +352,17 @@ export default function AuthScreen({ navigation }) {
               ]}
             >
               <View style={styles.overlay}>
-                {/* Right Overlay Panel - Shows when Sign In is active */}
-                <View style={[styles.overlayPanel, styles.overlayRight]}>
-                  <Text style={styles.overlayTitle}>New to Key Club?</Text>
+                {/* Dynamic Overlay Panel */}
+                <View style={[styles.overlayPanel, styles.overlayCenter]}>
+                  <Text style={styles.overlayTitle}>{overlayContent.title}</Text>
                   <Text style={styles.overlayText}>
-                    Create an account to track your volunteer hours and participate in events
+                    {overlayContent.text}
                   </Text>
                   <TouchableOpacity 
                     style={styles.ghostBtn}
                     onPress={toggleAuthMode}
                   >
-                    <Text style={styles.ghostBtnText}>SIGN UP</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                {/* Left Overlay Panel - Shows when Sign Up is active */}
-                <View style={[styles.overlayPanel, styles.overlayLeft]}>
-                  <Text style={styles.overlayTitle}>Already a Member?</Text>
-                  <Text style={styles.overlayText}>
-                    Welcome back! Sign in to access your account and continue tracking your progress
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.ghostBtn}
-                    onPress={toggleAuthMode}
-                  >
-                    <Text style={styles.ghostBtnText}>SIGN IN</Text>
+                    <Text style={styles.ghostBtnText}>{overlayContent.buttonText}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -537,6 +544,10 @@ const styles = StyleSheet.create({
   },
   overlayLeft: {
     left: 0,
+  },
+  overlayCenter: {
+    left: '50%',
+    right: 0,
   },
   overlayTitle: {
     fontSize: 28,
