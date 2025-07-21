@@ -16,9 +16,29 @@ import { useAuth } from '../contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../supabase/supabaseClient'; // adjust if needed
 
 export default function HourRequestScreen({ navigation }) {
   const { submitHourRequest, getStudentHours } = useHours();
+  const pickImage = async () => {
+  const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (permissionResult.granted === false) {
+    alert('Permission to access camera roll is required!');
+    return;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 0.7,
+  });
+
+  if (!result.cancelled) {
+    setImage(result.assets[0].uri); // For SDK 48+
+  }
+};
+
   const { user } = useAuth();
   
   const [eventName, setEventName] = useState('');
@@ -27,6 +47,7 @@ export default function HourRequestScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentHours, setCurrentHours] = useState(0);
+  const [image, setImage] = useState(null);
   
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -98,6 +119,30 @@ export default function HourRequestScreen({ navigation }) {
         description: description.trim()
       };
       
+let uploadedImageUrl = null;
+
+if (image) {
+  const response = await fetch(image);
+  const blob = await response.blob();
+  const filePath = `${user.sNumber}/${Date.now()}.jpg`;
+
+  const { data, error } = await supabase.storage
+    .from('proofuploads') // your Supabase bucket
+    .upload(filePath, blob);
+
+  if (error) {
+    console.error('Image upload error:', error.message);
+  } else {
+    const { data: urlData } = supabase
+      .storage
+      .from('hour-request-photos')
+      .getPublicUrl(filePath);
+    uploadedImageUrl = urlData.publicUrl;
+  }
+}
+
+requestData.photoUrl = uploadedImageUrl;
+
       await submitHourRequest(requestData);
       
       // Show success dialog
@@ -280,6 +325,16 @@ export default function HourRequestScreen({ navigation }) {
               </Text>
             </View>
             
+<View style={styles.formGroup}>
+  <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
+  <TouchableOpacity
+    style={[styles.dateTimeButton, { marginBottom: 10 }]}
+    onPress={pickImage}
+  >
+    <Text>{image ? 'Photo Selected ✅' : 'Select Photo'}</Text>
+  </TouchableOpacity>
+</View>
+
             <TouchableOpacity
               style={[styles.submitButton, loading && styles.disabledButton]}
               onPress={handleSubmitRequest}
