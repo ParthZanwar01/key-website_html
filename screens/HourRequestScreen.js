@@ -10,7 +10,8 @@ import {
   Platform,
   Modal,
   Image,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHours } from '../contexts/HourContext';
@@ -31,9 +32,13 @@ export default function HourRequestScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentHours, setCurrentHours] = useState(0);
+  
+  // Enhanced photo states
   const [image, setImage] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadedImageData, setUploadedImageData] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [driveConnectionStatus, setDriveConnectionStatus] = useState(null);
   
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -69,14 +74,22 @@ export default function HourRequestScreen({ navigation }) {
   useEffect(() => {
     const testDriveConnection = async () => {
       try {
+        console.log('🧪 Testing Google Drive connection...');
         const result = await SimpleDriveService.testConnection();
-        console.log('Google Drive connection test:', result);
+        setDriveConnectionStatus(result);
         
-        if (!result.success) {
-          console.warn('Google Drive not available:', result.error);
+        if (result.success) {
+          console.log('✅ Google Drive connected successfully');
+        } else {
+          console.warn('⚠️ Google Drive connection issue:', result.error);
         }
       } catch (error) {
-        console.warn('Could not test Google Drive connection:', error);
+        console.error('❌ Could not test Google Drive connection:', error);
+        setDriveConnectionStatus({
+          success: false,
+          error: error.message,
+          diagnostic: 'connection_test_failed'
+        });
       }
     };
     
@@ -92,9 +105,11 @@ export default function HourRequestScreen({ navigation }) {
     });
   };
 
-  // Enhanced image picker
+  // Enhanced image picker with better error handling
   const pickImage = async () => {
     try {
+      console.log('📸 Starting image picker...');
+      
       // Request permissions
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
@@ -102,38 +117,60 @@ export default function HourRequestScreen({ navigation }) {
         Alert.alert(
           'Permission Required',
           'Permission to access your photo library is required to upload proof photos.',
-          [{ text: 'OK' }]
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Settings', onPress: () => {
+              // On iOS, this would open settings
+              if (Platform.OS === 'ios') {
+                Linking.openURL('app-settings:');
+              }
+            }}
+          ]
         );
         return;
       }
 
-      // Launch image picker
+      // Launch image picker with optimized settings
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8, // Good quality but not too large
+        quality: 0.8, // Good quality but manageable size
         base64: false,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const selectedImage = result.assets[0];
+        console.log('✅ Image selected:', {
+          uri: selectedImage.uri.substring(0, 50) + '...',
+          width: selectedImage.width,
+          height: selectedImage.height,
+          fileSize: selectedImage.fileSize
+        });
+        
         setImage(selectedImage.uri);
         
         // Auto-upload to Google Drive
         await uploadImageToGoogleDrive(selectedImage.uri);
       }
     } catch (error) {
-      console.error('Image picker error:', error);
+      console.error('❌ Image picker error:', error);
       Alert.alert('Error', 'Failed to select image. Please try again.');
     }
   };
 
-  // Upload image to Google Drive (frontend only)
+  // Enhanced upload with progress tracking
   const uploadImageToGoogleDrive = async (imageUri) => {
     setUploadingImage(true);
+    setUploadProgress(0);
+    
     try {
-      console.log('📤 Starting frontend Google Drive upload...');
+      console.log('📤 Starting Google Drive upload...');
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
       
       const uploadResult = await SimpleDriveService.uploadImage(
         imageUri,
@@ -141,18 +178,26 @@ export default function HourRequestScreen({ navigation }) {
         eventName || 'hour_request'
       );
       
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
       setUploadedImageData(uploadResult);
       
       // Show appropriate success message
       if (uploadResult.storage === 'google_drive') {
         Alert.alert(
-          'Upload Success!', 
-          'Photo uploaded to Google Drive successfully!'
+          '✅ Upload Successful!', 
+          `Photo uploaded to Google Drive successfully!\n\nFile: ${uploadResult.fileName}`
         );
       } else {
         Alert.alert(
-          'Upload Failed', 
-          'Could not upload to Google Drive, but photo is saved locally. You can still submit your request.'
+          '⚠️ Upload Failed', 
+          `Could not upload to Google Drive: ${uploadResult.error}\n\nPhoto is saved locally and you can still submit your request. An admin can help you upload it later.`,
+          [
+            { text: 'Continue Anyway', style: 'default' },
+            { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) },
+            { text: 'Remove Photo', onPress: removeImage, style: 'destructive' }
+          ]
         );
       }
       
@@ -162,25 +207,28 @@ export default function HourRequestScreen({ navigation }) {
       console.error('❌ Upload failed:', error);
       
       Alert.alert(
-        'Upload Failed', 
-        'Could not upload photo to Google Drive. You can still submit your hour request without a photo.',
+        '❌ Upload Failed', 
+        `Could not upload photo to Google Drive: ${error.message}\n\nYou can still submit your hour request without a photo, or try uploading again.`,
         [
-          { text: 'Continue Anyway', style: 'default' },
-          { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) }
+          { text: 'Continue Without Photo', onPress: removeImage },
+          { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) },
+          { text: 'Keep Local Copy', style: 'cancel' }
         ]
       );
       
-      // Store failed upload data
+      // Store failed upload data for potential retry
       setUploadedImageData({
         localUri: imageUri,
         fileName: `${user.sNumber}_${Date.now()}.jpg`,
         uploadStatus: 'failed',
         storage: 'local',
-        error: error.message
+        error: error.message,
+        retryable: true
       });
       
     } finally {
       setUploadingImage(false);
+      setUploadProgress(0);
     }
   };
 
@@ -197,10 +245,25 @@ export default function HourRequestScreen({ navigation }) {
           onPress: () => {
             setImage(null);
             setUploadedImageData(null);
+            setUploadProgress(0);
           }
         }
       ]
     );
+  };
+
+  // Retry failed upload
+  const retryUpload = async () => {
+    if (!uploadedImageData || !uploadedImageData.retryable) {
+      Alert.alert('Error', 'Cannot retry this upload');
+      return;
+    }
+    
+    try {
+      await uploadImageToGoogleDrive(uploadedImageData.localUri);
+    } catch (error) {
+      console.error('Retry failed:', error);
+    }
   };
 
   const handleSubmitRequest = async () => {
@@ -234,36 +297,41 @@ export default function HourRequestScreen({ navigation }) {
         description: description.trim()
       };
 
-      // Add photo information if available
+      // Add enhanced photo information if available
       if (uploadedImageData) {
-        if (uploadedImageData.webViewLink) {
+        if (uploadedImageData.storage === 'google_drive') {
           // Successfully uploaded to Google Drive
           requestData.photoUrl = uploadedImageData.webViewLink;
+          requestData.photoDownloadUrl = uploadedImageData.downloadLink;
+          requestData.photoThumbnailUrl = uploadedImageData.thumbnailLink;
           requestData.photoStorage = 'google_drive';
           requestData.photoFileId = uploadedImageData.fileId;
+          requestData.photoFileName = uploadedImageData.fileName;
+          requestData.photoFileSize = uploadedImageData.fileSize;
         } else {
           // Local storage fallback
           requestData.photoLocalPath = uploadedImageData.localUri;
           requestData.photoStorage = 'local_pending';
           requestData.photoFileName = uploadedImageData.fileName;
+          requestData.photoError = uploadedImageData.error;
         }
         
         requestData.photoUploadStatus = uploadedImageData.uploadStatus || 'completed';
-        requestData.photoUploadedAt = new Date().toISOString();
+        requestData.photoUploadedAt = uploadedImageData.uploadedAt || new Date().toISOString();
       }
       
       await submitHourRequest(requestData);
       
-      // Show success dialog
-      const photoMessage = uploadedImageData && uploadedImageData.webViewLink
-        ? ' Your proof photo has been uploaded to Google Drive.'
+      // Show enhanced success dialog
+      const photoMessage = uploadedImageData && uploadedImageData.storage === 'google_drive'
+        ? ' Your proof photo has been uploaded to Google Drive and linked to this request.'
         : uploadedImageData 
-          ? ' Your proof photo has been saved locally.'
+          ? ' Your proof photo has been saved locally and will be available for admin review.'
           : '';
         
       setSuccessDialog({
         visible: true,
-        message: `Your request for ${hours} hours has been submitted successfully!${photoMessage} You'll be notified when it's reviewed.`
+        message: `Your request for ${hours} hours has been submitted successfully!${photoMessage}\n\nYou'll be notified when it's reviewed by an admin.`
       });
       
       // Clear form
@@ -272,6 +340,7 @@ export default function HourRequestScreen({ navigation }) {
       setDescription('');
       setImage(null);
       setUploadedImageData(null);
+      setUploadProgress(0);
       
     } catch (error) {
       console.error('Failed to submit hour request:', error);
@@ -362,10 +431,33 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // Render photo section
+  // Enhanced photo section with better status indicators
   const renderPhotoSection = () => (
     <View style={styles.formGroup}>
       <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
+      
+      {/* Google Drive Status Indicator */}
+      {driveConnectionStatus && (
+        <View style={[
+          styles.connectionStatus,
+          { backgroundColor: driveConnectionStatus.success ? '#e8f5e9' : '#ffebee' }
+        ]}>
+          <Ionicons 
+            name={driveConnectionStatus.success ? "cloud-done" : "cloud-offline"} 
+            size={16} 
+            color={driveConnectionStatus.success ? "#27ae60" : "#e74c3c"} 
+          />
+          <Text style={[
+            styles.connectionStatusText,
+            { color: driveConnectionStatus.success ? "#27ae60" : "#e74c3c" }
+          ]}>
+            {driveConnectionStatus.success 
+              ? `Google Drive connected (${driveConnectionStatus.folderName || 'Key Club Photos'})`
+              : `Google Drive unavailable: ${driveConnectionStatus.error}`
+            }
+          </Text>
+        </View>
+      )}
       
       {!image ? (
         <TouchableOpacity
@@ -381,6 +473,16 @@ export default function HourRequestScreen({ navigation }) {
       ) : (
         <View style={styles.photoPreviewContainer}>
           <Image source={{ uri: image }} style={styles.photoPreview} />
+          
+          {/* Upload Progress Bar */}
+          {uploadingImage && (
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${uploadProgress}%` }]} />
+              </View>
+              <Text style={styles.progressText}>{uploadProgress}%</Text>
+            </View>
+          )}
           
           <View style={styles.photoActions}>
             <TouchableOpacity
@@ -400,26 +502,51 @@ export default function HourRequestScreen({ navigation }) {
               <Ionicons name="refresh" size={16} color="#59a2f0" />
               <Text style={styles.photoActionText}>Change</Text>
             </TouchableOpacity>
+            
+            {uploadedImageData && uploadedImageData.retryable && uploadedImageData.storage === 'local' && (
+              <TouchableOpacity
+                style={styles.photoActionButton}
+                onPress={retryUpload}
+                disabled={uploadingImage}
+              >
+                <Ionicons name="cloud-upload" size={16} color="#f39c12" />
+                <Text style={styles.photoActionText}>Retry</Text>
+              </TouchableOpacity>
+            )}
           </View>
           
           {uploadingImage && (
             <View style={styles.uploadingOverlay}>
-              <Ionicons name="cloud-upload" size={20} color="#59a2f0" />
+              <ActivityIndicator size="large" color="#59a2f0" />
               <Text style={styles.uploadingText}>Uploading to Google Drive...</Text>
             </View>
           )}
           
-          {uploadedImageData && (
+          {uploadedImageData && !uploadingImage && (
             <View style={styles.uploadStatus}>
               <Ionicons 
-                name={uploadedImageData.storage === 'google_drive' ? "checkmark-circle" : "information-circle"} 
+                name={
+                  uploadedImageData.storage === 'google_drive' 
+                    ? "cloud-done" 
+                    : uploadedImageData.retryable 
+                      ? "cloud-upload-outline" 
+                      : "information-circle"
+                } 
                 size={16} 
-                color={uploadedImageData.storage === 'google_drive' ? "#27ae60" : "#f39c12"} 
+                color={
+                  uploadedImageData.storage === 'google_drive' 
+                    ? "#27ae60" 
+                    : uploadedImageData.retryable 
+                      ? "#f39c12" 
+                      : "#666"
+                } 
               />
               <Text style={styles.uploadStatusText}>
                 {uploadedImageData.storage === 'google_drive'
                   ? "✅ Uploaded to Google Drive"
-                  : "⚠️ Saved locally (Google Drive unavailable)"}
+                  : uploadedImageData.retryable
+                    ? "⚠️ Upload failed - you can retry or submit anyway"
+                    : "📱 Saved locally"}
               </Text>
             </View>
           )}
@@ -427,7 +554,7 @@ export default function HourRequestScreen({ navigation }) {
       )}
       
       <Text style={styles.helpText}>
-        Photos will be uploaded directly to Google Drive for admin review
+        Photos help admins verify your volunteer work. They're automatically uploaded to Google Drive for review.
       </Text>
     </View>
   );
@@ -512,16 +639,16 @@ export default function HourRequestScreen({ navigation }) {
               </Text>
             </View>
             
-            {/* Photo Upload Section */}
+            {/* Enhanced Photo Upload Section */}
             {renderPhotoSection()}
 
             <TouchableOpacity
-              style={[styles.submitButton, loading && styles.disabledButton]}
+              style={[styles.submitButton, (loading || uploadingImage) && styles.disabledButton]}
               onPress={handleSubmitRequest}
               disabled={loading || uploadingImage}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Submitting Request...' : 'Submit Request'}
+                {loading ? 'Submitting Request...' : uploadingImage ? 'Uploading Photo...' : 'Submit Request'}
               </Text>
             </TouchableOpacity>
             
@@ -668,7 +795,19 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   
-  // Photo upload styles
+  // Enhanced photo upload styles
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 10,
+  },
+  connectionStatusText: {
+    marginLeft: 8,
+    fontSize: 12,
+    fontWeight: '500',
+  },
   photoUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -696,6 +835,29 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     resizeMode: 'cover',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#59a2f0',
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#59a2f0',
+    fontWeight: 'bold',
   },
   photoActions: {
     flexDirection: 'row',
@@ -816,3 +978,4 @@ const styles = StyleSheet.create({
     height: 200,
   },
 });
+          
