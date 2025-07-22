@@ -1,7 +1,13 @@
 // services/SimpleDriveService.js
-// Frontend-only Google Drive upload without backend
+// Frontend-only Google Drive upload without backend (Web + Mobile compatible)
 
-import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
+
+// Conditionally import expo-file-system only on native platforms
+let FileSystem = null;
+if (Platform.OS !== 'web') {
+  FileSystem = require('expo-file-system');
+}
 
 class SimpleDriveService {
   // Your Google Drive folder ID
@@ -14,21 +20,63 @@ class SimpleDriveService {
   static ACCESS_TOKEN = null;
 
   /**
+   * Convert image URI to base64 (cross-platform)
+   */
+  static async imageToBase64(imageUri) {
+    if (Platform.OS === 'web') {
+      // Web implementation using fetch and FileReader
+      try {
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error('Web base64 conversion error:', error);
+        throw new Error('Failed to convert image to base64 on web');
+      }
+    } else {
+      // Mobile implementation using expo-file-system
+      if (!FileSystem) {
+        throw new Error('FileSystem not available on this platform');
+      }
+      
+      try {
+        return await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } catch (error) {
+        console.error('Mobile base64 conversion error:', error);
+        throw new Error('Failed to convert image to base64 on mobile');
+      }
+    }
+  }
+
+  /**
    * Simple upload using API key (public uploads)
    * This method uploads files as publicly readable
    */
   static async uploadWithApiKey(imageUri, fileName, studentSNumber) {
     try {
-      console.log('📤 Starting simple Google Drive upload...');
+      console.log('📤 Starting cross-platform Google Drive upload...');
+      console.log('Platform:', Platform.OS);
+      console.log('Image URI:', imageUri);
 
       if (!this.API_KEY) {
         throw new Error('Google API key not found. Add EXPO_PUBLIC_GOOGLE_API_KEY to your .env file');
       }
 
-      // Read the image as base64
-      const base64Data = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      // Convert image to base64 (cross-platform)
+      console.log('🔄 Converting image to base64...');
+      const base64Data = await this.imageToBase64(imageUri);
+      console.log('✅ Base64 conversion successful, length:', base64Data.length);
 
       // Create a unique filename
       const timestamp = Date.now();
@@ -54,6 +102,7 @@ class SimpleDriveService {
         base64Data +
         close_delim;
 
+      console.log('🌐 Uploading to Google Drive...');
       const response = await fetch(
         `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${this.API_KEY}`,
         {
@@ -113,6 +162,10 @@ class SimpleDriveService {
    */
   static async uploadImage(imageUri, studentSNumber, eventName) {
     try {
+      console.log('🚀 Starting upload process...');
+      console.log('Platform:', Platform.OS);
+      console.log('Parameters:', { studentSNumber, eventName });
+      
       // Try API key upload first (simplest method)
       return await this.uploadWithApiKey(imageUri, eventName, studentSNumber);
       
@@ -137,6 +190,10 @@ class SimpleDriveService {
    */
   static async testConnection() {
     try {
+      console.log('🧪 Testing Google Drive connection...');
+      console.log('Platform:', Platform.OS);
+      console.log('API Key available:', !!this.API_KEY);
+      
       if (!this.API_KEY) {
         return { success: false, error: 'No API key configured' };
       }
@@ -154,23 +211,85 @@ class SimpleDriveService {
 
       if (response.ok) {
         const folderInfo = await response.json();
+        console.log('✅ Google Drive connection successful');
         return { 
           success: true, 
           message: 'Google Drive connection successful',
-          folderName: folderInfo.name 
+          folderName: folderInfo.name,
+          platform: Platform.OS
         };
       } else {
         const errorText = await response.text();
+        console.error('❌ Google Drive connection failed:', errorText);
         return { 
           success: false, 
           error: `Connection failed: ${response.status} ${errorText}` 
         };
       }
     } catch (error) {
+      console.error('❌ Connection test error:', error);
       return { 
         success: false, 
         error: error.message 
       };
+    }
+  }
+
+  /**
+   * Alternative web-only upload using FormData (if the above doesn't work)
+   */
+  static async uploadWithFormData(imageUri, fileName, studentSNumber) {
+    try {
+      if (Platform.OS !== 'web') {
+        throw new Error('FormData upload is web-only');
+      }
+
+      console.log('📤 Using FormData upload method for web...');
+
+      // Convert image to blob for web
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      // Create unique filename
+      const timestamp = Date.now();
+      const uniqueFileName = `${studentSNumber}_${timestamp}_${fileName}.jpg`;
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('metadata', JSON.stringify({
+        name: uniqueFileName,
+        parents: [this.FOLDER_ID]
+      }));
+      formData.append('file', blob, uniqueFileName);
+
+      const uploadResponse = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${this.API_KEY}`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        throw new Error(`FormData upload failed: ${uploadResponse.status} ${errorText}`);
+      }
+
+      const result = await uploadResponse.json();
+      console.log('✅ FormData upload successful:', result);
+
+      return {
+        fileId: result.id,
+        fileName: result.name,
+        webViewLink: `https://drive.google.com/file/d/${result.id}/view`,
+        downloadLink: `https://drive.google.com/uc?id=${result.id}`,
+        storage: 'google_drive',
+        method: 'formdata'
+      };
+
+    } catch (error) {
+      console.error('❌ FormData upload failed:', error);
+      throw error;
     }
   }
 }
