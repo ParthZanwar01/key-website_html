@@ -8,7 +8,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Modal
+  Modal,
+  Image,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHours } from '../contexts/HourContext';
@@ -17,28 +19,10 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '../supabase/supabaseClient'; // adjust if needed
+import SimpleDriveService from '../services/SimpleDriveService';
 
 export default function HourRequestScreen({ navigation }) {
   const { submitHourRequest, getStudentHours } = useHours();
-  const pickImage = async () => {
-  const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (permissionResult.granted === false) {
-    alert('Permission to access camera roll is required!');
-    return;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    quality: 0.7,
-  });
-
-  if (!result.cancelled) {
-    setImage(result.assets[0].uri); // For SDK 48+
-  }
-};
-
   const { user } = useAuth();
   
   const [eventName, setEventName] = useState('');
@@ -48,6 +32,8 @@ export default function HourRequestScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [currentHours, setCurrentHours] = useState(0);
   const [image, setImage] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadedImageData, setUploadedImageData] = useState(null);
   
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -79,6 +65,24 @@ export default function HourRequestScreen({ navigation }) {
     loadCurrentHours();
   }, [user, getStudentHours]);
 
+  // Test Google Drive connection on component mount
+  useEffect(() => {
+    const testDriveConnection = async () => {
+      try {
+        const result = await SimpleDriveService.testConnection();
+        console.log('Google Drive connection test:', result);
+        
+        if (!result.success) {
+          console.warn('Google Drive not available:', result.error);
+        }
+      } catch (error) {
+        console.warn('Could not test Google Drive connection:', error);
+      }
+    };
+    
+    testDriveConnection();
+  }, []);
+
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -86,6 +90,117 @@ export default function HourRequestScreen({ navigation }) {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Enhanced image picker
+  const pickImage = async () => {
+    try {
+      // Request permissions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          'Permission Required',
+          'Permission to access your photo library is required to upload proof photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8, // Good quality but not too large
+        base64: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const selectedImage = result.assets[0];
+        setImage(selectedImage.uri);
+        
+        // Auto-upload to Google Drive
+        await uploadImageToGoogleDrive(selectedImage.uri);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  // Upload image to Google Drive (frontend only)
+  const uploadImageToGoogleDrive = async (imageUri) => {
+    setUploadingImage(true);
+    try {
+      console.log('📤 Starting frontend Google Drive upload...');
+      
+      const uploadResult = await SimpleDriveService.uploadImage(
+        imageUri,
+        user.sNumber,
+        eventName || 'hour_request'
+      );
+      
+      setUploadedImageData(uploadResult);
+      
+      // Show appropriate success message
+      if (uploadResult.storage === 'google_drive') {
+        Alert.alert(
+          'Upload Success!', 
+          'Photo uploaded to Google Drive successfully!'
+        );
+      } else {
+        Alert.alert(
+          'Upload Failed', 
+          'Could not upload to Google Drive, but photo is saved locally. You can still submit your request.'
+        );
+      }
+      
+      console.log('✅ Upload completed:', uploadResult);
+      
+    } catch (error) {
+      console.error('❌ Upload failed:', error);
+      
+      Alert.alert(
+        'Upload Failed', 
+        'Could not upload photo to Google Drive. You can still submit your hour request without a photo.',
+        [
+          { text: 'Continue Anyway', style: 'default' },
+          { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) }
+        ]
+      );
+      
+      // Store failed upload data
+      setUploadedImageData({
+        localUri: imageUri,
+        fileName: `${user.sNumber}_${Date.now()}.jpg`,
+        uploadStatus: 'failed',
+        storage: 'local',
+        error: error.message
+      });
+      
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Remove/clear selected image
+  const removeImage = () => {
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => {
+            setImage(null);
+            setUploadedImageData(null);
+          }
+        }
+      ]
+    );
   };
 
   const handleSubmitRequest = async () => {
@@ -114,47 +229,49 @@ export default function HourRequestScreen({ navigation }) {
         studentSNumber: user.sNumber,
         studentName: user.name || user.sNumber,
         eventName: eventName.trim(),
-        eventDate: eventDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        eventDate: eventDate.toISOString().split('T')[0],
         hoursRequested: hours.toString(),
         description: description.trim()
       };
+
+      // Add photo information if available
+      if (uploadedImageData) {
+        if (uploadedImageData.webViewLink) {
+          // Successfully uploaded to Google Drive
+          requestData.photoUrl = uploadedImageData.webViewLink;
+          requestData.photoStorage = 'google_drive';
+          requestData.photoFileId = uploadedImageData.fileId;
+        } else {
+          // Local storage fallback
+          requestData.photoLocalPath = uploadedImageData.localUri;
+          requestData.photoStorage = 'local_pending';
+          requestData.photoFileName = uploadedImageData.fileName;
+        }
+        
+        requestData.photoUploadStatus = uploadedImageData.uploadStatus || 'completed';
+        requestData.photoUploadedAt = new Date().toISOString();
+      }
       
-let uploadedImageUrl = null;
-
-if (image) {
-  const response = await fetch(image);
-  const blob = await response.blob();
-  const filePath = `${user.sNumber}/${Date.now()}.jpg`;
-
-  const { data, error } = await supabase.storage
-    .from('proofuploads') // your Supabase bucket
-    .upload(filePath, blob);
-
-  if (error) {
-    console.error('Image upload error:', error.message);
-  } else {
-    const { data: urlData } = supabase
-      .storage
-      .from('hour-request-photos')
-      .getPublicUrl(filePath);
-    uploadedImageUrl = urlData.publicUrl;
-  }
-}
-
-requestData.photoUrl = uploadedImageUrl;
-
       await submitHourRequest(requestData);
       
       // Show success dialog
+      const photoMessage = uploadedImageData && uploadedImageData.webViewLink
+        ? ' Your proof photo has been uploaded to Google Drive.'
+        : uploadedImageData 
+          ? ' Your proof photo has been saved locally.'
+          : '';
+        
       setSuccessDialog({
         visible: true,
-        message: `Your request for ${hours} hours has been submitted successfully! You'll be notified when it's reviewed.`
+        message: `Your request for ${hours} hours has been submitted successfully!${photoMessage} You'll be notified when it's reviewed.`
       });
       
       // Clear form
       setEventName('');
       setHoursRequested('');
       setDescription('');
+      setImage(null);
+      setUploadedImageData(null);
       
     } catch (error) {
       console.error('Failed to submit hour request:', error);
@@ -245,6 +362,76 @@ requestData.photoUrl = uploadedImageUrl;
     );
   };
 
+  // Render photo section
+  const renderPhotoSection = () => (
+    <View style={styles.formGroup}>
+      <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
+      
+      {!image ? (
+        <TouchableOpacity
+          style={styles.photoUploadButton}
+          onPress={pickImage}
+          disabled={uploadingImage}
+        >
+          <Ionicons name="camera" size={24} color="#59a2f0" />
+          <Text style={styles.photoUploadText}>
+            {uploadingImage ? 'Uploading...' : 'Select Photo'}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.photoPreviewContainer}>
+          <Image source={{ uri: image }} style={styles.photoPreview} />
+          
+          <View style={styles.photoActions}>
+            <TouchableOpacity
+              style={styles.photoActionButton}
+              onPress={removeImage}
+              disabled={uploadingImage}
+            >
+              <Ionicons name="trash" size={16} color="#e74c3c" />
+              <Text style={styles.photoActionText}>Remove</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.photoActionButton}
+              onPress={pickImage}
+              disabled={uploadingImage}
+            >
+              <Ionicons name="refresh" size={16} color="#59a2f0" />
+              <Text style={styles.photoActionText}>Change</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {uploadingImage && (
+            <View style={styles.uploadingOverlay}>
+              <Ionicons name="cloud-upload" size={20} color="#59a2f0" />
+              <Text style={styles.uploadingText}>Uploading to Google Drive...</Text>
+            </View>
+          )}
+          
+          {uploadedImageData && (
+            <View style={styles.uploadStatus}>
+              <Ionicons 
+                name={uploadedImageData.storage === 'google_drive' ? "checkmark-circle" : "information-circle"} 
+                size={16} 
+                color={uploadedImageData.storage === 'google_drive' ? "#27ae60" : "#f39c12"} 
+              />
+              <Text style={styles.uploadStatusText}>
+                {uploadedImageData.storage === 'google_drive'
+                  ? "✅ Uploaded to Google Drive"
+                  : "⚠️ Saved locally (Google Drive unavailable)"}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+      
+      <Text style={styles.helpText}>
+        Photos will be uploaded directly to Google Drive for admin review
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -325,20 +512,13 @@ requestData.photoUrl = uploadedImageUrl;
               </Text>
             </View>
             
-<View style={styles.formGroup}>
-  <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
-  <TouchableOpacity
-    style={[styles.dateTimeButton, { marginBottom: 10 }]}
-    onPress={pickImage}
-  >
-    <Text>{image ? 'Photo Selected ✅' : 'Select Photo'}</Text>
-  </TouchableOpacity>
-</View>
+            {/* Photo Upload Section */}
+            {renderPhotoSection()}
 
             <TouchableOpacity
               style={[styles.submitButton, loading && styles.disabledButton]}
               onPress={handleSubmitRequest}
-              disabled={loading}
+              disabled={loading || uploadingImage}
             >
               <Text style={styles.buttonText}>
                 {loading ? 'Submitting Request...' : 'Submit Request'}
@@ -487,6 +667,83 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontStyle: 'italic',
   },
+  
+  // Photo upload styles
+  photoUploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#59a2f0',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  photoUploadText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#59a2f0',
+    fontWeight: '500',
+  },
+  photoPreviewContainer: {
+    position: 'relative',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f8f9fa',
+  },
+  photoPreview: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
+  },
+  photoActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 10,
+    backgroundColor: 'white',
+  },
+  photoActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  photoActionText: {
+    marginLeft: 5,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#59a2f0',
+    fontWeight: '500',
+  },
+  uploadStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: '#f0f8ff',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  uploadStatusText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  
   submitButton: {
     backgroundColor: '#59a2f0',
     padding: 15,
@@ -517,6 +774,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 5,
   },
+  
   // Modal Picker Styles
   modalContainer: {
     flex: 1,
