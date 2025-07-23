@@ -282,7 +282,21 @@ export default function AnimationScreen() {
             />
           </AnimatedG>
         </AnimatedSvg>
-      </Animated.View>
-    </View>
-  );
+    </Animated.View>
+
+    {/* 🟡 Message text added below the animation */}
+    <Animated.Text
+      style={{
+        color: '#fff',
+        fontSize: 18,
+        marginTop: 30,
+        opacity: fadeInAnim,
+        transform: [{ scale: scaleAnim }],
+        textAlign: 'center',
+      }}
+    >
+      Unlocking your Key Club adventure... 🔓
+    </Animated.Text>
+  </View>
+);
 }
