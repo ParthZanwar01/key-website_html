@@ -7,6 +7,7 @@ const { width, height } = Dimensions.get('window');
 
 const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export default function AnimationScreen() {
   const { hideAnimation } = useAuth();
@@ -17,6 +18,7 @@ export default function AnimationScreen() {
   const lockOpenAnim = useRef(new Animated.Value(0)).current;
   const fadeInAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Start the animation sequence
@@ -35,28 +37,35 @@ export default function AnimationScreen() {
           useNativeDriver: true,
         }),
       ]).start(() => {
-        // Key slides into lock
+        // Key slides into lock (moves to keyhole position)
         Animated.timing(keySlideAnim, {
-          toValue: 0,
-          duration: 800,
+          toValue: 0, // Position key tip at the keyhole
+          duration: 1000,
           useNativeDriver: true,
         }).start(() => {
           // Key rotates to unlock
           Animated.timing(keyRotateAnim, {
             toValue: 90,
-            duration: 600,
+            duration: 800,
             useNativeDriver: true,
           }).start(() => {
-            // Lock opens
-            Animated.timing(lockOpenAnim, {
-              toValue: 1,
-              duration: 500,
-              useNativeDriver: true,
-            }).start(() => {
+            // Lock opens and sparkles appear
+            Animated.parallel([
+              Animated.timing(lockOpenAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+              }),
+              Animated.timing(sparkleAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+              }),
+            ]).start(() => {
               // Wait a moment then transition
               setTimeout(() => {
                 hideAnimation();
-              }, 800);
+              }, 1000);
             });
           });
         });
@@ -81,6 +90,16 @@ export default function AnimationScreen() {
   const lockShackleRotate = lockOpenAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '-45deg'],
+  });
+
+  const sparkleOpacity = sparkleAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 1, 0],
+  });
+
+  const sparkleScale = sparkleAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.5, 1.2, 0.8],
   });
 
   return (
@@ -140,26 +159,38 @@ export default function AnimationScreen() {
           
           {/* Lock Shackle */}
           <AnimatedG
-            transform={`translate(150, 60) rotate(${lockShackleRotate}) translate(-150, -60)`}
+            style={{
+              transform: [
+                { translateX: 150 },
+                { translateY: 60 },
+                { rotate: lockShackleRotate },
+                { translateX: -150 },
+                { translateY: -60 },
+                { translateY: lockShackleTranslateY },
+              ]
+            }}
           >
-            <Animated.View
-              style={{
-                transform: [{ translateY: lockShackleTranslateY }],
-              }}
-            >
-              <Path
-                d="M 120 60 Q 120 30 150 30 Q 180 30 180 60 L 180 80 L 170 80 L 170 60 Q 170 40 150 40 Q 130 40 130 60 L 130 80 L 120 80 Z"
-                fill="none"
-                stroke="#4a4a4a"
-                strokeWidth="8"
-                strokeLinecap="round"
-              />
-            </Animated.View>
+            <Path
+              d="M 120 60 Q 120 30 150 30 Q 180 30 180 60 L 180 80 L 170 80 L 170 60 Q 170 40 150 40 Q 130 40 130 60 L 130 80 L 120 80 Z"
+              fill="none"
+              stroke="#4a4a4a"
+              strokeWidth="8"
+              strokeLinecap="round"
+            />
           </AnimatedG>
           
           {/* Key */}
           <AnimatedG
-            transform={`translate(${keyTranslateX}, 0) rotate(${keyRotation}, 75, 120)`}
+            style={{
+              transform: [
+                { translateX: keyTranslateX },
+                { translateX: 150 }, // Move to rotation center (keyhole center)
+                { translateY: 120 },
+                { rotate: keyRotation },
+                { translateX: -150 }, // Move back
+                { translateY: -120 },
+              ]
+            }}
           >
             {/* Key Head */}
             <Circle
@@ -181,7 +212,7 @@ export default function AnimationScreen() {
             <Rect
               x="55"
               y="117"
-              width="60"
+              width="87"
               height="6"
               fill="#ffd700"
               stroke="#ffed4e"
@@ -190,21 +221,21 @@ export default function AnimationScreen() {
             
             {/* Key Teeth */}
             <Rect
-              x="95"
+              x="125"
               y="123"
               width="8"
               height="8"
               fill="#ffd700"
             />
             <Rect
-              x="85"
+              x="115"
               y="123"
               width="6"
               height="6"
               fill="#ffd700"
             />
             <Rect
-              x="105"
+              x="133"
               y="123"
               width="10"
               height="4"
@@ -215,7 +246,7 @@ export default function AnimationScreen() {
             <Rect
               x="57"
               y="118"
-              width="56"
+              width="83"
               height="2"
               fill="#ffed4e"
               opacity="0.8"
@@ -223,7 +254,12 @@ export default function AnimationScreen() {
           </AnimatedG>
           
           {/* Sparkle Effects */}
-          <AnimatedG opacity={lockOpenAnim}>
+          <AnimatedG 
+            style={{
+              opacity: sparkleOpacity,
+              transform: [{ scale: sparkleScale }]
+            }}
+          >
             <Path
               d="M 80 50 L 85 60 L 95 55 L 85 65 L 80 75 L 75 65 L 65 55 L 75 60 Z"
               fill="#ffed4e"
