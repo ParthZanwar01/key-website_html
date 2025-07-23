@@ -20,7 +20,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import * as ImagePicker from 'expo-image-picker';
-import SimpleDriveService from '../services/SimpleDriveService';
+import GoogleDriveService from '../services/GoogleDriveService';
 
 export default function HourRequestScreen({ navigation }) {
   const { submitHourRequest, getStudentHours } = useHours();
@@ -70,18 +70,22 @@ export default function HourRequestScreen({ navigation }) {
     loadCurrentHours();
   }, [user, getStudentHours]);
 
-  // Test Google Drive connection on component mount
+  // Test Google Drive connection on component mount with OAuth2
   useEffect(() => {
     const testDriveConnection = async () => {
       try {
-        console.log('🧪 Testing Google Drive connection...');
-        const result = await SimpleDriveService.testConnection();
+        console.log('🧪 Testing Google Drive OAuth2 connection...');
+        const result = await GoogleDriveService.testConnection();
         setDriveConnectionStatus(result);
         
         if (result.success) {
-          console.log('✅ Google Drive connected successfully');
+          console.log('✅ Google Drive OAuth2 connected successfully');
+          console.log('User:', result.user?.email || 'Unknown');
         } else {
           console.warn('⚠️ Google Drive connection issue:', result.error);
+          if (result.requiresAuth) {
+            console.log('🔐 Authentication required for Google Drive access');
+          }
         }
       } catch (error) {
         console.error('❌ Could not test Google Drive connection:', error);
@@ -159,20 +163,20 @@ export default function HourRequestScreen({ navigation }) {
     }
   };
 
-  // Enhanced upload with progress tracking
+  // Enhanced upload with OAuth2 and progress tracking
   const uploadImageToGoogleDrive = async (imageUri) => {
     setUploadingImage(true);
     setUploadProgress(0);
     
     try {
-      console.log('📤 Starting Google Drive upload...');
+      console.log('📤 Starting OAuth2 Google Drive upload...');
       
-      // Simulate progress updates
+      // Simulate progress updates for better UX
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => Math.min(prev + 10, 90));
       }, 200);
       
-      const uploadResult = await SimpleDriveService.uploadImage(
+      const uploadResult = await GoogleDriveService.uploadImage(
         imageUri,
         user.sNumber,
         eventName || 'hour_request'
@@ -187,14 +191,21 @@ export default function HourRequestScreen({ navigation }) {
       if (uploadResult.storage === 'google_drive') {
         Alert.alert(
           '✅ Upload Successful!', 
-          `Photo uploaded to Google Drive successfully!\n\nFile: ${uploadResult.fileName}`
+          `Photo uploaded to Google Drive successfully!\n\nUploaded by: ${uploadResult.uploadedBy}\nFile: ${uploadResult.fileName}`,
+          [{ text: 'OK' }]
         );
       } else {
+        // Handle authentication or other errors
+        const isAuthError = uploadResult.error && uploadResult.error.includes('Authentication');
+        
         Alert.alert(
           '⚠️ Upload Failed', 
-          `Could not upload to Google Drive: ${uploadResult.error}\n\nPhoto is saved locally and you can still submit your request. An admin can help you upload it later.`,
+          `${uploadResult.error}\n\n${isAuthError ? 'You may need to sign in to Google Drive.' : 'Photo is saved locally and you can still submit your request.'}`,
           [
             { text: 'Continue Anyway', style: 'default' },
+            ...(isAuthError ? [
+              { text: 'Sign In to Google', onPress: () => retryWithAuth(imageUri) }
+            ] : []),
             { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) },
             { text: 'Remove Photo', onPress: removeImage, style: 'destructive' }
           ]
@@ -206,11 +217,20 @@ export default function HourRequestScreen({ navigation }) {
     } catch (error) {
       console.error('❌ Upload failed:', error);
       
+      const isAuthError = error.message && (
+        error.message.includes('Authentication') || 
+        error.message.includes('401') ||
+        error.message.includes('access token')
+      );
+      
       Alert.alert(
         '❌ Upload Failed', 
-        `Could not upload photo to Google Drive: ${error.message}\n\nYou can still submit your hour request without a photo, or try uploading again.`,
+        `Could not upload photo to Google Drive: ${error.message}\n\n${isAuthError ? 'Please sign in to Google Drive.' : 'You can still submit your hour request.'}`,
         [
           { text: 'Continue Without Photo', onPress: removeImage },
+          ...(isAuthError ? [
+            { text: 'Sign In to Google', onPress: () => retryWithAuth(imageUri) }
+          ] : []),
           { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) },
           { text: 'Keep Local Copy', style: 'cancel' }
         ]
@@ -223,12 +243,34 @@ export default function HourRequestScreen({ navigation }) {
         uploadStatus: 'failed',
         storage: 'local',
         error: error.message,
-        retryable: true
+        retryable: !isAuthError, // Don't auto-retry auth errors
+        requiresAuth: isAuthError
       });
       
     } finally {
       setUploadingImage(false);
       setUploadProgress(0);
+    }
+  };
+
+  // Retry upload with fresh authentication
+  const retryWithAuth = async (imageUri) => {
+    try {
+      console.log('🔄 Retrying upload with fresh authentication...');
+      
+      // Force re-authentication
+      await GoogleDriveService.reAuthenticate();
+      
+      // Retry upload
+      await uploadImageToGoogleDrive(imageUri);
+      
+    } catch (error) {
+      console.error('❌ Re-authentication failed:', error);
+      Alert.alert(
+        'Authentication Failed',
+        `Could not sign in to Google Drive: ${error.message}`,
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -252,7 +294,7 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // Retry failed upload
+  // Enhanced retry with OAuth2 support
   const retryUpload = async () => {
     if (!uploadedImageData || !uploadedImageData.retryable) {
       Alert.alert('Error', 'Cannot retry this upload');
@@ -260,7 +302,13 @@ export default function HourRequestScreen({ navigation }) {
     }
     
     try {
-      await uploadImageToGoogleDrive(uploadedImageData.localUri);
+      if (uploadedImageData.requiresAuth) {
+        // Need fresh authentication
+        await retryWithAuth(uploadedImageData.localUri);
+      } else {
+        // Regular retry
+        await uploadImageToGoogleDrive(uploadedImageData.localUri);
+      }
     } catch (error) {
       console.error('Retry failed:', error);
     }
@@ -554,7 +602,7 @@ export default function HourRequestScreen({ navigation }) {
       )}
       
       <Text style={styles.helpText}>
-        Photos help admins verify your volunteer work. They're automatically uploaded to Google Drive for review.
+        Photos help admins verify your volunteer work. They're securely uploaded to Google Drive using your Google account.
       </Text>
     </View>
   );
