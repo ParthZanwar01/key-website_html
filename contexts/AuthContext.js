@@ -12,6 +12,8 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAnimation, setShowAnimation] = useState(false);
+
   // Enhanced authentication check
   useEffect(() => {
     const checkAuth = async () => {
@@ -89,6 +91,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
+    setShowAnimation(false);
   };
 
   // Enhanced storage function that works on both native and web
@@ -106,6 +109,15 @@ export function AuthProvider({ children }) {
         throw asyncError;
       }
     }
+  };
+
+  // Animation control functions
+  const triggerAnimation = () => {
+    setShowAnimation(true);
+  };
+
+  const hideAnimation = () => {
+    setShowAnimation(false);
   };
 
   // Login as admin
@@ -128,6 +140,9 @@ export function AuthProvider({ children }) {
         setUser(adminUser);
         setIsAuthenticated(true);
         setIsAdmin(true);
+        
+        // Trigger animation after successful login
+        triggerAnimation();
         
         console.log("Admin login successful");
         return true;
@@ -166,6 +181,9 @@ export function AuthProvider({ children }) {
         setUser(studentUser);
         setIsAuthenticated(true);
         setIsAdmin(false);
+        
+        // Trigger animation after successful login
+        triggerAnimation();
         
         console.log("Student login successful");
         return true;
@@ -260,6 +278,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setIsAuthenticated(false);
       setIsAdmin(false);
+      setShowAnimation(false);
       return false;
     }
   };
@@ -282,6 +301,9 @@ export function AuthProvider({ children }) {
         resetPassword,
         logout,
         loading,
+        showAnimation,
+        triggerAnimation,
+        hideAnimation,
       }}
     >
       {children}
