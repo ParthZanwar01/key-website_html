@@ -70,25 +70,21 @@ export default function HourRequestScreen({ navigation }) {
     loadCurrentHours();
   }, [user, getStudentHours]);
 
-  // Test Google Drive connection on component mount with OAuth2
+  // Test Google Apps Script connection on component mount
   useEffect(() => {
     const testDriveConnection = async () => {
       try {
-        console.log('🧪 Testing Google Drive OAuth2 connection...');
+        console.log('🧪 Testing Google Apps Script connection...');
         const result = await GoogleDriveService.testConnection();
         setDriveConnectionStatus(result);
         
         if (result.success) {
-          console.log('✅ Google Drive OAuth2 connected successfully');
-          console.log('User:', result.user?.email || 'Unknown');
+          console.log('✅ Google Apps Script connected successfully');
         } else {
-          console.warn('⚠️ Google Drive connection issue:', result.error);
-          if (result.requiresAuth) {
-            console.log('🔐 Authentication required for Google Drive access');
-          }
+          console.warn('⚠️ Google Apps Script connection issue:', result.error);
         }
       } catch (error) {
-        console.error('❌ Could not test Google Drive connection:', error);
+        console.error('❌ Could not test Google Apps Script connection:', error);
         setDriveConnectionStatus({
           success: false,
           error: error.message,
@@ -163,18 +159,18 @@ export default function HourRequestScreen({ navigation }) {
     }
   };
 
-  // Enhanced upload with OAuth2 and progress tracking
+  // Simplified upload with Google Apps Script
   const uploadImageToGoogleDrive = async (imageUri) => {
     setUploadingImage(true);
     setUploadProgress(0);
     
     try {
-      console.log('📤 Starting OAuth2 Google Drive upload...');
+      console.log('📤 Starting Google Apps Script upload...');
       
       // Simulate progress updates for better UX
       const progressInterval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
+        setUploadProgress(prev => Math.min(prev + 15, 90));
+      }, 300);
       
       const uploadResult = await GoogleDriveService.uploadImage(
         imageUri,
@@ -187,25 +183,18 @@ export default function HourRequestScreen({ navigation }) {
       
       setUploadedImageData(uploadResult);
       
-      // Show appropriate success message
-      if (uploadResult.storage === 'google_drive') {
+      if (uploadResult.success) {
         Alert.alert(
           '✅ Upload Successful!', 
-          `Photo uploaded to Google Drive successfully!\n\nUploaded by: ${uploadResult.uploadedBy}\nFile: ${uploadResult.fileName}`,
+          `Photo uploaded to Google Drive successfully!\n\nFile: ${uploadResult.fileName}\nStored in: ${uploadResult.studentFolder}`,
           [{ text: 'OK' }]
         );
       } else {
-        // Handle authentication or other errors
-        const isAuthError = uploadResult.error && uploadResult.error.includes('Authentication');
-        
         Alert.alert(
           '⚠️ Upload Failed', 
-          `${uploadResult.error}\n\n${isAuthError ? 'You may need to sign in to Google Drive.' : 'Photo is saved locally and you can still submit your request.'}`,
+          `Could not upload to Google Drive: ${uploadResult.error}\n\nPhoto is saved locally and you can still submit your request.`,
           [
             { text: 'Continue Anyway', style: 'default' },
-            ...(isAuthError ? [
-              { text: 'Sign In to Google', onPress: () => retryWithAuth(imageUri) }
-            ] : []),
             { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) },
             { text: 'Remove Photo', onPress: removeImage, style: 'destructive' }
           ]
@@ -217,60 +206,29 @@ export default function HourRequestScreen({ navigation }) {
     } catch (error) {
       console.error('❌ Upload failed:', error);
       
-      const isAuthError = error.message && (
-        error.message.includes('Authentication') || 
-        error.message.includes('401') ||
-        error.message.includes('access token')
-      );
-      
       Alert.alert(
         '❌ Upload Failed', 
-        `Could not upload photo to Google Drive: ${error.message}\n\n${isAuthError ? 'Please sign in to Google Drive.' : 'You can still submit your hour request.'}`,
+        `Could not upload photo to Google Drive: ${error.message}\n\nYou can still submit your hour request.`,
         [
           { text: 'Continue Without Photo', onPress: removeImage },
-          ...(isAuthError ? [
-            { text: 'Sign In to Google', onPress: () => retryWithAuth(imageUri) }
-          ] : []),
           { text: 'Try Again', onPress: () => uploadImageToGoogleDrive(imageUri) },
           { text: 'Keep Local Copy', style: 'cancel' }
         ]
       );
       
-      // Store failed upload data for potential retry
       setUploadedImageData({
         localUri: imageUri,
         fileName: `${user.sNumber}_${Date.now()}.jpg`,
         uploadStatus: 'failed',
         storage: 'local',
         error: error.message,
-        retryable: !isAuthError, // Don't auto-retry auth errors
-        requiresAuth: isAuthError
+        retryable: true,
+        requiresAuth: false
       });
       
     } finally {
       setUploadingImage(false);
       setUploadProgress(0);
-    }
-  };
-
-  // Retry upload with fresh authentication
-  const retryWithAuth = async (imageUri) => {
-    try {
-      console.log('🔄 Retrying upload with fresh authentication...');
-      
-      // Force re-authentication
-      await GoogleDriveService.reAuthenticate();
-      
-      // Retry upload
-      await uploadImageToGoogleDrive(imageUri);
-      
-    } catch (error) {
-      console.error('❌ Re-authentication failed:', error);
-      Alert.alert(
-        'Authentication Failed',
-        `Could not sign in to Google Drive: ${error.message}`,
-        [{ text: 'OK' }]
-      );
     }
   };
 
@@ -294,24 +252,14 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // Enhanced retry with OAuth2 support
+  // Simplified retry function
   const retryUpload = async () => {
     if (!uploadedImageData || !uploadedImageData.retryable) {
       Alert.alert('Error', 'Cannot retry this upload');
       return;
     }
     
-    try {
-      if (uploadedImageData.requiresAuth) {
-        // Need fresh authentication
-        await retryWithAuth(uploadedImageData.localUri);
-      } else {
-        // Regular retry
-        await uploadImageToGoogleDrive(uploadedImageData.localUri);
-      }
-    } catch (error) {
-      console.error('Retry failed:', error);
-    }
+    await uploadImageToGoogleDrive(uploadedImageData.localUri);
   };
 
   const handleSubmitRequest = async () => {
@@ -349,13 +297,13 @@ export default function HourRequestScreen({ navigation }) {
       if (uploadedImageData) {
         if (uploadedImageData.storage === 'google_drive') {
           // Successfully uploaded to Google Drive
-          requestData.photoUrl = uploadedImageData.webViewLink;
-          requestData.photoDownloadUrl = uploadedImageData.downloadLink;
-          requestData.photoThumbnailUrl = uploadedImageData.thumbnailLink;
+          requestData.photoUrl = uploadedImageData.fileUrl;
+          requestData.photoDownloadUrl = uploadedImageData.downloadUrl;
+          requestData.photoThumbnailUrl = uploadedImageData.thumbnailUrl;
           requestData.photoStorage = 'google_drive';
           requestData.photoFileId = uploadedImageData.fileId;
           requestData.photoFileName = uploadedImageData.fileName;
-          requestData.photoFileSize = uploadedImageData.fileSize;
+          requestData.photoStudentFolder = uploadedImageData.studentFolder;
         } else {
           // Local storage fallback
           requestData.photoLocalPath = uploadedImageData.localUri;
@@ -484,7 +432,7 @@ export default function HourRequestScreen({ navigation }) {
     <View style={styles.formGroup}>
       <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
       
-      {/* Google Drive Status Indicator */}
+      {/* Google Apps Script Status Indicator */}
       {driveConnectionStatus && (
         <View style={[
           styles.connectionStatus,
@@ -500,8 +448,8 @@ export default function HourRequestScreen({ navigation }) {
             { color: driveConnectionStatus.success ? "#27ae60" : "#e74c3c" }
           ]}>
             {driveConnectionStatus.success 
-              ? `Google Drive connected (${driveConnectionStatus.folderName || 'Key Club Photos'})`
-              : `Google Drive unavailable: ${driveConnectionStatus.error}`
+              ? "Google Apps Script connected - photos will be uploaded to Google Drive"
+              : `Google Apps Script unavailable: ${driveConnectionStatus.error}`
             }
           </Text>
         </View>
@@ -602,7 +550,7 @@ export default function HourRequestScreen({ navigation }) {
       )}
       
       <Text style={styles.helpText}>
-        Photos help admins verify your volunteer work. They're securely uploaded to Google Drive using your Google account.
+        Photos help admins verify your volunteer work. They're automatically uploaded to Google Drive and organized by student.
       </Text>
     </View>
   );
@@ -1026,4 +974,3 @@ const styles = StyleSheet.create({
     height: 200,
   },
 });
-          

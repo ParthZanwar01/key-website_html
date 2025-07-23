@@ -10,9 +10,32 @@ export default function AnnouncementsScreen() {
   const { isAdmin } = useAuth();
   const navigation = useNavigation();
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, []);
+useEffect(() => {
+  fetchAnnouncements(); // Initial fetch
+
+  const channel = supabase
+    .channel('public:announcements')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'announcements' },
+      (payload) => {
+        fetchAnnouncements(); // Refresh when a new announcement is added
+      }
+    )
+    .on(
+  'postgres_changes',
+  { event: 'DELETE', schema: 'public', table: 'announcements' },
+  () => {
+    fetchAnnouncements(); // Refresh on delete too
+  }
+  )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel); // Clean up on unmount
+  };
+}, []);
+
 
   const fetchAnnouncements = async () => {
     const { data, error } = await supabase
