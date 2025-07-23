@@ -1,10 +1,10 @@
 // services/GoogleOAuthService.js
-// OAuth2 implementation for Google Drive uploads
+// OAuth2 implementation for Google Drive uploads with cross-platform storage
 
 import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
-import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import CrossPlatformStorage from './CrossPlatformStorage';
 
 class GoogleOAuthService {
   // OAuth2 Configuration
@@ -185,7 +185,7 @@ class GoogleOAuthService {
     try {
       console.log('🔄 Refreshing access token...');
       
-      const refreshToken = await SecureStore.getItemAsync(this.REFRESH_TOKEN_KEY);
+      const refreshToken = await CrossPlatformStorage.getItem(this.REFRESH_TOKEN_KEY);
       
       if (!refreshToken) {
         throw new Error('No refresh token available');
@@ -221,12 +221,12 @@ class GoogleOAuthService {
       const expiryTime = Date.now() + (tokens.expires_in * 1000);
       
       // Store new access token
-      await SecureStore.setItemAsync(this.ACCESS_TOKEN_KEY, tokens.access_token);
-      await SecureStore.setItemAsync(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
+      await CrossPlatformStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.access_token);
+      await CrossPlatformStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
       
       // Update refresh token if provided
       if (tokens.refresh_token) {
-        await SecureStore.setItemAsync(this.REFRESH_TOKEN_KEY, tokens.refresh_token);
+        await CrossPlatformStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token);
       }
       
       console.log('✅ Token refresh successful');
@@ -249,8 +249,8 @@ class GoogleOAuthService {
    */
   static async getValidAccessToken() {
     try {
-      const accessToken = await SecureStore.getItemAsync(this.ACCESS_TOKEN_KEY);
-      const expiryTime = await SecureStore.getItemAsync(this.TOKEN_EXPIRY_KEY);
+      const accessToken = await CrossPlatformStorage.getItem(this.ACCESS_TOKEN_KEY);
+      const expiryTime = await CrossPlatformStorage.getItem(this.TOKEN_EXPIRY_KEY);
       
       if (!accessToken) {
         throw new Error('No access token found. Please authenticate first.');
@@ -302,14 +302,14 @@ class GoogleOAuthService {
    */
   static async storeTokens(tokens) {
     try {
-      await SecureStore.setItemAsync(this.ACCESS_TOKEN_KEY, tokens.access_token);
+      await CrossPlatformStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.access_token);
       
       if (tokens.refresh_token) {
-        await SecureStore.setItemAsync(this.REFRESH_TOKEN_KEY, tokens.refresh_token);
+        await CrossPlatformStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token);
       }
       
       if (tokens.expires_at) {
-        await SecureStore.setItemAsync(this.TOKEN_EXPIRY_KEY, tokens.expires_at.toString());
+        await CrossPlatformStorage.setItem(this.TOKEN_EXPIRY_KEY, tokens.expires_at.toString());
       }
       
       console.log('✅ Tokens stored securely');
@@ -324,7 +324,7 @@ class GoogleOAuthService {
    */
   static async storeUserInfo(userInfo) {
     try {
-      await SecureStore.setItemAsync(this.USER_INFO_KEY, JSON.stringify(userInfo));
+      await CrossPlatformStorage.setObject(this.USER_INFO_KEY, userInfo);
       console.log('✅ User info stored');
     } catch (error) {
       console.error('❌ Failed to store user info:', error);
@@ -336,8 +336,7 @@ class GoogleOAuthService {
    */
   static async getStoredUserInfo() {
     try {
-      const userInfoStr = await SecureStore.getItemAsync(this.USER_INFO_KEY);
-      return userInfoStr ? JSON.parse(userInfoStr) : null;
+      return await CrossPlatformStorage.getObject(this.USER_INFO_KEY);
     } catch (error) {
       console.error('❌ Failed to get stored user info:', error);
       return null;
@@ -349,8 +348,8 @@ class GoogleOAuthService {
    */
   static async isAuthenticated() {
     try {
-      const accessToken = await SecureStore.getItemAsync(this.ACCESS_TOKEN_KEY);
-      const refreshToken = await SecureStore.getItemAsync(this.REFRESH_TOKEN_KEY);
+      const accessToken = await CrossPlatformStorage.getItem(this.ACCESS_TOKEN_KEY);
+      const refreshToken = await CrossPlatformStorage.getItem(this.REFRESH_TOKEN_KEY);
       
       return !!(accessToken || refreshToken);
     } catch (error) {
@@ -367,7 +366,7 @@ class GoogleOAuthService {
       console.log('🚪 Signing out...');
       
       // Get access token for revocation
-      const accessToken = await SecureStore.getItemAsync(this.ACCESS_TOKEN_KEY);
+      const accessToken = await CrossPlatformStorage.getItem(this.ACCESS_TOKEN_KEY);
       
       // Revoke token on Google's end
       if (accessToken) {
@@ -382,10 +381,10 @@ class GoogleOAuthService {
       }
       
       // Clear stored tokens
-      await SecureStore.deleteItemAsync(this.ACCESS_TOKEN_KEY);
-      await SecureStore.deleteItemAsync(this.REFRESH_TOKEN_KEY);
-      await SecureStore.deleteItemAsync(this.TOKEN_EXPIRY_KEY);
-      await SecureStore.deleteItemAsync(this.USER_INFO_KEY);
+      await CrossPlatformStorage.removeItem(this.ACCESS_TOKEN_KEY);
+      await CrossPlatformStorage.removeItem(this.REFRESH_TOKEN_KEY);
+      await CrossPlatformStorage.removeItem(this.TOKEN_EXPIRY_KEY);
+      await CrossPlatformStorage.removeItem(this.USER_INFO_KEY);
       
       console.log('✅ Sign out complete');
       return true;
