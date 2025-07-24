@@ -62,6 +62,7 @@ class SimpleGoogleDriveService {
       
       const response = await fetch(this.APPS_SCRIPT_URL, {
         method: 'POST',
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json',
         },
