@@ -25,107 +25,107 @@ import * as FileSystem from 'expo-file-system';
 // NEW: Updated Google Apps Script Service for Hour Requests (modeled after homework submission)
 class HourRequestService {
   // UPDATE THIS URL with your actual Google Apps Script URL
-  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwd6UbjjETvgtGUV7T5jv2oNnQbYsujX8v2FvqrrcjZZUPpm5y2hAXvOUX7Eyh2llmjvg/exec';
-  
-  static async submitHourRequest(requestData, imageUri = null) {
-    try {
-      console.log('📤 Starting hour request submission...');
-      
-      // Convert image to base64 if provided
-      let base64Image = null;
-      if (imageUri) {
-        base64Image = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-      }
-      
-      // Create form data following homework submission pattern
-      const formDataToSend = new URLSearchParams();
-      formDataToSend.append('studentSNumber', requestData.studentSNumber);
-      formDataToSend.append('studentName', requestData.studentName);
-      formDataToSend.append('eventName', requestData.eventName);
-      formDataToSend.append('eventDate', requestData.eventDate);
-      formDataToSend.append('hoursRequested', requestData.hoursRequested);
-      formDataToSend.append('description', requestData.description);
-      
-      // Add image data if provided
-      if (base64Image && imageUri) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const cleanEventName = requestData.eventName.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = `${requestData.studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
-        
-        formDataToSend.append('filename', fileName);
-        formDataToSend.append('mimeType', 'image/jpeg');
-        formDataToSend.append('file', `data:image/jpeg;base64,${base64Image}`);
-      }
-      
-      // Add request type identifier
-      formDataToSend.append('requestType', 'hourSubmission');
-      
-      console.log('📤 Sending hour request to Google Apps Script...', {
-        studentSNumber: requestData.studentSNumber,
-        eventName: requestData.eventName,
-        hoursRequested: requestData.hoursRequested,
-        hasImage: !!base64Image
+  static APPS_SCRIPT_PROXY = '/.netlify/functions/gasProxy';
+
+static async submitHourRequest(requestData, imageUri = null) {
+  try {
+    console.log('📤 Starting hour request submission...');
+
+    // Convert image to base64 if provided
+    let base64Image = null;
+    if (imageUri) {
+      base64Image = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-      
-      // Send to Google Apps Script with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      const response = await fetch(this.APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formDataToSend.toString(),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      // Check response
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        throw new Error(`Unexpected response format: ${textResponse}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Hour request result:', data);
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to submit hour request');
-      }
-      
-      return {
-        success: true,
-        requestId: data.requestId,
-        submissionId: data.submissionId,
-        message: data.message,
-        photoUrl: data.photoUrl,
-        submittedAt: data.submittedAt
-      };
-      
-    } catch (error) {
-      console.error('❌ Hour request submission failed:', error);
-      
-      let errorMessage = 'Unknown submission error';
-      if (error.name === 'AbortError') {
-        errorMessage = 'Request timed out - please try again';
-      } else if (error.message.includes('HTTP error')) {
-        errorMessage = `Server error: ${error.message}`;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      return {
-        success: false,
-        error: errorMessage
-      };
     }
+
+    // Create form data (URL-encoded) following your submission pattern
+    const formDataToSend = new URLSearchParams();
+    formDataToSend.append('studentSNumber', requestData.studentSNumber);
+    formDataToSend.append('studentName', requestData.studentName);
+    formDataToSend.append('eventName', requestData.eventName);
+    formDataToSend.append('eventDate', requestData.eventDate);
+    formDataToSend.append('hoursRequested', requestData.hoursRequested);
+    formDataToSend.append('description', requestData.description);
+
+    // Add image data if provided
+    if (base64Image && imageUri) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const cleanEventName = requestData.eventName.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `${requestData.studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
+
+      formDataToSend.append('filename', fileName);
+      formDataToSend.append('mimeType', 'image/jpeg');
+      formDataToSend.append('file', `data:image/jpeg;base64,${base64Image}`);
+    }
+
+    // Add request type identifier
+    formDataToSend.append('requestType', 'hourSubmission');
+
+    console.log('📤 Sending hour request via Netlify proxy...', {
+      studentSNumber: requestData.studentSNumber,
+      eventName: requestData.eventName,
+      hoursRequested: requestData.hoursRequested,
+      hasImage: !!base64Image
+    });
+
+    // Send to Netlify Function with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+    const response = await fetch(this.APPS_SCRIPT_PROXY, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formDataToSend.toString(),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    // Check response
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text();
+      throw new Error(`Unexpected response format: ${textResponse}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Hour request result:', data);
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to submit hour request');
+    }
+
+    return {
+      success: true,
+      requestId: data.requestId,
+      submissionId: data.submissionId,
+      message: data.message,
+      photoUrl: data.photoUrl,
+      submittedAt: data.submittedAt
+    };
+
+  } catch (error) {
+    console.error('❌ Hour request submission failed:', error);
+
+    let errorMessage = 'Unknown submission error';
+    if (error.name === 'AbortError') {
+      errorMessage = 'Request timed out - please try again';
+    } else if (error.message.includes('HTTP error')) {
+      errorMessage = `Server error: ${error.message}`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return {
+      success: false,
+      error: errorMessage
+    };
   }
+}
+
   
   // Test connection
   static async testConnection() {
