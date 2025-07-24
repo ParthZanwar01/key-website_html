@@ -26,6 +26,8 @@ import StudentHourRequestsScreen from '../screens/StudentHourRequestsScreen';
 import AdminHourManagementScreen from '../screens/AdminHourManagementScreen';
 import AnnouncementsScreen from '../screens/AnnouncementsScreen';
 import CreateAnnouncementScreen from '../screens/CreateAnnouncementScreen';
+import AnimationScreen from '../screens/AnimationScreen';
+import GoogleDriveService from '../screens/GoogleDriveService';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -370,7 +372,7 @@ function AuthNavigator() {
 
 // Main App Navigator
 export default function AppNavigator() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, showAnimation } = useAuth();
 
   // Show loading screen while checking authentication
   if (loading) {
@@ -380,14 +382,25 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        <Stack.Screen 
-          name="Main" 
-          component={MainTabNavigator}
-          options={{
-            animationEnabled: true,
-            animationTypeForReplace: 'push',
-          }}
-        />
+        showAnimation ? (
+          <Stack.Screen 
+            name="Animation" 
+            component={AnimationScreen}
+            options={{
+              animationEnabled: false,
+              gestureEnabled: false,
+            }}
+          />
+        ) : (
+          <Stack.Screen 
+            name="Main" 
+            component={MainTabNavigator}
+            options={{
+              animationEnabled: true,
+              animationTypeForReplace: 'push',
+            }}
+          />
+        )
       ) : (
         <Stack.Screen 
           name="Auth" 
