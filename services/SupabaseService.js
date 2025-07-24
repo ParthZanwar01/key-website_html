@@ -525,7 +525,7 @@ class SupabaseService {
   }
 
   /**
-   * Sign up for event
+   * Sign up for event - FIXED with correct column name
    */
   static async signupForEvent(eventId, attendeeData) {
     try {
@@ -537,7 +537,7 @@ class SupabaseService {
           event_id: eventId,
           name: attendeeData.name,
           email: attendeeData.email,
-          signed_up_at: new Date().toISOString()
+          registered_at: new Date().toISOString() // ✅ FIXED: Use registered_at instead of signed_up_at
         }])
         .select()
         .single();
