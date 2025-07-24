@@ -274,7 +274,9 @@ export default function CalendarScreen({ navigation, route }) {
     if (!day) return [];
 
     return events.filter(event => {
-      const eventDate = new Date(event.date);
+      if (!event.date) return false;
+      const [year, month, dateNum] = event.date.split('-').map(Number);
+      const eventDate = new Date(year, month - 1, dateNum);
       return eventDate.getDate() === day.getDate() &&
              eventDate.getMonth() === day.getMonth() &&
              eventDate.getFullYear() === day.getFullYear();
