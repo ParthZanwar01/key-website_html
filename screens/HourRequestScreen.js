@@ -25,7 +25,7 @@ import * as FileSystem from 'expo-file-system';
 // NEW: Updated Google Apps Script Service for Hour Requests (modeled after homework submission)
 class HourRequestService {
   // UPDATE THIS URL with your actual Google Apps Script URL
-  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_HOUR_REQUEST_SCRIPT_ID/exec';
+  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwd6UbjjETvgtGUV7T5jv2oNnQbYsujX8v2FvqrrcjZZUPpm5y2hAXvOUX7Eyh2llmjvg/exec';
   
   static async submitHourRequest(requestData, imageUri = null) {
     try {
