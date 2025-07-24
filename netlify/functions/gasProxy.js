@@ -59,6 +59,24 @@ export async function handler(event, context) {
       : event.body;
     console.log('Request body preview:', bodyPreview);
 
+    // Check if this is a connection test
+    if (event.body.includes('requestType=connectionTest')) {
+      console.log('🧪 Connection test request detected');
+      return {
+        statusCode: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          success: true,
+          message: 'Netlify function is working',
+          timestamp: new Date().toISOString(),
+          gasUrl: GOOGLE_SCRIPT_URL
+        }),
+      };
+    }
+
     // Forward the request to Google Apps Script
     console.log('🌐 Sending to:', GOOGLE_SCRIPT_URL);
     
