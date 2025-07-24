@@ -223,15 +223,40 @@ class HourRequestService {
         throw new Error(errorMsg);
       }
 
-      console.log('🎉 Hour request submission completed successfully!');
-      return {
-        success: true,
-        requestId: data.requestId,
-        submissionId: data.submissionId,
-        message: data.message || 'Hour request submitted successfully',
-        photoUrl: data.photoUrl,
-        submittedAt: data.submittedAt || new Date().toISOString()
-      };
+      console.log('🎉 Image upload completed successfully!');
+      
+      // Step 6: Save hour request to Supabase database
+      console.log('💾 Step 6: Saving hour request to Supabase...');
+      try {
+        const supabaseResult = await this.saveToSupabase(requestData, data);
+        console.log('✅ Hour request saved to Supabase:', supabaseResult);
+        
+        return {
+          success: true,
+          requestId: supabaseResult.id,
+          submissionId: data.submissionId,
+          message: data.message || 'Hour request submitted successfully',
+          photoUrl: data.photoUrl,
+          driveFileId: data.fileId,
+          submittedAt: supabaseResult.submitted_at || new Date().toISOString(),
+          database: 'saved'
+        };
+      } catch (supabaseError) {
+        console.error('❌ Failed to save to Supabase:', supabaseError);
+        
+        // Still return success for image upload, but note database issue
+        return {
+          success: true,
+          requestId: data.requestId,
+          submissionId: data.submissionId,
+          message: 'Hour request submitted with image, but database save failed',
+          photoUrl: data.photoUrl,
+          driveFileId: data.fileId,
+          submittedAt: data.submittedAt || new Date().toISOString(),
+          database: 'failed',
+          databaseError: supabaseError.message
+        };
+      }
 
     } catch (error) {
       console.error('💥 submitHourRequest failed at top level:', error);
@@ -239,15 +264,36 @@ class HourRequestService {
       console.error('💥 Error message:', error.message);
       console.error('💥 Error stack:', error.stack);
 
-      // Return detailed error info for debugging
-      return {
-        success: false,
-        error: error.message,
-        errorName: error.name,
-        errorStack: error.stack,
-        platform: Platform.OS,
-        timestamp: new Date().toISOString()
-      };
+      // If image upload failed, still try to save to Supabase without image
+      console.log('🔄 Image upload failed, attempting to save to Supabase without image...');
+      try {
+        const supabaseResult = await this.saveToSupabase(requestData, null);
+        console.log('✅ Hour request saved to Supabase (no image):', supabaseResult);
+        
+        return {
+          success: true,
+          requestId: supabaseResult.id,
+          message: 'Hour request submitted successfully (image upload failed)',
+          submittedAt: supabaseResult.submitted_at || new Date().toISOString(),
+          database: 'saved',
+          imageUpload: 'failed',
+          imageError: error.message
+        };
+      } catch (supabaseError) {
+        console.error('❌ Supabase save also failed:', supabaseError);
+        
+        // Return detailed error info for debugging
+        return {
+          success: false,
+          error: error.message,
+          errorName: error.name,
+          errorStack: error.stack,
+          platform: Platform.OS,
+          timestamp: new Date().toISOString(),
+          database: 'failed',
+          databaseError: supabaseError.message
+        };
+      }
     }
   }
 
@@ -256,6 +302,52 @@ class HourRequestService {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const cleanEventName = eventName.replace(/[^a-zA-Z0-9]/g, '_');
     return `${studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
+  }
+
+  // Save hour request to Supabase database (simplified)
+  static async saveToSupabase(requestData, imageFileName = null) {
+    try {
+      console.log('💾 Saving hour request to Supabase...');
+      
+      // Import SupabaseService
+      const SupabaseService = (await import('../services/SupabaseService')).default;
+      
+      // Prepare the hour request data for Supabase
+      const hourRequestData = {
+        studentSNumber: requestData.studentSNumber,
+        studentName: requestData.studentName,
+        eventName: requestData.eventName,
+        eventDate: requestData.eventDate,
+        hoursRequested: requestData.hoursRequested,
+        description: requestData.description,
+        
+        // Add image filename if available
+        ...(imageFileName && {
+          imageName: imageFileName
+        })
+      };
+      
+      console.log('📋 Submitting to Supabase:', {
+        studentSNumber: hourRequestData.studentSNumber,
+        eventName: hourRequestData.eventName,
+        hoursRequested: hourRequestData.hoursRequested,
+        hasImage: !!hourRequestData.imageName
+      });
+      
+      // Submit to Supabase using the existing service method
+      const result = await SupabaseService.submitHourRequest(hourRequestData);
+      
+      console.log('✅ Supabase submission successful:', {
+        id: result.id,
+        status: result.status,
+        submittedAt: result.submitted_at
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Supabase save failed:', error);
+      throw new Error(`Database save failed: ${error.message}`);
+    }
   }
 
   // Test connection method (unchanged)

@@ -560,33 +560,80 @@ class SupabaseService {
   /**
    * Submit hour request
    */
+  // Simplified submitHourRequest method for SupabaseService.js
+// This only handles the hour request data + image filename
+
+/**
+ * Submit hour request with optional image filename
+ */
   static async submitHourRequest(requestData) {
     try {
-      console.log('⏰ Submitting hour request...');
+      console.log('⏰ Submitting hour request to Supabase...');
+      console.log('📋 Request data:', {
+        studentSNumber: requestData.studentSNumber,
+        eventName: requestData.eventName,
+        hoursRequested: requestData.hoursRequested,
+        hasImage: !!requestData.imageName
+      });
+      
+      // Prepare the data for insertion
+      const insertData = {
+        student_s_number: requestData.studentSNumber.toLowerCase(),
+        student_name: requestData.studentName,
+        event_name: requestData.eventName,
+        event_date: requestData.eventDate,
+        hours_requested: parseFloat(requestData.hoursRequested),
+        description: requestData.description,
+        status: 'pending', // Default status
+        submitted_at: new Date().toISOString()
+      };
+      
+      // Add image filename if available (just the filename, not URLs)
+      if (requestData.imageName) {
+        insertData.image_name = requestData.imageName;
+      }
+      
+      console.log('💾 Inserting hour request into database...');
       
       const { data, error } = await supabase
         .from('hour_requests')
-        .insert([{
-          student_s_number: requestData.studentSNumber,
-          student_name: requestData.studentName,
-          event_name: requestData.eventName,
-          event_date: requestData.eventDate,
-          hours_requested: requestData.hoursRequested,
-          description: requestData.description
-        }])
+        .insert([insertData])
         .select()
         .single();
 
       if (error) {
         console.error('❌ Error submitting hour request:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
       
-      console.log('✅ Hour request submitted:', data);
+      console.log('✅ Hour request submitted successfully:', {
+        id: data.id,
+        status: data.status,
+        student: data.student_s_number,
+        hours: data.hours_requested,
+        imageName: data.image_name
+      });
+      
       return data;
     } catch (error) {
-      console.error('Error submitting hour request:', error);
-      throw error;
+      console.error('❌ Error submitting hour request:', error);
+      
+      // Provide more specific error messages
+      if (error.code === '23505') {
+        throw new Error('Duplicate request detected. Please check if this request was already submitted.');
+      } else if (error.code === '23503') {
+        throw new Error('Student not found in system. Please contact your Key Club sponsor.');
+      } else if (error.message.includes('permission')) {
+        throw new Error('Database permission error. Please contact support.');
+      } else {
+        throw new Error(`Failed to submit hour request: ${error.message}`);
+      }
     }
   }
 
