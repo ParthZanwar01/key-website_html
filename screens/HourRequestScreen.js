@@ -22,38 +22,51 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
-// Updated Google Apps Script Service for direct folder upload
-class SimpleGoogleDriveService {
-  // Google Apps Script Web App URL for photo uploads
-  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwd6UbjjETvgtGUV7T5jv2oNnQbYsujX8v2FvqrrcjZZUPpm5y2hAXvOUX7Eyh2llmjvg/exec';
+// NEW: Updated Google Apps Script Service for Hour Requests (modeled after homework submission)
+class HourRequestService {
+  // UPDATE THIS URL with your actual Google Apps Script URL
+  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_HOUR_REQUEST_SCRIPT_ID/exec';
   
-  static async uploadImage(imageUri, studentNumber, eventName) {
+  static async submitHourRequest(requestData, imageUri = null) {
     try {
-      console.log('📤 Starting Google Apps Script upload...');
+      console.log('📤 Starting hour request submission...');
       
-      // Convert image to base64
-      const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      // Convert image to base64 if provided
+      let base64Image = null;
+      if (imageUri) {
+        base64Image = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
       
-      // Create filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const cleanEventName = eventName.replace(/[^a-zA-Z0-9]/g, '_');
-      const fileName = `${studentNumber}_${cleanEventName}_${timestamp}.jpg`;
+      // Create form data following homework submission pattern
+      const formDataToSend = new URLSearchParams();
+      formDataToSend.append('studentSNumber', requestData.studentSNumber);
+      formDataToSend.append('studentName', requestData.studentName);
+      formDataToSend.append('eventName', requestData.eventName);
+      formDataToSend.append('eventDate', requestData.eventDate);
+      formDataToSend.append('hoursRequested', requestData.hoursRequested);
+      formDataToSend.append('description', requestData.description);
       
-      // Prepare the payload for the updated Google Apps Script
-      const payload = {
-        imageData: base64,
-        fileName: fileName,
-        studentNumber: studentNumber,
-        eventName: eventName
-      };
+      // Add image data if provided
+      if (base64Image && imageUri) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const cleanEventName = requestData.eventName.replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `${requestData.studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
+        
+        formDataToSend.append('filename', fileName);
+        formDataToSend.append('mimeType', 'image/jpeg');
+        formDataToSend.append('file', `data:image/jpeg;base64,${base64Image}`);
+      }
       
-      console.log('📤 Sending to Google Apps Script...', {
-        fileName,
-        studentNumber,
-        eventName,
-        dataSize: base64.length
+      // Add request type identifier
+      formDataToSend.append('requestType', 'hourSubmission');
+      
+      console.log('📤 Sending hour request to Google Apps Script...', {
+        studentSNumber: requestData.studentSNumber,
+        eventName: requestData.eventName,
+        hoursRequested: requestData.hoursRequested,
+        hasImage: !!base64Image
       });
       
       // Send to Google Apps Script with timeout
@@ -62,46 +75,45 @@ class SimpleGoogleDriveService {
       
       const response = await fetch(this.APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
+        mode: 'cors',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(payload),
+        body: formDataToSend.toString(),
         signal: controller.signal
       });
       
       clearTimeout(timeoutId);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Check response
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        throw new Error(`Unexpected response format: ${textResponse}`);
       }
       
-      const result = await response.json();
-      console.log('✅ Upload result:', result);
+      const data = await response.json();
+      console.log('✅ Hour request result:', data);
       
-      if (result.success) {
-        return {
-          success: true,
-          fileId: result.fileId,
-          fileName: result.fileName,
-          fileUrl: result.fileUrl,
-          downloadUrl: result.downloadUrl,
-          thumbnailUrl: result.thumbnailUrl,
-          uploadedAt: result.uploadedAt,
-          targetFolder: result.targetFolder,
-          message: result.message
-        };
-      } else {
-        throw new Error(result.error || 'Unknown upload error');
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to submit hour request');
       }
+      
+      return {
+        success: true,
+        requestId: data.requestId,
+        submissionId: data.submissionId,
+        message: data.message,
+        photoUrl: data.photoUrl,
+        submittedAt: data.submittedAt
+      };
       
     } catch (error) {
-      console.error('❌ Upload failed:', error);
+      console.error('❌ Hour request submission failed:', error);
       
-      // Handle different types of errors
-      let errorMessage = 'Unknown upload error';
+      let errorMessage = 'Unknown submission error';
       if (error.name === 'AbortError') {
-        errorMessage = 'Upload timed out - please try again';
+        errorMessage = 'Request timed out - please try again';
       } else if (error.message.includes('HTTP error')) {
         errorMessage = `Server error: ${error.message}`;
       } else if (error.message) {
@@ -110,18 +122,15 @@ class SimpleGoogleDriveService {
       
       return {
         success: false,
-        error: errorMessage,
-        localUri: imageUri,
-        fileName: `${studentNumber}_${eventName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.jpg`,
-        uploadStatus: 'failed'
+        error: errorMessage
       };
     }
   }
   
-  // Test connection to Google Apps Script
+  // Test connection
   static async testConnection() {
     try {
-      console.log('🔍 Testing Google Apps Script connection...');
+      console.log('🔍 Testing hour request service connection...');
       
       const response = await fetch(this.APPS_SCRIPT_URL, {
         method: 'GET',
@@ -154,7 +163,7 @@ class SimpleGoogleDriveService {
 }
 
 export default function HourRequestScreen({ navigation }) {
-  const { submitHourRequest, getStudentHours } = useHours();
+  const { getStudentHours } = useHours(); // REMOVED submitHourRequest since we're using the new service
   const { user } = useAuth();
   
   const [eventName, setEventName] = useState('');
@@ -164,10 +173,8 @@ export default function HourRequestScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [currentHours, setCurrentHours] = useState(0);
   
-  // Photo upload states
+  // SIMPLIFIED: Only need image URI now, no separate upload states
   const [image, setImage] = useState(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadedImageData, setUploadedImageData] = useState(null);
   
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -199,12 +206,12 @@ export default function HourRequestScreen({ navigation }) {
     loadCurrentHours();
   }, [user, getStudentHours]);
 
-  // Test Google Apps Script connection on mount
+  // Test connection on mount
   useEffect(() => {
     const testConnection = async () => {
-      const result = await SimpleGoogleDriveService.testConnection();
+      const result = await HourRequestService.testConnection();
       if (!result.success) {
-        console.warn('⚠️ Google Apps Script connection test failed:', result.error);
+        console.warn('⚠️ Hour request service connection test failed:', result.error);
       }
     };
     
@@ -220,7 +227,7 @@ export default function HourRequestScreen({ navigation }) {
     });
   };
 
-  // Enhanced image picker with better error handling
+  // SIMPLIFIED: Image picker without auto-upload
   const pickImage = async () => {
     try {
       console.log('📸 Starting image picker...');
@@ -241,7 +248,7 @@ export default function HourRequestScreen({ navigation }) {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.7, // Reduced quality for faster upload
+        quality: 0.7,
         base64: false,
       });
 
@@ -263,72 +270,17 @@ export default function HourRequestScreen({ navigation }) {
               { text: 'Cancel', style: 'cancel' },
               { 
                 text: 'Continue', 
-                onPress: () => {
-                  setImage(selectedImage.uri);
-                  uploadImageToGoogleDrive(selectedImage.uri);
-                }
+                onPress: () => setImage(selectedImage.uri)
               }
             ]
           );
         } else {
           setImage(selectedImage.uri);
-          // Auto-upload to Google Drive
-          await uploadImageToGoogleDrive(selectedImage.uri);
         }
       }
     } catch (error) {
       console.error('❌ Image picker error:', error);
       Alert.alert('Error', 'Failed to select image. Please try again.');
-    }
-  };
-
-  // Enhanced upload function with better error handling
-  const uploadImageToGoogleDrive = async (imageUri) => {
-    if (!eventName.trim()) {
-      Alert.alert(
-        'Event Name Required',
-        'Please enter an event name before uploading a photo.'
-      );
-      return;
-    }
-    
-    setUploadingImage(true);
-    
-    try {
-      console.log('📤 Starting Google Apps Script upload...');
-      
-      const uploadResult = await SimpleGoogleDriveService.uploadImage(
-        imageUri,
-        user.sNumber,
-        eventName.trim()
-      );
-      
-      setUploadedImageData(uploadResult);
-      
-      if (uploadResult.success) {
-        Alert.alert(
-          '✅ Upload Successful!', 
-          `Photo uploaded to Google Drive successfully!\n\nFile: ${uploadResult.fileName}\nFolder: ${uploadResult.targetFolder || 'Key Club Photos'}`
-        );
-      } else {
-        Alert.alert(
-          '⚠️ Upload Failed', 
-          `Could not upload to Google Drive: ${uploadResult.error}\n\nPhoto is saved locally and you can still submit your request.`
-        );
-      }
-      
-      console.log('✅ Upload completed:', uploadResult);
-      
-    } catch (error) {
-      console.error('❌ Upload failed:', error);
-      
-      Alert.alert(
-        '❌ Upload Failed', 
-        `Could not upload photo to Google Drive: ${error.message}\n\nPlease check your internet connection and try again.`
-      );
-      
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -342,15 +294,13 @@ export default function HourRequestScreen({ navigation }) {
         { 
           text: 'Remove', 
           style: 'destructive',
-          onPress: () => {
-            setImage(null);
-            setUploadedImageData(null);
-          }
+          onPress: () => setImage(null)
         }
       ]
     );
   };
 
+  // UPDATED: New submit function using the new service
   const handleSubmitRequest = async () => {
     // Validate input
     if (!eventName.trim() || !hoursRequested.trim() || !description.trim()) {
@@ -382,44 +332,44 @@ export default function HourRequestScreen({ navigation }) {
         description: description.trim()
       };
 
-      // Add photo information if uploaded successfully
-      if (uploadedImageData && uploadedImageData.success) {
-        requestData.photoUrl = uploadedImageData.fileUrl;
-        requestData.photoDownloadUrl = uploadedImageData.downloadUrl;
-        requestData.photoThumbnailUrl = uploadedImageData.thumbnailUrl;
-        requestData.photoFileId = uploadedImageData.fileId;
-        requestData.photoFileName = uploadedImageData.fileName;
-        requestData.photoUploadedAt = uploadedImageData.uploadedAt;
-        requestData.photoTargetFolder = uploadedImageData.targetFolder;
-      }
+      // Submit using the new service (similar to homework submission)
+      const result = await HourRequestService.submitHourRequest(requestData, image);
       
-      await submitHourRequest(requestData);
-      
-      // Show success message with photo status
-      let photoMessage = '';
-      if (uploadedImageData && uploadedImageData.success) {
-        photoMessage = ` Your proof photo has been uploaded to Google Drive and linked to this request.`;
-      } else if (image && !uploadedImageData?.success) {
-        photoMessage = ` Note: Photo upload failed, but your request has been submitted successfully.`;
-      }
+      if (result.success) {
+        // Show success message
+        let successMessage = `Your request for ${hours} hours has been submitted successfully!`;
+        if (result.photoUrl) {
+          successMessage += ` Your proof photo has been uploaded and linked to this request.`;
+        }
         
-      setSuccessDialog({
-        visible: true,
-        message: `Your request for ${hours} hours has been submitted successfully!${photoMessage}`
-      });
-      
-      // Clear form
-      setEventName('');
-      setHoursRequested('');
-      setDescription('');
-      setImage(null);
-      setUploadedImageData(null);
+        setSuccessDialog({
+          visible: true,
+          message: successMessage
+        });
+        
+        // Clear form
+        setEventName('');
+        setHoursRequested('');
+        setDescription('');
+        setImage(null);
+        
+        // Refresh current hours
+        try {
+          const updatedHours = await getStudentHours(user.sNumber);
+          setCurrentHours(updatedHours);
+        } catch (error) {
+          console.error('Failed to refresh hours:', error);
+        }
+        
+      } else {
+        throw new Error(result.error || 'Submission failed');
+      }
       
     } catch (error) {
       console.error('Failed to submit hour request:', error);
       setErrorDialog({
         visible: true,
-        message: 'Failed to submit your request. Please try again.'
+        message: `Failed to submit your request: ${error.message}`
       });
     } finally {
       setLoading(false);
@@ -504,7 +454,7 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // Enhanced photo section with better status indicators
+  // SIMPLIFIED: Photo section without upload status
   const renderPhotoSection = () => (
     <View style={styles.formGroup}>
       <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
@@ -513,29 +463,20 @@ export default function HourRequestScreen({ navigation }) {
         <TouchableOpacity
           style={styles.photoUploadButton}
           onPress={pickImage}
-          disabled={uploadingImage}
+          disabled={loading}
         >
           <Ionicons name="camera" size={24} color="#59a2f0" />
-          <Text style={styles.photoUploadText}>
-            {uploadingImage ? 'Uploading...' : 'Select Photo'}
-          </Text>
+          <Text style={styles.photoUploadText}>Select Photo</Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.photoPreviewContainer}>
           <Image source={{ uri: image }} style={styles.photoPreview} />
           
-          {uploadingImage && (
-            <View style={styles.uploadingOverlay}>
-              <ActivityIndicator size="large" color="#59a2f0" />
-              <Text style={styles.uploadingText}>Uploading to Google Drive...</Text>
-            </View>
-          )}
-          
           <View style={styles.photoActions}>
             <TouchableOpacity
               style={styles.photoActionButton}
               onPress={removeImage}
-              disabled={uploadingImage}
+              disabled={loading}
             >
               <Ionicons name="trash" size={16} color="#e74c3c" />
               <Text style={styles.photoActionText}>Remove</Text>
@@ -544,35 +485,17 @@ export default function HourRequestScreen({ navigation }) {
             <TouchableOpacity
               style={styles.photoActionButton}
               onPress={pickImage}
-              disabled={uploadingImage}
+              disabled={loading}
             >
               <Ionicons name="refresh" size={16} color="#59a2f0" />
               <Text style={styles.photoActionText}>Change</Text>
             </TouchableOpacity>
           </View>
-          
-          {uploadedImageData && !uploadingImage && (
-            <View style={[
-              styles.uploadStatus,
-              { backgroundColor: uploadedImageData.success ? '#e8f5e8' : '#fff3cd' }
-            ]}>
-              <Ionicons 
-                name={uploadedImageData.success ? "cloud-done" : "cloud-upload-outline"} 
-                size={16} 
-                color={uploadedImageData.success ? "#27ae60" : "#f39c12"} 
-              />
-              <Text style={styles.uploadStatusText}>
-                {uploadedImageData.success
-                  ? "✅ Uploaded to Google Drive successfully"
-                  : "⚠️ Upload failed - saved locally"}
-              </Text>
-            </View>
-          )}
         </View>
       )}
       
       <Text style={styles.helpText}>
-        Photos are automatically uploaded to Google Drive (folder ID: 17Z64oFj5nolu4sQPYAcrdv7KvKKw967l) to help verify your volunteer work.
+        Photos will be uploaded along with your request to help verify your volunteer work.
       </Text>
     </View>
   );
@@ -651,16 +574,16 @@ export default function HourRequestScreen({ navigation }) {
               />
             </View>
             
-            {/* Enhanced Photo Upload Section */}
+            {/* UPDATED: Simplified Photo Upload Section */}
             {renderPhotoSection()}
 
             <TouchableOpacity
-              style={[styles.submitButton, (loading || uploadingImage) && styles.disabledButton]}
+              style={[styles.submitButton, loading && styles.disabledButton]}
               onPress={handleSubmitRequest}
-              disabled={loading || uploadingImage}
+              disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Submitting Request...' : uploadingImage ? 'Uploading Photo...' : 'Submit Request'}
+                {loading ? 'Submitting Request...' : 'Submit Request'}
               </Text>
             </TouchableOpacity>
             
@@ -704,6 +627,7 @@ export default function HourRequestScreen({ navigation }) {
   );
 }
 
+// REMOVED: Complex photo upload styles, keeping the essentials
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -807,7 +731,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   
-  // Photo upload styles
+  // Simplified photo upload styles
   photoUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -826,7 +750,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   photoPreviewContainer: {
-    position: 'relative',
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#f8f9fa',
@@ -850,35 +773,6 @@ const styles = StyleSheet.create({
   photoActionText: {
     marginLeft: 5,
     fontSize: 14,
-    fontWeight: '500',
-  },
-  uploadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadingText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#59a2f0',
-    fontWeight: '500',
-  },
-  uploadStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  uploadStatusText: {
-    marginLeft: 8,
-    fontSize: 12,
-    color: '#333',
     fontWeight: '500',
   },
   
