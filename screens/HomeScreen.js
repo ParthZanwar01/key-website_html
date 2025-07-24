@@ -5,6 +5,9 @@ import { useHours } from '../contexts/HourContext';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../supabase/supabaseClient';
+import { Easing } from 'react-native';
 
 const CircularProgressLogo = ({ 
   currentHours = 0, 
@@ -171,6 +174,8 @@ const CircularProgressLogo = ({
   );
 };
 
+const ANNOUNCEMENTS_READ_KEY = 'readAnnouncementIds';
+
 export default function HomeScreen() {
   const { user, isAdmin } = useAuth();
   const { getStudentHours } = useHours();
@@ -178,6 +183,10 @@ export default function HomeScreen() {
   const [currentHours, setCurrentHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
+  const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(false);
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState([]);
+  const bannerAnim = useRef(new Animated.Value(-100)).current;
+  const confettiAnim = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
     const onChange = (result) => {
@@ -252,9 +261,113 @@ export default function HomeScreen() {
     
     loadCurrentHours();
   }, [user, getStudentHours, isAdmin]);
+
+  // Fetch announcements and check for unread
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('id')
+        .order('date', { ascending: false });
+      if (!error && data && data.length > 0) {
+        const allIds = data.map(a => a.id);
+        const readIdsStr = await AsyncStorage.getItem(ANNOUNCEMENTS_READ_KEY);
+        const readIds = readIdsStr ? JSON.parse(readIdsStr) : [];
+        const unread = allIds.filter(id => !readIds.includes(id));
+        if (unread.length > 0) {
+          setUnreadAnnouncements(unread);
+          setShowAnnouncementBanner(true);
+          // Animate banner in
+          Animated.timing(bannerAnim, {
+            toValue: 0,
+            duration: 700,
+            easing: Easing.out(Easing.exp),
+            useNativeDriver: true,
+          }).start();
+          // Animate confetti
+          Animated.timing(confettiAnim, {
+            toValue: 1,
+            duration: 1200,
+            easing: Easing.bounce,
+            useNativeDriver: true,
+          }).start();
+          // Auto-dismiss after 5 seconds
+          setTimeout(() => {
+            Animated.timing(bannerAnim, {
+              toValue: -100,
+              duration: 600,
+              useNativeDriver: true,
+            }).start(() => setShowAnnouncementBanner(false));
+          }, 5000);
+        }
+      }
+    };
+    fetchAnnouncements();
+  }, []);
+
+  // Mark all as read
+  const markAnnouncementsRead = async () => {
+    if (unreadAnnouncements.length > 0) {
+      const readIdsStr = await AsyncStorage.getItem(ANNOUNCEMENTS_READ_KEY);
+      const readIds = readIdsStr ? JSON.parse(readIdsStr) : [];
+      const newReadIds = Array.from(new Set([...readIds, ...unreadAnnouncements]));
+      await AsyncStorage.setItem(ANNOUNCEMENTS_READ_KEY, JSON.stringify(newReadIds));
+      setUnreadAnnouncements([]);
+    }
+  };
   
   return (
     <View style={styles.container}>
+      {/* Announcement Banner */}
+      {showAnnouncementBanner && (
+        <Animated.View
+          style={[
+            styles.announcementBanner,
+            { transform: [{ translateY: bannerAnim }] }
+          ]}
+        >
+          {/* Confetti Animation (simple circles, vibrant colors) */}
+          <Animated.View style={[styles.confettiContainer, { opacity: confettiAnim }]}> 
+            {[...Array(12)].map((_, i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.confetti,
+                  {
+                    left: Math.random() * 320,
+                    backgroundColor: `hsl(${Math.random() * 360}, 90%, 60%)`,
+                    top: Math.random() * 30,
+                    opacity: confettiAnim,
+                    transform: [
+                      { translateY: confettiAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 60 + Math.random() * 40],
+                        }) },
+                      { scale: confettiAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.7, 1.2],
+                        }) },
+                    ]
+                  }
+                ]}
+              />
+            ))}
+          </Animated.View>
+          <TouchableOpacity
+            style={styles.bannerContent}
+            activeOpacity={0.85}
+            onPress={async () => {
+              setShowAnnouncementBanner(false);
+              await markAnnouncementsRead();
+              navigation.navigate('Announcements');
+            }}
+          >
+            <Ionicons name="megaphone" size={28} color="#ffd60a" style={{ marginRight: 10 }} />
+            <Text style={styles.bannerText}>You have new announcements!</Text>
+            <Ionicons name="chevron-forward" size={22} color="#fff" style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
       {/* Grid-based Layout */}
       <View style={styles.gridContainer}>
         
@@ -540,5 +653,55 @@ const styles = StyleSheet.create({
     color: '#0d1b2a',
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  // Announcement Banner Styles
+  announcementBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffd60a',
+    paddingVertical: 12,
+    paddingHorizontal: 0,
+    zIndex: 100,
+    borderBottomWidth: 3,
+    borderBottomColor: '#f1ca3b',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#ffd60a',
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 2,
+  },
+  bannerText: {
+    color: '#0d1b2a',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+    marginRight: 18,
+    letterSpacing: 0.5,
+  },
+  confettiContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  confetti: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });
