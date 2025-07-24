@@ -20,136 +20,170 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 
-// NEW: Updated Google Apps Script Service for Hour Requests (modeled after homework submission)
-class HourRequestService {
-  // UPDATE THIS URL with your actual Google Apps Script URL
-  static APPS_SCRIPT_PROXY = '/.netlify/functions/gasProxy';
-
-static async submitHourRequest(requestData, imageUri = null) {
+// Conditionally import FileSystem only on native platforms
+let FileSystem = null;
+if (Platform.OS !== 'web') {
   try {
-    console.log('📤 Starting hour request submission...');
-
-    // Convert image to base64 if provided
-    let base64Image = null;
-    if (imageUri) {
-      base64Image = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-    }
-
-    // Create form data (URL-encoded) following your submission pattern
-    const formDataToSend = new URLSearchParams();
-    formDataToSend.append('studentSNumber', requestData.studentSNumber);
-    formDataToSend.append('studentName', requestData.studentName);
-    formDataToSend.append('eventName', requestData.eventName);
-    formDataToSend.append('eventDate', requestData.eventDate);
-    formDataToSend.append('hoursRequested', requestData.hoursRequested);
-    formDataToSend.append('description', requestData.description);
-
-    // Add image data if provided
-    if (base64Image && imageUri) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const cleanEventName = requestData.eventName.replace(/[^a-zA-Z0-9]/g, '_');
-      const fileName = `${requestData.studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
-
-      formDataToSend.append('filename', fileName);
-      formDataToSend.append('mimeType', 'image/jpeg');
-      formDataToSend.append('file', `data:image/jpeg;base64,${base64Image}`);
-    }
-
-    // Add request type identifier
-    formDataToSend.append('requestType', 'hourSubmission');
-
-    console.log('📤 Sending hour request via Netlify proxy...', {
-      studentSNumber: requestData.studentSNumber,
-      eventName: requestData.eventName,
-      hoursRequested: requestData.hoursRequested,
-      hasImage: !!base64Image
-    });
-
-    // Send to Netlify Function with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
-
-    const response = await fetch(this.APPS_SCRIPT_PROXY, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formDataToSend.toString(),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    // Check response
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      throw new Error(`Unexpected response format: ${textResponse}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ Hour request result:', data);
-
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to submit hour request');
-    }
-
-    return {
-      success: true,
-      requestId: data.requestId,
-      submissionId: data.submissionId,
-      message: data.message,
-      photoUrl: data.photoUrl,
-      submittedAt: data.submittedAt
-    };
-
+    FileSystem = require('expo-file-system');
   } catch (error) {
-    console.error('❌ Hour request submission failed:', error);
-
-    let errorMessage = 'Unknown submission error';
-    if (error.name === 'AbortError') {
-      errorMessage = 'Request timed out - please try again';
-    } else if (error.message.includes('HTTP error')) {
-      errorMessage = `Server error: ${error.message}`;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
-    return {
-      success: false,
-      error: errorMessage
-    };
+    console.warn('expo-file-system not available:', error);
   }
 }
 
+// FIXED: Cross-platform Hour Request Service
+class HourRequestService {
+  static APPS_SCRIPT_PROXY = '/.netlify/functions/gasProxy';
+
+  // Cross-platform base64 conversion
+  static async convertImageToBase64(imageUri) {
+    try {
+      if (Platform.OS === 'web') {
+        // Web implementation using fetch and FileReader
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        // Native implementation using expo-file-system
+        if (!FileSystem) {
+          throw new Error('FileSystem not available on this platform');
+        }
+        
+        return await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+    } catch (error) {
+      console.error('Base64 conversion error:', error);
+      throw new Error(`Failed to convert image: ${error.message}`);
+    }
+  }
+
+  static async submitHourRequest(requestData, imageUri = null) {
+    try {
+      console.log('📤 Starting hour request submission...');
+
+      // Convert image to base64 if provided (now cross-platform)
+      let base64Image = null;
+      if (imageUri) {
+        console.log('🖼️ Converting image to base64...');
+        base64Image = await this.convertImageToBase64(imageUri);
+        console.log('✅ Image converted successfully');
+      }
+
+      // Create form data (URL-encoded) following your submission pattern
+      const formDataToSend = new URLSearchParams();
+      formDataToSend.append('studentSNumber', requestData.studentSNumber);
+      formDataToSend.append('studentName', requestData.studentName);
+      formDataToSend.append('eventName', requestData.eventName);
+      formDataToSend.append('eventDate', requestData.eventDate);
+      formDataToSend.append('hoursRequested', requestData.hoursRequested);
+      formDataToSend.append('description', requestData.description);
+
+      // Add image data if provided
+      if (base64Image && imageUri) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const cleanEventName = requestData.eventName.replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `${requestData.studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
+
+        formDataToSend.append('filename', fileName);
+        formDataToSend.append('mimeType', 'image/jpeg');
+        formDataToSend.append('file', `data:image/jpeg;base64,${base64Image}`);
+      }
+
+      // Add request type identifier
+      formDataToSend.append('requestType', 'hourSubmission');
+
+      console.log('📤 Sending hour request via Netlify proxy...', {
+        studentSNumber: requestData.studentSNumber,
+        eventName: requestData.eventName,
+        hoursRequested: requestData.hoursRequested,
+        hasImage: !!base64Image,
+        platform: Platform.OS
+      });
+
+      // Send to Netlify Function with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+      const response = await fetch(this.APPS_SCRIPT_PROXY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formDataToSend.toString(),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Check response
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        throw new Error(`Unexpected response format: ${textResponse}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Hour request result:', data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to submit hour request');
+      }
+
+      return {
+        success: true,
+        requestId: data.requestId,
+        submissionId: data.submissionId,
+        message: data.message,
+        photoUrl: data.photoUrl,
+        submittedAt: data.submittedAt
+      };
+
+    } catch (error) {
+      console.error('❌ Hour request submission failed:', error);
+
+      let errorMessage = 'Unknown submission error';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out - please try again';
+      } else if (error.message.includes('HTTP error')) {
+        errorMessage = `Server error: ${error.message}`;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+  }
   
   // Test connection
   static async testConnection() {
     try {
       console.log('🔍 Testing hour request service connection...');
       
-      const response = await fetch(this.APPS_SCRIPT_URL, {
+      const response = await fetch(this.APPS_SCRIPT_PROXY, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         }
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('✅ Connection test result:', result);
-      
       return {
-        success: true,
-        status: result.status,
-        message: result.message
+        success: response.ok,
+        status: response.status,
+        message: response.ok ? 'Connection successful' : `HTTP ${response.status}`
       };
       
     } catch (error) {
@@ -163,7 +197,7 @@ static async submitHourRequest(requestData, imageUri = null) {
 }
 
 export default function HourRequestScreen({ navigation }) {
-  const { getStudentHours } = useHours(); // REMOVED submitHourRequest since we're using the new service
+  const { getStudentHours } = useHours();
   const { user } = useAuth();
   
   const [eventName, setEventName] = useState('');
@@ -173,7 +207,7 @@ export default function HourRequestScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [currentHours, setCurrentHours] = useState(0);
   
-  // SIMPLIFIED: Only need image URI now, no separate upload states
+  // Image state
   const [image, setImage] = useState(null);
   
   // Date picker state
@@ -212,6 +246,8 @@ export default function HourRequestScreen({ navigation }) {
       const result = await HourRequestService.testConnection();
       if (!result.success) {
         console.warn('⚠️ Hour request service connection test failed:', result.error);
+      } else {
+        console.log('✅ Hour request service connected');
       }
     };
     
@@ -227,7 +263,7 @@ export default function HourRequestScreen({ navigation }) {
     });
   };
 
-  // SIMPLIFIED: Image picker without auto-upload
+  // Cross-platform image picker
   const pickImage = async () => {
     try {
       console.log('📸 Starting image picker...');
@@ -300,7 +336,7 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // UPDATED: New submit function using the new service
+  // Submit function using the fixed service
   const handleSubmitRequest = async () => {
     // Validate input
     if (!eventName.trim() || !hoursRequested.trim() || !description.trim()) {
@@ -332,7 +368,7 @@ export default function HourRequestScreen({ navigation }) {
         description: description.trim()
       };
 
-      // Submit using the new service (similar to homework submission)
+      // Submit using the fixed cross-platform service
       const result = await HourRequestService.submitHourRequest(requestData, image);
       
       if (result.success) {
@@ -454,7 +490,7 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // SIMPLIFIED: Photo section without upload status
+  // Photo section
   const renderPhotoSection = () => (
     <View style={styles.formGroup}>
       <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
@@ -574,7 +610,7 @@ export default function HourRequestScreen({ navigation }) {
               />
             </View>
             
-            {/* UPDATED: Simplified Photo Upload Section */}
+            {/* Photo Upload Section */}
             {renderPhotoSection()}
 
             <TouchableOpacity
@@ -627,7 +663,6 @@ export default function HourRequestScreen({ navigation }) {
   );
 }
 
-// REMOVED: Complex photo upload styles, keeping the essentials
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -731,7 +766,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   
-  // Simplified photo upload styles
+  // Photo upload styles
   photoUploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
