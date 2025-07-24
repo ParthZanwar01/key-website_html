@@ -795,13 +795,13 @@ export default function EventCreationScreen({ route, navigation }) {
                 styles.formGroup,
                 {
                   opacity: formItemAnimations[6],
-                  transform: [{
-                    translateX: formItemAnimations[6]?.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-20, 0],
-                    }) || 0,
-                    scale: colorSelectorAnim,
-                  }]
+                  transform: [
+                    { translateX: formItemAnimations[6]?.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-20, 0],
+                      }) || 0 },
+                    { scale: colorSelectorAnim }
+                  ]
                 }
               ]}
             >
@@ -837,12 +837,10 @@ export default function EventCreationScreen({ route, navigation }) {
                   opacity: formItemAnimations[7],
                   transform: [
                     { scale: buttonScaleAnim },
-                    {
-                      translateX: formItemAnimations[7]?.interpolate({
+                    { translateX: formItemAnimations[7]?.interpolate({
                         inputRange: [0, 1],
                         outputRange: [-20, 0],
-                      }) || 0
-                    }
+                      }) || 0 }
                   ]
                 }
               ]}
