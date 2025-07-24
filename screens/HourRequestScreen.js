@@ -305,7 +305,6 @@ export default function HourRequestScreen({ navigation }) {
       setUploadedImageData(uploadResult);
       
       if (uploadResult.success) {
-      if (uploadResult.success) {
         Alert.alert(
           '✅ Upload Successful!', 
           `Photo uploaded to Google Drive successfully!\n\nFile: ${uploadResult.fileName}\nFolder: ${uploadResult.targetFolder || 'Key Club Photos'}`
