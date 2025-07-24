@@ -27,6 +27,7 @@ import AdminHourManagementScreen from '../screens/AdminHourManagementScreen';
 import AnnouncementsScreen from '../screens/AnnouncementsScreen';
 import CreateAnnouncementScreen from '../screens/CreateAnnouncementScreen';
 import AnimationScreen from '../screens/AnimationScreen';
+import SplashAnimationScreen from '../screens/SplashAnimationScreen'; // New splash screen
 import GoogleDriveService from '../screens/GoogleDriveService';
 
 const Stack = createStackNavigator();
@@ -372,11 +373,20 @@ function AuthNavigator() {
 
 // Main App Navigator
 export default function AppNavigator() {
-  const { isAuthenticated, loading, showAnimation } = useAuth();
+  const { isAuthenticated, loading, showAnimation, showSplashAnimation, hideSplashAnimation } = useAuth();
 
   // Show loading screen while checking authentication
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  // Show initial splash animation when app first loads
+  if (showSplashAnimation) {
+    return (
+      <SplashAnimationScreen 
+        onAnimationComplete={hideSplashAnimation}
+      />
+    );
   }
 
   return (

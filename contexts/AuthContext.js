@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [showSplashAnimation, setShowSplashAnimation] = useState(true); // New state for splash animation
 
   // Enhanced authentication check
   useEffect(() => {
@@ -118,6 +119,11 @@ export function AuthProvider({ children }) {
 
   const hideAnimation = () => {
     setShowAnimation(false);
+  };
+
+  // Splash animation control functions
+  const hideSplashAnimation = () => {
+    setShowSplashAnimation(false);
   };
 
   // Login as admin
@@ -304,6 +310,8 @@ export function AuthProvider({ children }) {
         showAnimation,
         triggerAnimation,
         hideAnimation,
+        showSplashAnimation,
+        hideSplashAnimation,
       }}
     >
       {children}
