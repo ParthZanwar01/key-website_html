@@ -1,3 +1,6 @@
+// Updated HourRequestScreen.js - Now sends image name to Supabase
+// This version generates the same filename format as your Google Apps Script
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -31,7 +34,7 @@ if (Platform.OS !== 'web') {
   }
 }
 
-// ENHANCED Hour Request Service with FIXED JSON handling
+// ENHANCED Hour Request Service with IMAGE NAME integration
 class HourRequestService {
   static APPS_SCRIPT_PROXY = '/.netlify/functions/gasProxy';
 
@@ -81,233 +84,183 @@ class HourRequestService {
     }
   }
 
-  // FIXED: Submit hour request with proper JSON handling
+  // Generate filename using same format as Google Apps Script
+  static generateFileName(studentNumber, eventName) {
+    try {
+      // Create timestamp - same format as Google Apps Script
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      
+      // Clean event name - same logic as Google Apps Script
+      const cleanEventName = eventName.replace(/[^a-zA-Z0-9]/g, '_');
+      
+      // Generate filename in same format: studentNumber_eventName_timestamp.jpg
+      const fileName = `${studentNumber}_${cleanEventName}_${timestamp}.jpg`;
+      
+      console.log('📝 Generated filename:', fileName);
+      return fileName;
+    } catch (error) {
+      console.error('❌ Error generating filename:', error);
+      // Fallback filename
+      return `${studentNumber}_${Date.now()}.jpg`;
+    }
+  }
+
+  // UPDATED: Submit hour request with proper JSON handling AND image name
   static async submitHourRequest(requestData, imageUri = null) {
     console.log('🚀 Starting submitHourRequest...');
     console.log('📋 Platform:', Platform.OS);
     console.log('📋 Request data:', JSON.stringify(requestData, null, 2));
     console.log('📋 Has image:', !!imageUri);
-    console.log('📋 Proxy URL:', this.APPS_SCRIPT_PROXY);
 
     try {
-      // Step 1: Convert image if provided
+      let imageFileName = null;
       let base64Image = null;
+
+      // Step 1: Process image if provided
       if (imageUri) {
-        console.log('🖼️ Step 1: Converting image...');
+        console.log('🖼️ Step 1: Processing image...');
         try {
+          // Generate the filename BEFORE uploading
+          imageFileName = this.generateFileName(requestData.studentSNumber, requestData.eventName);
+          console.log('📝 Generated image filename:', imageFileName);
+          
+          // Convert image to base64
           base64Image = await this.convertImageToBase64(imageUri);
           console.log('✅ Image conversion successful');
         } catch (imageError) {
-          console.warn('⚠️ Image conversion failed, continuing without image:', imageError.message);
+          console.warn('⚠️ Image processing failed, continuing without image:', imageError.message);
           // Continue without image rather than failing entirely
+          imageFileName = null;
+          base64Image = null;
         }
       } else {
-        console.log('📝 Step 1: No image to convert');
+        console.log('📝 Step 1: No image to process');
       }
 
-      // Step 2: Prepare JSON payload matching Google Apps Script format
-      console.log('📦 Step 2: Preparing JSON payload...');
-      const jsonPayload = {
-        // Required fields for Google Apps Script
-        studentNumber: requestData.studentSNumber,
-        eventName: requestData.eventName,
-        
-        // Image data (if available) - matching the required format
-        ...(base64Image && {
-          imageData: base64Image, // Just the base64 string, no data: prefix
-          fileName: this.generateFileName(requestData.studentSNumber, requestData.eventName),
-        }),
-        
-        // Additional hour request data (will be ignored by GAS if not needed)
+      // Step 2: Prepare request data for Supabase (including image filename)
+      const supabaseRequestData = {
+        studentSNumber: requestData.studentSNumber,
         studentName: requestData.studentName,
+        eventName: requestData.eventName,
         eventDate: requestData.eventDate,
         hoursRequested: requestData.hoursRequested,
         description: requestData.description,
         
-        // Metadata
-        requestType: 'hourSubmission',
+        // IMPORTANT: Include the image filename if we have one
+        ...(imageFileName && { imageName: imageFileName })
+      };
+
+      console.log('💾 Step 2: Submitting to Supabase with image filename...');
+      console.log('📋 Supabase data:', {
+        ...supabaseRequestData,
+        hasImageName: !!supabaseRequestData.imageName
+      });
+
+      // Submit to Supabase FIRST (even if image upload fails later)
+      const supabaseResult = await this.saveToSupabase(supabaseRequestData);
+      console.log('✅ Hour request saved to Supabase:', supabaseResult);
+
+      // Step 3: Upload image to Google Drive (if we have one)
+      let imageUploadResult = null;
+      if (base64Image && imageFileName) {
+        console.log('☁️ Step 3: Uploading image to Google Drive...');
+        try {
+          // Prepare JSON payload for Google Apps Script
+          const jsonPayload = {
+            // Required fields for Google Apps Script
+            studentNumber: requestData.studentSNumber,
+            eventName: requestData.eventName,
+            
+            // Image data
+            imageData: base64Image,
+            fileName: imageFileName, // Use the same filename we saved to Supabase
+            
+            // Metadata
+            requestType: 'hourSubmission',
+            platform: Platform.OS,
+            timestamp: new Date().toISOString(),
+            supabaseRequestId: supabaseResult.id // Link to Supabase record
+          };
+
+          console.log('🌐 Making request to Google Apps Script...');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            console.log('⏰ Request timeout triggered after 45 seconds');
+            controller.abort();
+          }, 45000);
+
+          const response = await fetch(this.APPS_SCRIPT_PROXY, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify(jsonPayload),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const imageResult = await response.json();
+          console.log('✅ Image upload result:', imageResult);
+
+          if (imageResult.success) {
+            imageUploadResult = imageResult;
+            console.log('🎉 Image uploaded successfully to Google Drive!');
+          } else {
+            console.error('❌ Google Apps Script returned failure:', imageResult.error);
+          }
+
+        } catch (imageUploadError) {
+          console.error('❌ Image upload failed:', imageUploadError);
+          // Don't fail the whole request if just image upload fails
+        }
+      } else {
+        console.log('📝 Step 3: No image to upload to Google Drive');
+      }
+
+      // Step 4: Return success result
+      return {
+        success: true,
+        requestId: supabaseResult.id,
+        submittedAt: supabaseResult.submitted_at || new Date().toISOString(),
+        database: 'saved',
+        
+        // Image upload results
+        imageFileName: imageFileName,
+        imageUpload: imageUploadResult ? 'success' : (base64Image ? 'failed' : 'none'),
+        imageUploadResult: imageUploadResult,
+        
+        message: imageUploadResult 
+          ? 'Hour request submitted successfully with proof photo!'
+          : (imageFileName 
+            ? 'Hour request submitted successfully (image upload failed but filename saved)'
+            : 'Hour request submitted successfully')
+      };
+
+    } catch (error) {
+      console.error('💥 submitHourRequest failed:', error);
+      
+      return {
+        success: false,
+        error: error.message,
+        errorName: error.name,
         platform: Platform.OS,
         timestamp: new Date().toISOString()
       };
-
-      console.log('📦 JSON payload prepared, keys:', Object.keys(jsonPayload));
-      console.log('📦 Payload size (approx):', JSON.stringify(jsonPayload).length, 'characters');
-
-      // Step 3: Make the request with proper JSON headers (FIXED)
-      console.log('🌐 Step 3: Making network request...');
-      console.log('🌐 URL:', this.APPS_SCRIPT_PROXY);
-      console.log('🌐 Method: POST');
-      console.log('🌐 Content-Type: application/json');
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('⏰ Request timeout triggered after 45 seconds');
-        controller.abort();
-      }, 45000);
-
-      let response;
-      try {
-        response = await fetch(this.APPS_SCRIPT_PROXY, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json', // FIXED: Use JSON instead of form-encoded
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify(jsonPayload), // FIXED: Send JSON instead of URLSearchParams
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-        console.log('✅ Network request completed');
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        console.error('❌ Network request failed:', fetchError);
-        
-        if (fetchError.name === 'AbortError') {
-          throw new Error('Request timed out after 45 seconds. Please try again.');
-        }
-        
-        throw new Error(`Network error: ${fetchError.message}`);
-      }
-
-      // Step 4: Process response
-      console.log('📨 Step 4: Processing response...');
-      console.log('📨 Response status:', response.status);
-      console.log('📨 Response statusText:', response.statusText);
-      console.log('📨 Response ok:', response.ok);
-      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        console.error('❌ Non-OK response status:', response.status);
-        
-        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
-        let errorDetails = null;
-        
-        try {
-          const contentType = response.headers.get('content-type');
-          console.log('📨 Error response content-type:', contentType);
-          
-          if (contentType && contentType.includes('application/json')) {
-            errorDetails = await response.json();
-            console.error('❌ JSON error response:', errorDetails);
-            errorMessage = errorDetails.error || errorDetails.message || errorMessage;
-          } else {
-            const errorText = await response.text();
-            console.error('❌ Text error response:', errorText.substring(0, 500));
-            errorMessage = `${errorMessage}: ${errorText.substring(0, 200)}`;
-          }
-        } catch (parseError) {
-          console.error('❌ Could not parse error response:', parseError);
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // Step 5: Parse successful response
-      console.log('✅ Step 5: Parsing successful response...');
-      const contentType = response.headers.get('content-type');
-      console.log('📨 Success response content-type:', contentType);
-
-      if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        console.warn('⚠️ Non-JSON success response:', textResponse.substring(0, 500));
-        throw new Error(`Unexpected response format. Expected JSON, got: ${contentType}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Parsed response data:', JSON.stringify(data, null, 2));
-
-      if (!data.success) {
-        const errorMsg = data.error || data.message || 'Request processing failed';
-        console.error('❌ Server returned failure:', errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      console.log('🎉 Image upload completed successfully!');
-      
-      // Step 6: Save hour request to Supabase database
-      console.log('💾 Step 6: Saving hour request to Supabase...');
-      try {
-        const supabaseResult = await this.saveToSupabase(requestData, data);
-        console.log('✅ Hour request saved to Supabase:', supabaseResult);
-        
-        return {
-          success: true,
-          requestId: supabaseResult.id,
-          submissionId: data.submissionId,
-          message: data.message || 'Hour request submitted successfully',
-          photoUrl: data.photoUrl,
-          driveFileId: data.fileId,
-          submittedAt: supabaseResult.submitted_at || new Date().toISOString(),
-          database: 'saved'
-        };
-      } catch (supabaseError) {
-        console.error('❌ Failed to save to Supabase:', supabaseError);
-        
-        // Still return success for image upload, but note database issue
-        return {
-          success: true,
-          requestId: data.requestId,
-          submissionId: data.submissionId,
-          message: 'Hour request submitted with image, but database save failed',
-          photoUrl: data.photoUrl,
-          driveFileId: data.fileId,
-          submittedAt: data.submittedAt || new Date().toISOString(),
-          database: 'failed',
-          databaseError: supabaseError.message
-        };
-      }
-
-    } catch (error) {
-      console.error('💥 submitHourRequest failed at top level:', error);
-      console.error('💥 Error name:', error.name);
-      console.error('💥 Error message:', error.message);
-      console.error('💥 Error stack:', error.stack);
-
-      // If image upload failed, still try to save to Supabase without image
-      console.log('🔄 Image upload failed, attempting to save to Supabase without image...');
-      try {
-        const supabaseResult = await this.saveToSupabase(requestData, null);
-        console.log('✅ Hour request saved to Supabase (no image):', supabaseResult);
-        
-        return {
-          success: true,
-          requestId: supabaseResult.id,
-          message: 'Hour request submitted successfully (image upload failed)',
-          submittedAt: supabaseResult.submitted_at || new Date().toISOString(),
-          database: 'saved',
-          imageUpload: 'failed',
-          imageError: error.message
-        };
-      } catch (supabaseError) {
-        console.error('❌ Supabase save also failed:', supabaseError);
-        
-        // Return detailed error info for debugging
-        return {
-          success: false,
-          error: error.message,
-          errorName: error.name,
-          errorStack: error.stack,
-          platform: Platform.OS,
-          timestamp: new Date().toISOString(),
-          database: 'failed',
-          databaseError: supabaseError.message
-        };
-      }
     }
   }
 
-  // Helper method to generate consistent filenames
-  static generateFileName(studentSNumber, eventName) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const cleanEventName = eventName.replace(/[^a-zA-Z0-9]/g, '_');
-    return `${studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
-  }
-
-  // Save hour request to Supabase database (simplified)
-  static async saveToSupabase(requestData, imageFileName = null) {
+  // Save hour request to Supabase database (UPDATED to handle image filename)
+  static async saveToSupabase(requestData) {
     try {
       console.log('💾 Saving hour request to Supabase...');
+      console.log('📋 Request data keys:', Object.keys(requestData));
+      console.log('📋 Has image filename:', !!requestData.imageName);
       
       // Import SupabaseService
       const SupabaseService = (await import('../services/SupabaseService')).default;
@@ -319,19 +272,21 @@ class HourRequestService {
         eventName: requestData.eventName,
         eventDate: requestData.eventDate,
         hoursRequested: requestData.hoursRequested,
-        description: requestData.description,
-        
-        // Add image filename if available
-        ...(imageFileName && {
-          imageName: imageFileName
-        })
+        description: requestData.description
       };
+
+      // Add image filename if available
+      if (requestData.imageName) {
+        hourRequestData.imageName = requestData.imageName;
+        console.log('📎 Including image filename in Supabase submission:', requestData.imageName);
+      }
       
-      console.log('📋 Submitting to Supabase:', {
+      console.log('📋 Final Supabase data:', {
         studentSNumber: hourRequestData.studentSNumber,
         eventName: hourRequestData.eventName,
         hoursRequested: hourRequestData.hoursRequested,
-        hasImage: !!hourRequestData.imageName
+        hasImageName: !!hourRequestData.imageName,
+        imageName: hourRequestData.imageName
       });
       
       // Submit to Supabase using the existing service method
@@ -340,7 +295,8 @@ class HourRequestService {
       console.log('✅ Supabase submission successful:', {
         id: result.id,
         status: result.status,
-        submittedAt: result.submitted_at
+        submittedAt: result.submitted_at,
+        imageName: result.image_name
       });
       
       return result;
@@ -365,14 +321,13 @@ class HourRequestService {
       const response = await fetch(this.APPS_SCRIPT_PROXY, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // FIXED: Use JSON here too
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(testData) // FIXED: Send JSON
+        body: JSON.stringify(testData)
       });
 
       console.log('🧪 Test response status:', response.status);
-      console.log('🧪 Test response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const result = await response.json();
@@ -525,7 +480,7 @@ export default function HourRequestScreen({ navigation }) {
     );
   };
 
-  // Enhanced submit function with detailed error reporting
+  // Enhanced submit function with image filename handling
   const handleSubmitRequest = async () => {
     console.log('🚀 handleSubmitRequest called');
     
@@ -571,8 +526,13 @@ export default function HourRequestScreen({ navigation }) {
         console.log('🎉 Request successful!');
         
         let successMessage = `Your request for ${hours} hours has been submitted successfully!`;
-        if (result.photoUrl) {
-          successMessage += ` Your proof photo has been uploaded and linked to this request.`;
+        
+        if (result.imageFileName) {
+          if (result.imageUpload === 'success') {
+            successMessage += ` Your proof photo "${result.imageFileName}" has been uploaded and linked to this request.`;
+          } else if (result.imageUpload === 'failed') {
+            successMessage += ` The image filename "${result.imageFileName}" has been saved with your request, but the upload failed. You may need to re-submit the photo later.`;
+          }
         }
         
         setSuccessDialog({
@@ -597,15 +557,9 @@ export default function HourRequestScreen({ navigation }) {
       } else {
         console.error('❌ Service returned failure:', result);
         
-        // Show detailed error information
-        let errorMessage = result.error || 'Unknown error occurred';
-        if (result.errorName || result.errorStack) {
-          errorMessage += `\n\nTechnical details:\nType: ${result.errorName}\nPlatform: ${result.platform}`;
-        }
-        
         setErrorDialog({
           visible: true,
-          message: errorMessage
+          message: result.error || 'Unknown error occurred'
         });
       }
       
@@ -739,7 +693,7 @@ export default function HourRequestScreen({ navigation }) {
       )}
       
       <Text style={styles.helpText}>
-        Photos will be uploaded along with your request to help verify your volunteer work.
+        Photos will be uploaded to Google Drive and the filename will be saved with your request to help verify your volunteer work.
       </Text>
     </View>
   );
