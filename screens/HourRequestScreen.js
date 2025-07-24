@@ -31,7 +31,7 @@ if (Platform.OS !== 'web') {
   }
 }
 
-// ENHANCED Hour Request Service with extensive debugging
+// ENHANCED Hour Request Service with FIXED JSON handling
 class HourRequestService {
   static APPS_SCRIPT_PROXY = '/.netlify/functions/gasProxy';
 
@@ -81,7 +81,7 @@ class HourRequestService {
     }
   }
 
-  // Submit hour request with extensive debugging
+  // FIXED: Submit hour request with proper JSON handling
   static async submitHourRequest(requestData, imageUri = null) {
     console.log('🚀 Starting submitHourRequest...');
     console.log('📋 Platform:', Platform.OS);
@@ -105,43 +105,39 @@ class HourRequestService {
         console.log('📝 Step 1: No image to convert');
       }
 
-      // Step 2: Prepare form data
-      console.log('📦 Step 2: Preparing form data...');
-      const formDataToSend = new URLSearchParams();
-      formDataToSend.append('studentSNumber', requestData.studentSNumber);
-      formDataToSend.append('studentName', requestData.studentName);
-      formDataToSend.append('eventName', requestData.eventName);
-      formDataToSend.append('eventDate', requestData.eventDate);
-      formDataToSend.append('hoursRequested', requestData.hoursRequested);
-      formDataToSend.append('description', requestData.description);
+      // Step 2: Prepare JSON payload matching Google Apps Script format
+      console.log('📦 Step 2: Preparing JSON payload...');
+      const jsonPayload = {
+        // Required fields for Google Apps Script
+        studentNumber: requestData.studentSNumber,
+        eventName: requestData.eventName,
+        
+        // Image data (if available) - matching the required format
+        ...(base64Image && {
+          imageData: base64Image, // Just the base64 string, no data: prefix
+          fileName: this.generateFileName(requestData.studentSNumber, requestData.eventName),
+        }),
+        
+        // Additional hour request data (will be ignored by GAS if not needed)
+        studentName: requestData.studentName,
+        eventDate: requestData.eventDate,
+        hoursRequested: requestData.hoursRequested,
+        description: requestData.description,
+        
+        // Metadata
+        requestType: 'hourSubmission',
+        platform: Platform.OS,
+        timestamp: new Date().toISOString()
+      };
 
-      // Add image data if available
-      if (base64Image && imageUri) {
-        console.log('🖼️ Adding image data to form...');
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const cleanEventName = requestData.eventName.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = `${requestData.studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
+      console.log('📦 JSON payload prepared, keys:', Object.keys(jsonPayload));
+      console.log('📦 Payload size (approx):', JSON.stringify(jsonPayload).length, 'characters');
 
-        formDataToSend.append('filename', fileName);
-        formDataToSend.append('mimeType', 'image/jpeg');
-        formDataToSend.append('file', `data:image/jpeg;base64,${base64Image}`);
-        console.log('✅ Image data added to form');
-      }
-
-      // Add metadata
-      formDataToSend.append('requestType', 'hourSubmission');
-      formDataToSend.append('platform', Platform.OS);
-      formDataToSend.append('timestamp', new Date().toISOString());
-
-      const formDataString = formDataToSend.toString();
-      console.log('📦 Form data prepared, size:', formDataString.length, 'characters');
-      console.log('📦 Form data preview:', formDataString.substring(0, 300) + '...');
-
-      // Step 3: Make the request
+      // Step 3: Make the request with proper JSON headers (FIXED)
       console.log('🌐 Step 3: Making network request...');
       console.log('🌐 URL:', this.APPS_SCRIPT_PROXY);
       console.log('🌐 Method: POST');
-      console.log('🌐 Content-Type: application/x-www-form-urlencoded');
+      console.log('🌐 Content-Type: application/json');
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
@@ -154,10 +150,10 @@ class HourRequestService {
         response = await fetch(this.APPS_SCRIPT_PROXY, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json', // FIXED: Use JSON instead of form-encoded
             'Accept': 'application/json',
           },
-          body: formDataString,
+          body: JSON.stringify(jsonPayload), // FIXED: Send JSON instead of URLSearchParams
           signal: controller.signal
         });
 
@@ -255,25 +251,32 @@ class HourRequestService {
     }
   }
 
-  // Test connection method
+  // Helper method to generate consistent filenames
+  static generateFileName(studentSNumber, eventName) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const cleanEventName = eventName.replace(/[^a-zA-Z0-9]/g, '_');
+    return `${studentSNumber}_${cleanEventName}_${timestamp}.jpg`;
+  }
+
+  // Test connection method (unchanged)
   static async testConnection() {
     console.log('🧪 Testing connection to Netlify function...');
     
     try {
-      const testData = new URLSearchParams({
+      const testData = {
         requestType: 'connectionTest',
         timestamp: new Date().toISOString(),
         platform: Platform.OS || 'web'
-      });
+      };
 
       console.log('🧪 Sending test request...');
       const response = await fetch(this.APPS_SCRIPT_PROXY, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json', // FIXED: Use JSON here too
           'Accept': 'application/json',
         },
-        body: testData.toString()
+        body: JSON.stringify(testData) // FIXED: Send JSON
       });
 
       console.log('🧪 Test response status:', response.status);

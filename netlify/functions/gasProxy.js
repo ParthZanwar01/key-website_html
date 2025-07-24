@@ -9,7 +9,7 @@ export async function handler(event, context) {
 
   // CORS headers
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "*", // More permissive for testing
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization",
     "Access-Control-Max-Age": "86400",
@@ -53,14 +53,26 @@ export async function handler(event, context) {
       };
     }
 
-    // Log the body for debugging (truncated if too long)
-    const bodyPreview = event.body.length > 500 
-      ? event.body.substring(0, 500) + '...' 
-      : event.body;
-    console.log('Request body preview:', bodyPreview);
+    // FIXED: Parse JSON body properly
+    let requestData;
+    try {
+      requestData = JSON.parse(event.body);
+      console.log('✅ Successfully parsed JSON request body');
+      console.log('📋 Request data keys:', Object.keys(requestData));
+    } catch (parseError) {
+      console.error('❌ Failed to parse JSON body:', parseError);
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ 
+          error: "Invalid JSON in request body",
+          details: parseError.message
+        }),
+      };
+    }
 
     // Check if this is a connection test
-    if (event.body.includes('requestType=connectionTest')) {
+    if (requestData.requestType === 'connectionTest') {
       console.log('🧪 Connection test request detected');
       return {
         statusCode: 200,
@@ -77,22 +89,22 @@ export async function handler(event, context) {
       };
     }
 
-    // Forward the request to Google Apps Script
+    // FIXED: Forward JSON directly to Google Apps Script (no form conversion needed)
+    console.log('📤 Forwarding JSON request to Google Apps Script...');
+    
+    // For Google Apps Script, we'll send the JSON directly
     console.log('🌐 Sending to:', GOOGLE_SCRIPT_URL);
     
     const fetchOptions = {
       method: 'POST',
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
         "User-Agent": "Netlify-Function/1.0",
       },
-      body: event.body,
+      body: JSON.stringify(requestData), // Send JSON directly to Google Apps Script
     };
 
-    console.log('Fetch options:', JSON.stringify({
-      ...fetchOptions,
-      body: fetchOptions.body.length > 100 ? 'truncated...' : fetchOptions.body
-    }, null, 2));
+    console.log('Fetch options prepared - sending JSON payload');
 
     // Add timeout to prevent hanging
     const controller = new AbortController();
