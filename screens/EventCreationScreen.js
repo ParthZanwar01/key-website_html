@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
-  Modal
+  Modal,
+  Animated,
+  Easing,
+  Dimensions,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
@@ -18,6 +23,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const { width: screenWidth } = Dimensions.get('window');
 
 export default function EventCreationScreen({ route, navigation }) {
   const { addEvent, getEventById, updateEvent } = useEvents();
@@ -32,7 +44,7 @@ export default function EventCreationScreen({ route, navigation }) {
   const [capacity, setCapacity] = useState('20');
   const [date, setDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date(Date.now() + 60 * 60 * 1000)); // 1 hour later
+  const [endTime, setEndTime] = useState(new Date(Date.now() + 60 * 60 * 1000));
   const [color, setColor] = useState('#4287f5');
   const [attendees, setAttendees] = useState([]);
   
@@ -42,6 +54,17 @@ export default function EventCreationScreen({ route, navigation }) {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   
   const [loading, setLoading] = useState(false);
+  
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(-30)).current;
+  const headerSlideAnim = useRef(new Animated.Value(-100)).current;
+  const formItemAnimations = useRef([]).current;
+  const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+  const submitAnimationAnim = useRef(new Animated.Value(0)).current;
+  const loadingSpinAnim = useRef(new Animated.Value(0)).current;
+  const successAnim = useRef(new Animated.Value(0)).current;
+  const colorSelectorAnim = useRef(new Animated.Value(1)).current;
   
   // State for confirmation dialogs
   const [successDialog, setSuccessDialog] = useState({
@@ -55,22 +78,89 @@ export default function EventCreationScreen({ route, navigation }) {
     visible: false,
     message: ''
   });
-  
-  // Load event data if editing
+
+  // Initialize form animations
+  useEffect(() => {
+    // Initialize form item animations
+    for (let i = 0; i < 10; i++) {
+      formItemAnimations[i] = new Animated.Value(0);
+    }
+
+    // Start entrance animation
+    const animateEntrance = () => {
+      Animated.sequence([
+        Animated.timing(headerSlideAnim, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.stagger(100, formItemAnimations.map((anim, index) =>
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 600,
+              delay: index * 50,
+              easing: Easing.out(Easing.back(1.1)),
+              useNativeDriver: true,
+            })
+          )),
+        ]),
+      ]).start();
+    };
+
+    animateEntrance();
+  }, []);
+
+  // Loading spinner animation
+  useEffect(() => {
+    if (loading) {
+      Animated.loop(
+        Animated.timing(loadingSpinAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      loadingSpinAnim.setValue(0);
+    }
+  }, [loading]);
+
+  // Load event data if editing with animation
   useEffect(() => {
     if (isEditing && eventId) {
       const existingEvent = getEventById(eventId);
       if (existingEvent) {
+        // Animate form filling
+        LayoutAnimation.configureNext({
+          duration: 400,
+          create: {
+            type: LayoutAnimation.Types.spring,
+            property: LayoutAnimation.Properties.opacity,
+            springDamping: 0.8,
+          },
+          update: {
+            type: LayoutAnimation.Types.spring,
+            springDamping: 0.8,
+          },
+        });
+
         setTitle(existingEvent.title);
         setDescription(existingEvent.description);
         setLocation(existingEvent.location);
         setCapacity(existingEvent.capacity.toString());
         
-        // Convert date strings to Date objects
         const eventDate = new Date(existingEvent.date);
         setDate(eventDate);
         
-        // Parse time strings
         if (existingEvent.startTime) {
           const startTimeArr = existingEvent.startTime.split(':');
           const startDateTime = new Date();
@@ -104,9 +194,34 @@ export default function EventCreationScreen({ route, navigation }) {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Enhanced submit with dramatic animation
   const handleCreateEvent = async () => {
-    // Validate input
+    // Validate input with shake animation
     if (!title.trim() || !description.trim() || !location.trim()) {
+      // Shake animation for error
+      Animated.sequence([
+        Animated.timing(buttonScaleAnim, {
+          toValue: 1.05,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScaleAnim, {
+          toValue: 0.95,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScaleAnim, {
+          toValue: 1.05,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       setErrorDialog({
         visible: true,
         message: 'Please fill in all required fields'
@@ -114,9 +229,24 @@ export default function EventCreationScreen({ route, navigation }) {
       return;
     }
 
+    // Start submit animation
+    setLoading(true);
+    
+    Animated.parallel([
+      Animated.timing(submitAnimationAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScaleAnim, {
+        toValue: 0.95,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     try {
-      setLoading(true);
-      
       if (isEditing && eventId) {
         // Update existing event
         const updatedEvent = {
@@ -125,51 +255,54 @@ export default function EventCreationScreen({ route, navigation }) {
           description,
           location,
           capacity: parseInt(capacity) || 20,
-          date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          date: date.toISOString().split('T')[0],
           startTime: `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}:00`,
           endTime: `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}:00`,
           color,
-          attendees: attendees, // Maintain existing attendees
+          attendees: attendees,
           lastUpdated: new Date().toISOString()
         };
         
         await updateEvent(updatedEvent);
         
-        // Show success dialog for update
+        // Success animation
+        await animateSuccess();
+        
         setSuccessDialog({
           visible: true,
-          title: 'Event Updated!',
-          message: `"${title}" has been successfully updated.`,
+          title: 'Event Updated! ✨',
+          message: `"${title}" has been successfully updated with all your changes.`,
           onConfirm: () => {
             setSuccessDialog({ visible: false, title: '', message: '', onConfirm: null });
             navigation.goBack();
           }
         });
       } else {
-        // Create new event object
+        // Create new event
         const newEvent = {
-          id: Date.now().toString(), // Simple unique ID
+          id: Date.now().toString(),
           title,
           description,
           location,
           capacity: parseInt(capacity) || 20,
-          date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          date: date.toISOString().split('T')[0],
           startTime: `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}:00`,
           endTime: `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}:00`,
           color,
-          attendees: [], // Start with empty attendees
-          createdBy: 'Admin', // Mark that an admin created this
+          attendees: [],
+          createdBy: 'Admin',
           createdAt: new Date().toISOString()
         };
 
-        // Add the new event
         await addEvent(newEvent);
         
-        // Show success dialog for creation
+        // Success animation
+        await animateSuccess();
+        
         setSuccessDialog({
           visible: true,
-          title: 'Event Created!',
-          message: `"${title}" has been successfully created and added to the calendar.`,
+          title: 'Event Created! 🎉',
+          message: `"${title}" has been successfully created and added to the calendar. People can now sign up for this amazing event!`,
           onConfirm: () => {
             setSuccessDialog({ visible: false, title: '', message: '', onConfirm: null });
             navigation.navigate('Calendar');
@@ -178,29 +311,107 @@ export default function EventCreationScreen({ route, navigation }) {
       }
     } catch (err) {
       console.error('Event creation/update error:', err);
+      
+      // Error animation
+      Animated.sequence([
+        Animated.timing(buttonScaleAnim, {
+          toValue: 1.1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScaleAnim, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
       setErrorDialog({
         visible: true,
         message: isEditing ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.'
       });
     } finally {
       setLoading(false);
+      Animated.parallel([
+        Animated.timing(submitAnimationAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
+  };
+
+  // Success animation sequence
+  const animateSuccess = () => {
+    return new Promise((resolve) => {
+      Animated.sequence([
+        Animated.timing(successAnim, {
+          toValue: 1,
+          duration: 400,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(successAnim, {
+          toValue: 0,
+          duration: 200,
+          delay: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => resolve());
+    });
+  };
+
+  // Color selection animation
+  const handleColorSelection = (selectedColor) => {
+    Animated.sequence([
+      Animated.timing(colorSelectorAnim, {
+        toValue: 1.1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(colorSelectorAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    setColor(selectedColor);
+  };
+
+  // Enhanced picker modals with animations
+  const openPickerModal = (pickerType) => {
+    const setState = {
+      date: setShowDatePicker,
+      startTime: setShowStartTimePicker,
+      endTime: setShowEndTimePicker,
+    }[pickerType];
+    
+    setState(true);
   };
 
   // Color options
   const colorOptions = [
-    '#4287f5', // Blue
-    '#f54242', // Red
-    '#42f56f', // Green
-    '#f5a742', // Orange
-    '#a442f5'  // Purple
+    { color: '#4287f5', name: 'Ocean Blue' },
+    { color: '#f54242', name: 'Coral Red' },
+    { color: '#42f56f', name: 'Mint Green' },
+    { color: '#f5a742', name: 'Sunset Orange' },
+    { color: '#a442f5', name: 'Royal Purple' },
+    { color: '#f542a4', name: 'Pink Flamingo' },
   ];
   
-  // Date picker component
+  // Enhanced date picker with animations
   const renderDatePicker = () => {
     if (!showDatePicker) return null;
     
-    // Generate arrays for day, month, year options
     const days = Array.from({ length: 31 }, (_, i) => i + 1);
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
@@ -213,21 +424,36 @@ export default function EventCreationScreen({ route, navigation }) {
         transparent={true}
         visible={showDatePicker}
         animationType="slide"
+        onRequestClose={() => setShowDatePicker(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.pickerContainer}>
+          <Animated.View 
+            style={[
+              styles.pickerContainer,
+              {
+                transform: [{
+                  translateY: showDatePicker ? 0 : 300
+                }]
+              }
+            ]}
+          >
             <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(false)}
+                style={styles.pickerHeaderButton}
+              >
                 <Text style={styles.pickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.pickerTitle}>Select Date</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <Text style={styles.pickerTitle}>Select Date 📅</Text>
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(false)}
+                style={styles.pickerHeaderButton}
+              >
                 <Text style={styles.pickerDone}>Done</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.pickerRow}>
-              {/* Month picker */}
               <Picker
                 style={styles.picker}
                 selectedValue={date.getMonth()}
@@ -242,7 +468,6 @@ export default function EventCreationScreen({ route, navigation }) {
                 ))}
               </Picker>
               
-              {/* Day picker */}
               <Picker
                 style={styles.picker}
                 selectedValue={date.getDate()}
@@ -257,7 +482,6 @@ export default function EventCreationScreen({ route, navigation }) {
                 ))}
               </Picker>
               
-              {/* Year picker */}
               <Picker
                 style={styles.picker}
                 selectedValue={date.getFullYear()}
@@ -272,47 +496,54 @@ export default function EventCreationScreen({ route, navigation }) {
                 ))}
               </Picker>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     );
   };
   
-  // Time picker component for start time
-  const renderStartTimePicker = () => {
-    if (!showStartTimePicker) return null;
+  // Enhanced time picker components
+  const renderTimePicker = (type, time, setTime, visible, setVisible) => {
+    if (!visible) return null;
     
-    // Generate arrays for hour and minute options
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const minutes = Array.from({ length: 60 }, (_, i) => i);
     
     return (
       <Modal
         transparent={true}
-        visible={showStartTimePicker}
+        visible={visible}
         animationType="slide"
+        onRequestClose={() => setVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.pickerContainer}>
+          <Animated.View style={styles.pickerContainer}>
             <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
+              <TouchableOpacity 
+                onPress={() => setVisible(false)}
+                style={styles.pickerHeaderButton}
+              >
                 <Text style={styles.pickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.pickerTitle}>Start Time</Text>
-              <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
+              <Text style={styles.pickerTitle}>
+                {type === 'start' ? 'Start Time ⏰' : 'End Time ⏰'}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setVisible(false)}
+                style={styles.pickerHeaderButton}
+              >
                 <Text style={styles.pickerDone}>Done</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.pickerRow}>
-              {/* Hour picker */}
               <Picker
                 style={styles.picker}
-                selectedValue={startTime.getHours()}
+                selectedValue={time.getHours()}
                 onValueChange={(itemValue) => {
-                  const newTime = new Date(startTime);
+                  const newTime = new Date(time);
                   newTime.setHours(itemValue);
-                  setStartTime(newTime);
+                  setTime(newTime);
                 }}
               >
                 {hours.map(hour => (
@@ -326,14 +557,13 @@ export default function EventCreationScreen({ route, navigation }) {
               
               <Text style={styles.pickerSeparator}>:</Text>
               
-              {/* Minute picker */}
               <Picker
                 style={styles.picker}
-                selectedValue={startTime.getMinutes()}
+                selectedValue={time.getMinutes()}
                 onValueChange={(itemValue) => {
-                  const newTime = new Date(startTime);
+                  const newTime = new Date(time);
                   newTime.setMinutes(itemValue);
-                  setStartTime(newTime);
+                  setTime(newTime);
                 }}
               >
                 {minutes.map(minute => (
@@ -345,80 +575,7 @@ export default function EventCreationScreen({ route, navigation }) {
                 ))}
               </Picker>
             </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-  
-  // Time picker component for end time
-  const renderEndTimePicker = () => {
-    if (!showEndTimePicker) return null;
-    
-    // Generate arrays for hour and minute options
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const minutes = Array.from({ length: 60 }, (_, i) => i);
-    
-    return (
-      <Modal
-        transparent={true}
-        visible={showEndTimePicker}
-        animationType="slide"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.pickerContainer}>
-            <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setShowEndTimePicker(false)}>
-                <Text style={styles.pickerCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.pickerTitle}>End Time</Text>
-              <TouchableOpacity onPress={() => setShowEndTimePicker(false)}>
-                <Text style={styles.pickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.pickerRow}>
-              {/* Hour picker */}
-              <Picker
-                style={styles.picker}
-                selectedValue={endTime.getHours()}
-                onValueChange={(itemValue) => {
-                  const newTime = new Date(endTime);
-                  newTime.setHours(itemValue);
-                  setEndTime(newTime);
-                }}
-              >
-                {hours.map(hour => (
-                  <Picker.Item 
-                    key={hour} 
-                    label={hour < 10 ? `0${hour}` : `${hour}`}
-                    value={hour} 
-                  />
-                ))}
-              </Picker>
-              
-              <Text style={styles.pickerSeparator}>:</Text>
-              
-              {/* Minute picker */}
-              <Picker
-                style={styles.picker}
-                selectedValue={endTime.getMinutes()}
-                onValueChange={(itemValue) => {
-                  const newTime = new Date(endTime);
-                  newTime.setMinutes(itemValue);
-                  setEndTime(newTime);
-                }}
-              >
-                {minutes.map(minute => (
-                  <Picker.Item 
-                    key={minute} 
-                    label={minute < 10 ? `0${minute}` : `${minute}`}
-                    value={minute} 
-                  />
-                ))}
-              </Picker>
-            </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     );
@@ -430,130 +587,334 @@ export default function EventCreationScreen({ route, navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <ScrollView>
-          <View style={styles.header}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Enhanced Header */}
+          <Animated.View 
+            style={[
+              styles.header,
+              { transform: [{ translateY: headerSlideAnim }] }
+            ]}
+          >
             <TouchableOpacity 
               style={styles.backButton}
               onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={24} color="black" />
+              <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>
-              {isEditing ? 'Edit Event' : 'Create New Event'}
+              {isEditing ? '✏️ Edit Event' : '✨ Create New Event'}
             </Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Event Title *</Text>
+          {/* Enhanced Form Container */}
+          <Animated.View 
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            {/* Title Field */}
+            <Animated.View 
+              style={[
+                styles.formGroup,
+                {
+                  opacity: formItemAnimations[0],
+                  transform: [{
+                    translateX: formItemAnimations[0]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.label}>Event Title ✨</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.titleInput]}
                 value={title}
                 onChangeText={setTitle}
-                placeholder="Enter event title"
+                placeholder="What's the name of your awesome event?"
+                placeholderTextColor="#999"
               />
-            </View>
+            </Animated.View>
             
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Description *</Text>
+            {/* Description Field */}
+            <Animated.View 
+              style={[
+                styles.formGroup,
+                {
+                  opacity: formItemAnimations[1],
+                  transform: [{
+                    translateX: formItemAnimations[1]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.label}>Description 📝</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Enter event description"
+                placeholder="Tell people what makes this event special..."
+                placeholderTextColor="#999"
                 multiline
                 numberOfLines={4}
               />
-            </View>
+            </Animated.View>
             
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Location *</Text>
+            {/* Location Field */}
+            <Animated.View 
+              style={[
+                styles.formGroup,
+                {
+                  opacity: formItemAnimations[2],
+                  transform: [{
+                    translateX: formItemAnimations[2]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.label}>Location 📍</Text>
               <TextInput
                 style={styles.input}
                 value={location}
                 onChangeText={setLocation}
-                placeholder="Enter event location"
+                placeholder="Where will this amazing event happen?"
+                placeholderTextColor="#999"
               />
-            </View>
+            </Animated.View>
             
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Capacity</Text>
+            {/* Capacity Field */}
+            <Animated.View 
+              style={[
+                styles.formGroup,
+                {
+                  opacity: formItemAnimations[3],
+                  transform: [{
+                    translateX: formItemAnimations[3]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.label}>Capacity 👥</Text>
               <TextInput
                 style={styles.input}
                 value={capacity}
                 onChangeText={setCapacity}
-                placeholder="Maximum number of attendees"
+                placeholder="How many people can join?"
+                placeholderTextColor="#999"
                 keyboardType="numeric"
               />
-            </View>
+            </Animated.View>
             
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Date</Text>
+            {/* Date Field */}
+            <Animated.View 
+              style={[
+                styles.formGroup,
+                {
+                  opacity: formItemAnimations[4],
+                  transform: [{
+                    translateX: formItemAnimations[4]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.label}>Date 📅</Text>
               <TouchableOpacity 
                 style={styles.dateTimeButton}
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => openPickerModal('date')}
+                activeOpacity={0.8}
               >
-                <Text>{formatDate(date)}</Text>
-                <Ionicons name="calendar" size={20} color="#666" />
+                <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
+                <Ionicons name="calendar" size={20} color="#59a2f0" />
               </TouchableOpacity>
               {renderDatePicker()}
-            </View>
+            </Animated.View>
             
-            <View style={styles.timeContainer}>
+            {/* Time Fields */}
+            <Animated.View 
+              style={[
+                styles.timeContainer,
+                {
+                  opacity: formItemAnimations[5],
+                  transform: [{
+                    translateX: formItemAnimations[5]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0
+                  }]
+                }
+              ]}
+            >
               <View style={styles.timeInputGroup}>
-                <Text style={styles.label}>Start Time</Text>
+                <Text style={styles.label}>Start Time ⏰</Text>
                 <TouchableOpacity 
                   style={styles.dateTimeButton}
-                  onPress={() => setShowStartTimePicker(true)}
+                  onPress={() => openPickerModal('startTime')}
+                  activeOpacity={0.8}
                 >
-                  <Text>{formatTime(startTime)}</Text>
-                  <Ionicons name="time" size={20} color="#666" />
+                  <Text style={styles.dateTimeText}>{formatTime(startTime)}</Text>
+                  <Ionicons name="time" size={20} color="#59a2f0" />
                 </TouchableOpacity>
-                {renderStartTimePicker()}
+                {renderTimePicker('start', startTime, setStartTime, showStartTimePicker, setShowStartTimePicker)}
               </View>
               
               <View style={styles.timeInputGroup}>
-                <Text style={styles.label}>End Time</Text>
+                <Text style={styles.label}>End Time ⏰</Text>
                 <TouchableOpacity 
                   style={styles.dateTimeButton}
-                  onPress={() => setShowEndTimePicker(true)}
+                  onPress={() => openPickerModal('endTime')}
+                  activeOpacity={0.8}
                 >
-                  <Text>{formatTime(endTime)}</Text>
-                  <Ionicons name="time" size={20} color="#666" />
+                  <Text style={styles.dateTimeText}>{formatTime(endTime)}</Text>
+                  <Ionicons name="time" size={20} color="#59a2f0" />
                 </TouchableOpacity>
-                {renderEndTimePicker()}
+                {renderTimePicker('end', endTime, setEndTime, showEndTimePicker, setShowEndTimePicker)}
               </View>
-            </View>
+            </Animated.View>
             
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Event Color</Text>
+            {/* Enhanced Color Selector */}
+            <Animated.View 
+              style={[
+                styles.formGroup,
+                {
+                  opacity: formItemAnimations[6],
+                  transform: [{
+                    translateX: formItemAnimations[6]?.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-20, 0],
+                    }) || 0,
+                    scale: colorSelectorAnim,
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.label}>Event Color 🎨</Text>
               <View style={styles.colorSelector}>
-                {colorOptions.map((colorOption) => (
+                {colorOptions.map((colorOption, index) => (
                   <TouchableOpacity
-                    key={colorOption}
+                    key={colorOption.color}
                     style={[
                       styles.colorOption,
-                      { backgroundColor: colorOption },
-                      color === colorOption && styles.selectedColorOption
+                      { backgroundColor: colorOption.color },
+                      color === colorOption.color && styles.selectedColorOption
                     ]}
-                    onPress={() => setColor(colorOption)}
-                  />
+                    onPress={() => handleColorSelection(colorOption.color)}
+                    activeOpacity={0.8}
+                  >
+                    {color === colorOption.color && (
+                      <Ionicons name="checkmark" size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
                 ))}
               </View>
-            </View>
-            
-            <TouchableOpacity
-              style={[styles.createButton, loading && styles.disabledButton]}
-              onPress={handleCreateEvent}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading 
-                  ? (isEditing ? 'Updating Event...' : 'Creating Event...') 
-                  : (isEditing ? 'Update Event' : 'Create Event')}
+              <Text style={styles.colorName}>
+                {colorOptions.find(c => c.color === color)?.name || 'Custom Color'}
               </Text>
-            </TouchableOpacity>
-          </View>
+            </Animated.View>
+            
+            {/* Enhanced Submit Button */}
+            <Animated.View 
+              style={[
+                styles.buttonContainer,
+                {
+                  opacity: formItemAnimations[7],
+                  transform: [
+                    { scale: buttonScaleAnim },
+                    {
+                      translateX: formItemAnimations[7]?.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-20, 0],
+                      }) || 0
+                    }
+                  ]
+                }
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.createButton,
+                  loading && styles.loadingButton,
+                  { backgroundColor: color }
+                ]}
+                onPress={handleCreateEvent}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <View style={styles.buttonContent}>
+                  {loading ? (
+                    <>
+                      <Animated.View
+                        style={[
+                          styles.loadingSpinner,
+                          {
+                            transform: [{
+                              rotate: loadingSpinAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', '360deg'],
+                              })
+                            }]
+                          }
+                        ]}
+                      >
+                        <Ionicons name="refresh" size={20} color="white" />
+                      </Animated.View>
+                      <Text style={styles.buttonText}>
+                        {isEditing ? 'Updating Magic...' : 'Creating Magic...'}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons 
+                        name={isEditing ? "checkmark-circle" : "add-circle"} 
+                        size={20} 
+                        color="white" 
+                        style={styles.buttonIcon}
+                      />
+                      <Text style={styles.buttonText}>
+                        {isEditing ? 'Update Event ✨' : 'Create Event 🎉'}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+
+          {/* Success Animation Overlay */}
+          <Animated.View
+            style={[
+              styles.successOverlay,
+              {
+                opacity: successAnim,
+                transform: [{ scale: successAnim }],
+                pointerEvents: successAnim._value > 0 ? 'auto' : 'none',
+              }
+            ]}
+          >
+            <View style={styles.successContainer}>
+              <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+              <Text style={styles.successText}>
+                {isEditing ? 'Updated!' : 'Created!'}
+              </Text>
+            </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -565,7 +926,7 @@ export default function EventCreationScreen({ route, navigation }) {
         onCancel={successDialog.onConfirm}
         onConfirm={successDialog.onConfirm}
         cancelText=""
-        confirmText="OK"
+        confirmText="Awesome! 🎉"
         icon="checkmark-circle"
         iconColor="#4CAF50"
       />
@@ -573,12 +934,12 @@ export default function EventCreationScreen({ route, navigation }) {
       {/* Error Dialog */}
       <ConfirmationDialog
         visible={errorDialog.visible}
-        title="Error"
+        title="Oops! 😅"
         message={errorDialog.message}
         onCancel={() => setErrorDialog({ visible: false, message: '' })}
         onConfirm={() => setErrorDialog({ visible: false, message: '' })}
         cancelText=""
-        confirmText="OK"
+        confirmText="Try Again"
         icon="alert-circle"
         iconColor="#ff4d4d"
       />
@@ -597,42 +958,57 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: 'white',
+    padding: 20,
+    backgroundColor: '#59a2f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButton: {
     marginRight: 15,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: 'white',
   },
   formContainer: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    margin: 10,
-    padding: 15,
+    borderRadius: 16,
+    margin: 15,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   formGroup: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    marginBottom: 5,
+    marginBottom: 8,
     color: '#333',
+    fontWeight: '600',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    padding: 10,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 15,
     fontSize: 16,
+    backgroundColor: '#f8f9fa',
+    color: '#333',
+  },
+  titleInput: {
+    borderColor: '#59a2f0',
+    backgroundColor: '#f0f8ff',
   },
   textArea: {
     height: 100,
@@ -642,15 +1018,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    padding: 10,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   timeInputGroup: {
     width: '48%',
@@ -659,48 +1041,116 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 10,
+    paddingVertical: 10,
   },
   colorOption: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   selectedColorOption: {
     borderWidth: 3,
     borderColor: '#333',
+    transform: [{ scale: 1.1 }],
   },
-  createButton: {
-    backgroundColor: '#59a2f0',
-    padding: 15,
-    borderRadius: 4,
-    alignItems: 'center',
+  colorName: {
+    textAlign: 'center',
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  buttonContainer: {
     marginTop: 10,
   },
-  disabledButton: {
+  createButton: {
+    padding: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingButton: {
     backgroundColor: '#cccccc',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   buttonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  loadingSpinner: {
+    marginRight: 10,
+  },
+  successOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    margin: 15,
+  },
+  successContainer: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  successText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginTop: 15,
   },
   // Modal Picker Styles
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   pickerContainer: {
     backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  pickerHeaderButton: {
+    padding: 5,
   },
   pickerTitle: {
     fontSize: 18,
@@ -708,11 +1158,12 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   pickerCancel: {
-    color: '#f54242',
+    color: '#ff4d4d',
     fontSize: 16,
+    fontWeight: '600',
   },
   pickerDone: {
-    color: '#4287f5',
+    color: '#59a2f0',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -725,9 +1176,9 @@ const styles = StyleSheet.create({
     height: 200,
   },
   pickerSeparator: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
-    marginHorizontal: 5,
-  }
+    marginHorizontal: 10,
+  },
 });

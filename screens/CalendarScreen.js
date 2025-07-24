@@ -6,6 +6,12 @@ import {
   TouchableOpacity, 
   FlatList,
   Modal,
+  Animated,
+  Easing,
+  Dimensions,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
@@ -13,12 +19,30 @@ import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 export default function CalendarScreen({ navigation, route }) {
   const { events, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to force re-render
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(-50)).current;
+  const fabScaleAnim = useRef(new Animated.Value(0)).current;
+  const calendarScaleAnim = useRef(new Animated.Value(0.95)).current;
+  const headerSlideAnim = useRef(new Animated.Value(-100)).current;
+  const eventItemAnimations = useRef({}).current;
+  const monthTransitionAnim = useRef(new Animated.Value(1)).current;
+  const deletingEventId = useRef(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   
   // State for context menu
   const [contextMenu, setContextMenu] = useState({
@@ -42,24 +66,135 @@ export default function CalendarScreen({ navigation, route }) {
     message: '',
     isError: false
   });
-  
-  // Listen for focus events to refresh the calendar when navigating back
+
+  // Loading state for refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Entrance animations
+  useEffect(() => {
+    const animateEntrance = () => {
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(headerSlideAnim, {
+            toValue: 0,
+            duration: 600,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 700,
+            easing: Easing.out(Easing.back(1.2)),
+            useNativeDriver: true,
+          }),
+          Animated.timing(calendarScaleAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.out(Easing.back(1.1)),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.spring(fabScaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    };
+
+    animateEntrance();
+    startPulseAnimation();
+  }, []);
+
+  // Pulse animation for current day
+  const startPulseAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Listen for focus events to refresh the calendar
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      // Refresh events from Google Sheets when screen comes into focus
-      refreshEvents();
-      setRefreshKey(prevKey => prevKey + 1);
+      handleRefresh();
     });
     
     return unsubscribe;
   }, [navigation, refreshEvents]);
 
+  // Enhanced refresh with animations
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    
+    // Animate refresh
+    Animated.sequence([
+      Animated.timing(calendarScaleAnim, {
+        toValue: 0.98,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(calendarScaleAnim, {
+        toValue: 1.02,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(calendarScaleAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    try {
+      await refreshEvents();
+      setRefreshKey(prevKey => prevKey + 1);
+      
+      // Animate events appearing
+      LayoutAnimation.configureNext({
+        duration: 400,
+        create: {
+          type: LayoutAnimation.Types.spring,
+          property: LayoutAnimation.Properties.opacity,
+          springDamping: 0.8,
+        },
+        update: {
+          type: LayoutAnimation.Types.spring,
+          springDamping: 0.8,
+        },
+      });
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
   // Refresh events when component mounts
   useEffect(() => {
-    refreshEvents();
-  }, [refreshEvents]);
+    handleRefresh();
+  }, []);
 
-  // Generate calendar days for the current month
+  // Generate calendar days with animations
   useEffect(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -83,15 +218,54 @@ export default function CalendarScreen({ navigation, route }) {
     }
 
     setCalendarDays(calendarArr);
-  }, [currentDate, refreshKey, events]); // Add refreshKey and events as dependencies
 
-  // Navigate to previous month
+    // Animate calendar update
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
+  }, [currentDate, refreshKey, events]);
+
+  // Enhanced month navigation with smooth transitions
   const prevMonth = () => {
+    Animated.sequence([
+      Animated.timing(monthTransitionAnim, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(monthTransitionAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
-  // Navigate to next month
   const nextMonth = () => {
+    Animated.sequence([
+      Animated.timing(monthTransitionAnim, {
+        toValue: 0.8,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(monthTransitionAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
@@ -107,15 +281,65 @@ export default function CalendarScreen({ navigation, route }) {
     });
   };
 
-  // Handle event press
+  // Enhanced event press with haptic feedback
   const handleEventPress = (eventId) => {
-    navigation.navigate('Event', { eventId });
+    // Create press animation
+    const animationId = `event_${eventId}`;
+    if (!eventItemAnimations[animationId]) {
+      eventItemAnimations[animationId] = new Animated.Value(1);
+    }
+
+    Animated.sequence([
+      Animated.timing(eventItemAnimations[animationId], {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(eventItemAnimations[animationId], {
+        toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setTimeout(() => {
+      navigation.navigate('Event', { eventId });
+    }, 100);
   };
 
-  // Handle event long press (for admin context menu)
+  // Enhanced long press with context menu animation
   const handleEventLongPress = (eventId, event) => {
     if (isAdmin) {
-      // Prevent opening context menu if not an admin
+      const animationId = `event_${eventId}`;
+      if (!eventItemAnimations[animationId]) {
+        eventItemAnimations[animationId] = new Animated.Value(1);
+      }
+
+      // Vibration-like animation
+      Animated.sequence([
+        Animated.timing(eventItemAnimations[animationId], {
+          toValue: 1.05,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(eventItemAnimations[animationId], {
+          toValue: 0.98,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(eventItemAnimations[animationId], {
+          toValue: 1.02,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(eventItemAnimations[animationId], {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       setContextMenu({
         visible: true,
         eventId
@@ -123,11 +347,10 @@ export default function CalendarScreen({ navigation, route }) {
     }
   };
 
-  // Handle context menu options
+  // Handle context menu options with animations
   const handleMenuOption = (option) => {
     const eventId = contextMenu.eventId;
     
-    // Close the menu first
     setContextMenu({ visible: false, eventId: null });
     
     switch (option) {
@@ -141,7 +364,6 @@ export default function CalendarScreen({ navigation, route }) {
         navigation.navigate('AttendeeList', { eventId });
         break;
       case 'delete':
-        // Find the event to get its title
         const eventToDelete = events.find(e => e.id === eventId);
         setConfirmDialog({
           visible: true,
@@ -152,32 +374,69 @@ export default function CalendarScreen({ navigation, route }) {
     }
   };
 
-  // Handle delete confirmation - using EventsContext deleteEvent method
+  // Enhanced delete with dramatic animation
   const handleDeleteConfirm = async () => {
     const eventId = confirmDialog.eventId;
+    deletingEventId.current = eventId;
     
-    // Close dialog
     setConfirmDialog({ visible: false, eventId: null, eventTitle: '' });
     
+    // Create dramatic delete animation
+    const animationId = `event_${eventId}`;
+    if (!eventItemAnimations[animationId]) {
+      eventItemAnimations[animationId] = new Animated.Value(1);
+    }
+
+    // Animate deletion
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(eventItemAnimations[animationId], {
+          toValue: 1.1,
+          duration: 200,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(eventItemAnimations[animationId], {
+          toValue: 0,
+          duration: 400,
+          easing: Easing.in(Easing.back(1.5)),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
     try {
-      // Use the EventsContext deleteEvent method which handles Google Sheets
-      await deleteEvent(eventId);
-      
-      // Force refresh the calendar by updating the refresh key
-      setRefreshKey(prev => prev + 1);
-      
-      // Show success message
-      setMessageDialog({
-        visible: true,
-        title: 'Success',
-        message: 'Event deleted successfully',
-        isError: false
-      });
+      // Delay actual deletion to show animation
+      setTimeout(async () => {
+        await deleteEvent(eventId);
+        setRefreshKey(prev => prev + 1);
+        
+        // Success animation
+        setMessageDialog({
+          visible: true,
+          title: 'Success',
+          message: 'Event deleted successfully',
+          isError: false
+        });
+
+        // Clean up animation ref
+        delete eventItemAnimations[animationId];
+        deletingEventId.current = null;
+      }, 300);
       
     } catch (error) {
       console.error('Error deleting event:', error);
+      deletingEventId.current = null;
       
-      // Show error message
+      // Reset animation
+      Animated.timing(eventItemAnimations[animationId], {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      
       setMessageDialog({
         visible: true,
         title: 'Error',
@@ -187,67 +446,183 @@ export default function CalendarScreen({ navigation, route }) {
     }
   };
 
+  // Enhanced FAB press animation
+  const handleFabPress = (action) => {
+    Animated.sequence([
+      Animated.timing(fabScaleAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(fabScaleAnim, {
+        toValue: 1,
+        tension: 150,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setTimeout(() => {
+      if (action === 'create') {
+        navigation.navigate('EventCreation');
+      } else if (action === 'manage') {
+        navigation.navigate('EventDeletion');
+      }
+    }, 150);
+  };
+
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
 
   const renderDay = ({ item: day, index }) => {
     const dayEvents = day ? getEventsForDay(day) : [];
+    const isToday = day && 
+      day.getDate() === new Date().getDate() &&
+      day.getMonth() === new Date().getMonth() &&
+      day.getFullYear() === new Date().getFullYear();
     
     return (
-      <View 
+      <Animated.View 
         style={[
           styles.calendarDay,
-          !day && styles.emptyDay
+          !day && styles.emptyDay,
+          isToday && styles.todayDay,
+          { 
+            transform: [{ scale: monthTransitionAnim }],
+            opacity: fadeAnim 
+          }
         ]}
       >
         {day && (
           <>
-            <Text style={styles.dayNumber}>{day.getDate()}</Text>
-            {dayEvents.map((event) => (
-              <TouchableOpacity
-                key={event.id}
-                style={[styles.eventItem, { backgroundColor: event.color || '#4287f5' }]}
-                onPress={() => handleEventPress(event.id)}
-                onLongPress={() => handleEventLongPress(event.id, event)}
-                delayLongPress={500}
-              >
-                <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                <Text style={styles.eventTime}>
-                  {new Date(`2000-01-01T${event.startTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <Animated.View style={[
+              styles.dayNumberContainer,
+              isToday && { transform: [{ scale: pulseAnim }] }
+            ]}>
+              <Text style={[
+                styles.dayNumber,
+                isToday && styles.todayDayNumber
+              ]}>
+                {day.getDate()}
+              </Text>
+            </Animated.View>
+            {dayEvents.map((event, eventIndex) => {
+              const animationId = `event_${event.id}`;
+              if (!eventItemAnimations[animationId]) {
+                eventItemAnimations[animationId] = new Animated.Value(1);
+              }
+
+              const isDeleting = deletingEventId.current === event.id;
+
+              return (
+                <Animated.View
+                  key={event.id}
+                  style={{
+                    transform: [{ scale: eventItemAnimations[animationId] }],
+                    opacity: isDeleting ? 0 : 1,
+                  }}
+                >
+                  <TouchableOpacity
+                    style={[
+                      styles.eventItem, 
+                      { 
+                        backgroundColor: event.color || '#4287f5',
+                        marginTop: eventIndex * 2,
+                      }
+                    ]}
+                    onPress={() => handleEventPress(event.id)}
+                    onLongPress={() => handleEventLongPress(event.id, event)}
+                    delayLongPress={500}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.eventTitle} numberOfLines={1}>
+                      {event.title}
+                    </Text>
+                    <Text style={styles.eventTime}>
+                      {new Date(`2000-01-01T${event.startTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
           </>
         )}
-      </View>
+      </Animated.View>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.calendarContainer}>
-        <View style={styles.calendarHeader}>
-          <TouchableOpacity onPress={prevMonth} style={styles.navButton}>
-            <Text style={styles.navButtonText}>&lt;</Text>
+      <Animated.View 
+        style={[
+          styles.calendarContainer,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: calendarScaleAnim }
+            ]
+          }
+        ]}
+      >
+        {/* Enhanced Header with slide animation */}
+        <Animated.View 
+          style={[
+            styles.calendarHeader,
+            { transform: [{ translateY: headerSlideAnim }] }
+          ]}
+        >
+          <TouchableOpacity 
+            onPress={prevMonth} 
+            style={styles.navButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={20} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </Text>
-          <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-            <Text style={styles.navButtonText}>&gt;</Text>
+          
+          <Animated.View style={{ transform: [{ scale: monthTransitionAnim }] }}>
+            <Text style={styles.headerTitle}>
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </Text>
+          </Animated.View>
+          
+          <TouchableOpacity 
+            onPress={nextMonth} 
+            style={styles.navButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward" size={20} color="white" />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <View style={styles.weekdayHeader}>
-          <Text style={styles.weekdayText}>Sun</Text>
-          <Text style={styles.weekdayText}>Mon</Text>
-          <Text style={styles.weekdayText}>Tue</Text>
-          <Text style={styles.weekdayText}>Wed</Text>
-          <Text style={styles.weekdayText}>Thu</Text>
-          <Text style={styles.weekdayText}>Fri</Text>
-          <Text style={styles.weekdayText}>Sat</Text>
-        </View>
+        {/* Weekday Header */}
+        <Animated.View 
+          style={[
+            styles.weekdayHeader,
+            { opacity: fadeAnim }
+          ]}
+        >
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+            <Animated.View
+              key={day}
+              style={[
+                styles.weekdayContainer,
+                {
+                  transform: [{
+                    translateY: slideAnim.interpolate({
+                      inputRange: [-50, 0],
+                      outputRange: [-20 - (index * 3), 0],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.weekdayText}>{day}</Text>
+            </Animated.View>
+          ))}
+        </Animated.View>
 
+        {/* Calendar Grid */}
         <FlatList
           key={`calendar-${refreshKey}`}
           data={calendarDays}
@@ -255,29 +630,37 @@ export default function CalendarScreen({ navigation, route }) {
           keyExtractor={(_, index) => index.toString()}
           numColumns={7}
           scrollEnabled={false}
-          extraData={events} // Add this to make sure it updates when events change
+          extraData={events}
+          showsVerticalScrollIndicator={false}
         />
         
-        {/* Floating Action Buttons for admins */}
+        {/* Animated Floating Action Buttons */}
         {isAdmin && (
-          <View style={styles.fabContainer}>
+          <Animated.View 
+            style={[
+              styles.fabContainer,
+              { transform: [{ scale: fabScaleAnim }] }
+            ]}
+          >
             <TouchableOpacity
-              style={styles.manageFab}
-              onPress={() => navigation.navigate('EventDeletion')}
+              style={[styles.manageFab, styles.fabShadow]}
+              onPress={() => handleFabPress('manage')}
+              activeOpacity={0.8}
             >
               <Ionicons name="trash-outline" size={24} color="white" />
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={styles.fab}
-              onPress={() => navigation.navigate('EventCreation')}
+              style={[styles.fab, styles.fabShadow]}
+              onPress={() => handleFabPress('create')}
+              activeOpacity={0.8}
             >
-              <Ionicons name="add" size={24} color="white" />
+              <Ionicons name="add" size={28} color="white" />
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         )}
         
-        {/* Context Menu Modal */}
+        {/* Enhanced Context Menu Modal */}
         <Modal
           transparent={true}
           visible={contextMenu.visible}
@@ -289,41 +672,66 @@ export default function CalendarScreen({ navigation, route }) {
             activeOpacity={1}
             onPress={() => setContextMenu({ visible: false, eventId: null })}
           >
-            <View style={styles.contextMenuContainer}>
-              <TouchableOpacity 
-                style={styles.contextMenuItem}
-                onPress={() => handleMenuOption('view')}
-              >
-                <Ionicons name="eye-outline" size={20} color="#333" />
-                <Text style={styles.contextMenuText}>View Event</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.contextMenuItem}
-                onPress={() => handleMenuOption('edit')}
-              >
-                <Ionicons name="create-outline" size={20} color="#333" />
-                <Text style={styles.contextMenuText}>Edit Event</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.contextMenuItem}
-                onPress={() => handleMenuOption('attendees')}
-              >
-                <Ionicons name="people-outline" size={20} color="#333" />
-                <Text style={styles.contextMenuText}>View Attendees</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.contextMenuItem, styles.deleteMenuItem]}
-                onPress={() => handleMenuOption('delete')}
-              >
-                <Ionicons name="trash-outline" size={20} color="#ff4d4d" />
-                <Text style={[styles.contextMenuText, styles.deleteMenuText]}>Delete Event</Text>
-              </TouchableOpacity>
-            </View>
+            <Animated.View 
+              style={[
+                styles.contextMenuContainer,
+                {
+                  transform: [{ scale: contextMenu.visible ? 1 : 0.8 }],
+                  opacity: contextMenu.visible ? 1 : 0,
+                }
+              ]}
+            >
+              {[
+                { key: 'view', icon: 'eye-outline', text: 'View Event', color: '#333' },
+                { key: 'edit', icon: 'create-outline', text: 'Edit Event', color: '#333' },
+                { key: 'attendees', icon: 'people-outline', text: 'View Attendees', color: '#333' },
+                { key: 'delete', icon: 'trash-outline', text: 'Delete Event', color: '#ff4d4d' },
+              ].map((item, index) => (
+                <TouchableOpacity 
+                  key={item.key}
+                  style={[
+                    styles.contextMenuItem,
+                    item.key === 'delete' && styles.deleteMenuItem
+                  ]}
+                  onPress={() => handleMenuOption(item.key)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={item.icon} size={20} color={item.color} />
+                  <Text style={[
+                    styles.contextMenuText,
+                    item.key === 'delete' && styles.deleteMenuText
+                  ]}>
+                    {item.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Loading Overlay */}
+        {isRefreshing && (
+          <Animated.View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <Animated.View
+                style={[
+                  styles.loadingSpinner,
+                  {
+                    transform: [{
+                      rotate: fadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      })
+                    }]
+                  }
+                ]}
+              >
+                <Ionicons name="refresh" size={24} color="#59a2f0" />
+              </Animated.View>
+              <Text style={styles.loadingText}>Refreshing...</Text>
+            </View>
+          </Animated.View>
+        )}
 
         {/* Confirmation Dialog */}
         <ConfirmationDialog
@@ -350,7 +758,7 @@ export default function CalendarScreen({ navigation, route }) {
           icon={messageDialog.isError ? "alert-circle" : "checkmark-circle"}
           iconColor={messageDialog.isError ? "#ff4d4d" : "#4CAF50"}
         />
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -362,82 +770,107 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
     margin: 10,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: '#f2f2f2',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    padding: 20,
+    backgroundColor: '#59a2f0',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: 'white',
+    textAlign: 'center',
+    minWidth: 200,
   },
   navButton: {
-    backgroundColor: '#59a2f0',
-    padding: 8,
-    borderRadius: 4,
-    width: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 12,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
     alignItems: 'center',
-  },
-  navButtonText: {
-    color: 'white',
-    fontSize: 16,
+    justifyContent: 'center',
   },
   weekdayHeader: {
     flexDirection: 'row',
+    backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    backgroundColor: '#f8f9fa',
+  },
+  weekdayContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   weekdayText: {
     flex: 1,
     textAlign: 'center',
-    padding: 10,
+    padding: 12,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#666',
+    fontSize: 14,
   },
   calendarDay: {
     flex: 1,
     minHeight: 100,
     borderWidth: 0.5,
     borderColor: '#e0e0e0',
-    padding: 5,
-    width: '14.28%', // 100% / 7 days
+    padding: 6,
+    width: '14.28%',
+    backgroundColor: 'white',
   },
   emptyDay: {
     backgroundColor: '#f8f9fa',
   },
+  todayDay: {
+    backgroundColor: '#fff3e0',
+    borderColor: '#ff9800',
+    borderWidth: 1,
+  },
+  dayNumberContainer: {
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
   dayNumber: {
     fontWeight: 'bold',
-    marginBottom: 5,
     color: '#333',
+    fontSize: 14,
+  },
+  todayDayNumber: {
+    color: '#ff9800',
+    fontSize: 16,
+    fontWeight: '800',
   },
   eventItem: {
-    borderRadius: 4,
+    borderRadius: 6,
     padding: 4,
     marginBottom: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   eventTitle: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   eventTime: {
-    color: 'white',
-    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 9,
   },
   fabContainer: {
     position: 'absolute',
@@ -446,18 +879,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fab: {
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f1ca3b',
-    borderRadius: 28,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    marginTop: 10,
+    borderRadius: 30,
+    marginTop: 12,
   },
   manageFab: {
     width: 56,
@@ -466,34 +894,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#ff6b6b',
     borderRadius: 28,
-    elevation: 8,
+  },
+  fabShadow: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 3,
+    shadowRadius: 8,
+    elevation: 12,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   contextMenuContainer: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    width: '80%',
-    padding: 10,
+    borderRadius: 12,
+    width: '85%',
+    padding: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 12,
+    elevation: 10,
   },
   contextMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -502,10 +932,35 @@ const styles = StyleSheet.create({
   },
   contextMenuText: {
     fontSize: 16,
-    marginLeft: 10,
+    marginLeft: 12,
     color: '#333',
+    fontWeight: '500',
   },
   deleteMenuText: {
     color: '#ff4d4d',
+    fontWeight: '600',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingSpinner: {
+    marginBottom: 10,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#59a2f0',
+    fontWeight: '500',
   },
 });
