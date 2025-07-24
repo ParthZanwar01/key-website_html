@@ -1,4 +1,4 @@
-// contexts/EventsContext.js - FIXED to properly load events with attendees
+// contexts/EventsContext.js - FIXED to properly handle attendees
 import React, { useContext, useState, useEffect, createContext, useCallback } from 'react';
 import SupabaseService from '../services/SupabaseService';
 
@@ -17,7 +17,7 @@ export function EventsProvider({ children }) {
       console.log('🔄 Loading events from Supabase...');
       setLoading(true);
       
-      // Use the fixed getAllEvents method that loads attendees
+      // Use the FIXED getAllEvents method that loads attendees
       const eventsData = await SupabaseService.getAllEvents();
       
       console.log(`✅ Loaded ${eventsData.length} events with attendees`);
@@ -25,6 +25,9 @@ export function EventsProvider({ children }) {
       // Log attendee counts for debugging
       eventsData.forEach(event => {
         console.log(`Event "${event.title}": ${event.attendees?.length || 0} attendees`);
+        if (event.attendees && event.attendees.length > 0) {
+          console.log('  Attendees:', event.attendees.map(a => a.name).join(', '));
+        }
       });
       
       setEvents(eventsData);
@@ -101,12 +104,15 @@ export function EventsProvider({ children }) {
         throw new Error('You are already registered for this event');
       }
       
+      // Submit signup to database
       await SupabaseService.signupForEvent(eventId, attendee);
       
-      // Reload events to get updated attendee list
+      // IMPORTANT: Reload events to get updated attendee list
+      // This ensures the UI shows the new attendee immediately
+      console.log('🔄 Reloading events to show new attendee...');
       await loadEvents();
       
-      console.log('✅ Successfully signed up for event');
+      console.log('✅ Successfully signed up for event and reloaded data');
     } catch (error) {
       console.error('❌ Failed to signup for event:', error);
       throw error;
@@ -117,6 +123,9 @@ export function EventsProvider({ children }) {
     const event = events.find(event => event.id === id);
     if (event) {
       console.log(`📋 Found event "${event.title}" with ${event.attendees?.length || 0} attendees`);
+      if (event.attendees && event.attendees.length > 0) {
+        console.log('  Current attendees:', event.attendees.map(a => a.name).join(', '));
+      }
     } else {
       console.warn(`⚠️ Event with ID ${id} not found`);
     }
@@ -165,6 +174,13 @@ export function EventsProvider({ children }) {
       totalEvents: events.length,
       eventsWithAttendees: events.filter(e => e.attendees && e.attendees.length > 0).length,
       totalAttendees: events.reduce((sum, e) => sum + (e.attendees?.length || 0), 0)
+    });
+    
+    // Log each event's attendee count for debugging
+    events.forEach(event => {
+      if (event.attendees && event.attendees.length > 0) {
+        console.log(`  "${event.title}": ${event.attendees.length} attendees`);
+      }
     });
   }, [events]);
 

@@ -386,171 +386,157 @@ class SupabaseService {
 
   // ========== EVENTS MANAGEMENT ==========
 
+    // ========== EVENTS MANAGEMENT ==========
+
   /**
-   * Get all events with better error handling
+   * Get all events WITH attendees - FIXED VERSION
    */
   static async getAllEvents() {
     try {
-      console.log('📅 Getting all events...');
+      console.log('📅 Getting all events with attendees...');
       
-      const { data, error } = await supabase
+      // Step 1: Get all events
+      const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
         .order('event_date');
 
-      if (error) {
-        console.error('❌ Error getting events:', error);
-        throw error;
+      if (eventsError) {
+        console.error('❌ Error getting events:', eventsError);
+        throw eventsError;
       }
       
-      console.log(`✅ Found ${data?.length || 0} events`);
+      console.log(`✅ Found ${eventsData?.length || 0} events`);
       
-      // Transform data to match existing structure
-      return (data || []).map(event => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        location: event.location,
-        date: event.event_date,
-        startTime: event.start_time,
-        endTime: event.end_time,
-        capacity: event.capacity,
-        color: event.color,
-        attendees: [], // We'll load these separately if needed
-        createdBy: event.created_by,
-        createdAt: event.created_at
-      }));
-    } catch (error) {
-      console.error('Error getting events:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create event
-   */
-  static async createEvent(eventData) {
-    try {
-      console.log('📅 Creating event:', eventData.title);
-      
-      const { data, error } = await supabase
-        .from('events')
-        .insert([{
-          title: eventData.title,
-          description: eventData.description,
-          location: eventData.location,
-          event_date: eventData.date,
-          start_time: eventData.startTime,
-          end_time: eventData.endTime,
-          capacity: eventData.capacity,
-          color: eventData.color,
-          created_by: eventData.createdBy || 'Admin'
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Error creating event:', error);
-        throw error;
+      if (!eventsData || eventsData.length === 0) {
+        return [];
       }
-      
-      console.log('✅ Event created:', data);
-      return data;
-    } catch (error) {
-      console.error('Error creating event:', error);
-      throw error;
-    }
-  }
 
-  /**
-   * Update event
-   */
-  static async updateEvent(eventId, eventData) {
-    try {
-      console.log('📅 Updating event:', eventId);
+      // Step 2: Get all attendees for all events in one query
+      const eventIds = eventsData.map(event => event.id);
       
-      const { data, error } = await supabase
-        .from('events')
-        .update({
-          title: eventData.title,
-          description: eventData.description,
-          location: eventData.location,
-          event_date: eventData.date,
-          start_time: eventData.startTime,
-          end_time: eventData.endTime,
-          capacity: eventData.capacity,
-          color: eventData.color,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', eventId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Error updating event:', error);
-        throw error;
-      }
-      
-      console.log('✅ Event updated:', data);
-      return data;
-    } catch (error) {
-      console.error('Error updating event:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete event
-   */
-  static async deleteEvent(eventId) {
-    try {
-      console.log('🗑️ Deleting event:', eventId);
-      
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', eventId);
-
-      if (error) {
-        console.error('❌ Error deleting event:', error);
-        throw error;
-      }
-      
-      console.log('✅ Event deleted:', eventId);
-      return true;
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Sign up for event - FIXED with correct column name
-   */
-  static async signupForEvent(eventId, attendeeData) {
-    try {
-      console.log('✍️ Signing up for event:', eventId, attendeeData);
-      
-      const { data, error } = await supabase
+      const { data: attendeesData, error: attendeesError } = await supabase
         .from('event_attendees')
-        .insert([{
-          event_id: eventId,
-          name: attendeeData.name,
-          email: attendeeData.email,
-          registered_at: new Date().toISOString() // ✅ FIXED: Use registered_at instead of signed_up_at
-        }])
-        .select()
+        .select('*')
+        .in('event_id', eventIds)
+        .order('registered_at');
+
+      if (attendeesError) {
+        console.error('❌ Error getting attendees:', attendeesError);
+        // Don't throw here - we can still return events without attendees
+        console.warn('⚠️ Continuing without attendees data');
+      }
+
+      console.log(`✅ Found ${attendeesData?.length || 0} total attendees across all events`);
+      
+      // Step 3: Group attendees by event_id
+      const attendeesByEvent = {};
+      if (attendeesData) {
+        attendeesData.forEach(attendee => {
+          if (!attendeesByEvent[attendee.event_id]) {
+            attendeesByEvent[attendee.event_id] = [];
+          }
+          attendeesByEvent[attendee.event_id].push({
+            id: attendee.id,
+            name: attendee.name,
+            email: attendee.email,
+            registeredAt: attendee.registered_at
+          });
+        });
+      }
+
+      // Step 4: Transform events and attach attendees
+      const eventsWithAttendees = eventsData.map(event => {
+        const eventAttendees = attendeesByEvent[event.id] || [];
+        
+        console.log(`Event "${event.title}": ${eventAttendees.length} attendees`);
+        
+        return {
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          location: event.location,
+          date: event.event_date,
+          startTime: event.start_time,
+          endTime: event.end_time,
+          capacity: event.capacity,
+          color: event.color,
+          attendees: eventAttendees, // ✅ FIXED: Now includes actual attendees
+          createdBy: event.created_by,
+          createdAt: event.created_at
+        };
+      });
+
+      console.log('✅ Events loaded with attendees successfully');
+      return eventsWithAttendees;
+      
+    } catch (error) {
+      console.error('❌ Error getting events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single event with attendees
+   */
+  static async getEventById(eventId) {
+    try {
+      console.log('📅 Getting event by ID with attendees:', eventId);
+      
+      // Get the event
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
         .single();
 
-      if (error) {
-        console.error('❌ Error signing up for event:', error);
-        throw error;
+      if (eventError) {
+        console.error('❌ Error getting event:', eventError);
+        throw eventError;
       }
+
+      if (!eventData) {
+        return null;
+      }
+
+      // Get attendees for this event
+      const { data: attendeesData, error: attendeesError } = await supabase
+        .from('event_attendees')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('registered_at');
+
+      if (attendeesError) {
+        console.error('❌ Error getting attendees for event:', attendeesError);
+        // Continue without attendees rather than failing
+      }
+
+      const attendees = (attendeesData || []).map(attendee => ({
+        id: attendee.id,
+        name: attendee.name,
+        email: attendee.email,
+        registeredAt: attendee.registered_at
+      }));
+
+      console.log(`✅ Found event "${eventData.title}" with ${attendees.length} attendees`);
+
+      return {
+        id: eventData.id,
+        title: eventData.title,
+        description: eventData.description,
+        location: eventData.location,
+        date: eventData.event_date,
+        startTime: eventData.start_time,
+        endTime: eventData.end_time,
+        capacity: eventData.capacity,
+        color: eventData.color,
+        attendees: attendees,
+        createdBy: eventData.created_by,
+        createdAt: eventData.created_at
+      };
       
-      console.log('✅ Event signup successful:', data);
-      return data;
     } catch (error) {
-      console.error('Error signing up for event:', error);
+      console.error('❌ Error getting event by ID:', error);
       throw error;
     }
   }
