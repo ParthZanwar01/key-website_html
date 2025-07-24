@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,300 @@ import {
   SafeAreaView,
   StatusBar,
   ImageBackground,
-  ScrollView
+  ScrollView,
+  Animated,
+  TouchableOpacity
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, isWeb, isMobile }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Reset animations when component mounts
+  useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(50);
+    scaleAnim.setValue(0.8);
+    rotateAnim.setValue(0);
+    setIsVisible(false);
+  }, []);
+
+  const animateIn = () => {
+    if (isVisible) return;
+    setIsVisible(true);
+
+    // Stagger animation based on index
+    const delay = (index % numColumns) * 150;
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        delay,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        delay,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 800,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handlePress = () => {
+    // Bounce animation on press
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 300,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // Handle scroll-based visibility
+  const handleViewableChange = (isViewable) => {
+    if (isViewable && !isVisible) {
+      animateIn();
+    }
+  };
+
+  const rotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.cardContainer,
+        {
+          width: cardWidth,
+          marginLeft: index % numColumns === 0 ? 0 : 10,
+          marginBottom: isWeb ? 25 : 20,
+          opacity: fadeAnim,
+          transform: [
+            { translateY: slideAnim },
+            { scale: scaleAnim },
+          ],
+        },
+      ]}
+      onLayout={() => {
+        // Use a timeout to ensure the component is mounted and visible
+        setTimeout(() => {
+          animateIn();
+        }, 100);
+      }}
+    >
+      <TouchableOpacity
+        style={[styles.officerCard, { height: cardHeight }]}
+        onPress={handlePress}
+        activeOpacity={0.9}
+      >
+        {/* Animated Key Club logo */}
+        <Animated.Image
+          source={require('../assets/images/keyclublogo.png')}
+          style={[
+            styles.keyClubLogo,
+            {
+              transform: [{ rotate: rotation }],
+            },
+          ]}
+          resizeMode="contain"
+        />
+        
+        {/* Background with string lights */}
+        <ImageBackground
+          source={require('../assets/images/string_lights_bg.png')}
+          style={styles.cardBackground}
+          resizeMode="cover"
+        >
+          {/* Officer photo with scale animation */}
+          <Animated.View
+            style={[
+              styles.photoContainer,
+              {
+                width: cardWidth - 40,
+                height: isWeb ? 220 : 200,
+                marginTop: isWeb ? 35 : 30,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
+            <Image
+              source={item.imageSource}
+              style={styles.officerImage}
+              resizeMode="cover"
+            />
+          </Animated.View>
+          
+          {/* Officer name with slide animation */}
+          <Animated.View
+            style={[
+              styles.nameContainer,
+              {
+                transform: [{ translateX: slideAnim }],
+              },
+            ]}
+          >
+            <Text style={[
+              styles.officerName,
+              { fontSize: isWeb ? 22 : isMobile ? 16 : 18 }
+            ]}>
+              {item.name}
+            </Text>
+          </Animated.View>
+          
+          {/* Officer details with fade animation */}
+          <Animated.View
+            style={[
+              styles.detailsContainer,
+              {
+                opacity: fadeAnim,
+              },
+            ]}
+          >
+            <Text style={[
+              styles.classInfo,
+              { fontSize: isWeb ? 16 : 14 }
+            ]}>
+              Class of {item.classYear}
+            </Text>
+            <Text style={[
+              styles.memberInfo,
+              { fontSize: isWeb ? 16 : 14 }
+            ]}>
+              {item.memberYears}-year member
+            </Text>
+          </Animated.View>
+        </ImageBackground>
+        
+        {/* Floral border */}
+        <Image
+          source={require('../assets/images/floral_border.png')}
+          style={styles.floralBorder}
+          resizeMode="cover"
+        />
+        
+        {/* Position banner with pulse animation */}
+        <AnimatedPositionBanner
+          position={item.position}
+          isWeb={isWeb}
+          isMobile={isMobile}
+          delay={(index % numColumns) * 200 + 500}
+        />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const slideUpAnim = useRef(new Animated.Value(30)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Reset animations on mount
+    slideUpAnim.setValue(30);
+    opacityAnim.setValue(0);
+    pulseAnim.setValue(1);
+
+    // Initial slide up animation
+    Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 500,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideUpAnim, {
+        toValue: 0,
+        delay,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Continuous pulse animation
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const pulseTimeout = setTimeout(() => {
+      pulseAnimation.start();
+    }, delay + 800);
+
+    return () => {
+      clearTimeout(pulseTimeout);
+      pulseAnimation.stop();
+    };
+  }, [delay]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.positionContainer,
+        {
+          opacity: opacityAnim,
+          transform: [
+            { translateY: slideUpAnim },
+            { scale: pulseAnim },
+          ],
+        },
+      ]}
+    >
+      <Text style={[
+        styles.positionText,
+        { fontSize: isWeb ? 16 : isMobile ? 14 : 15 }
+      ]}>
+        {position}
+      </Text>
+    </Animated.View>
+  );
+};
+
 export default function OfficersScreen() {
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const headerSlideAnim = useRef(new Animated.Value(-50)).current;
   
   useEffect(() => {
     const onChange = (result) => {
@@ -23,6 +310,25 @@ export default function OfficersScreen() {
     };
     
     const subscription = Dimensions.addEventListener('change', onChange);
+    
+    // Reset and animate header every time screen loads
+    headerFadeAnim.setValue(0);
+    headerSlideAnim.setValue(-50);
+    
+    Animated.parallel([
+      Animated.timing(headerFadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(headerSlideAnim, {
+        toValue: 0,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
     return () => subscription?.remove();
   }, []);
 
@@ -223,89 +529,15 @@ export default function OfficersScreen() {
   ];
 
   const renderOfficerCard = ({ item, index }) => (
-    <View style={[
-      styles.cardContainer, 
-      { 
-        width: cardWidth,
-        marginLeft: index % numColumns === 0 ? 0 : 10,
-        marginBottom: isWeb ? 25 : 20
-      }
-    ]}>
-      <View style={[styles.officerCard, { height: cardHeight }]}>
-        {/* Key Club logo */}
-        <Image 
-          source={require('../assets/images/keyclublogo.png')} 
-          style={styles.keyClubLogo} 
-          resizeMode="contain"
-        />
-        
-        {/* Background with string lights */}
-        <ImageBackground
-          source={require('../assets/images/string_lights_bg.png')}
-          style={styles.cardBackground}
-          resizeMode="cover"
-        >
-          {/* Officer photo */}
-          <View style={[
-            styles.photoContainer, 
-            { 
-              width: cardWidth - 40,
-              height: isWeb ? 220 : 200,
-              marginTop: isWeb ? 35 : 30
-            }
-          ]}>
-            <Image
-              source={item.imageSource}
-              style={styles.officerImage}
-              resizeMode="cover"
-            />
-          </View>
-          
-          {/* Officer name */}
-          <View style={styles.nameContainer}>
-            <Text style={[
-              styles.officerName, 
-              { fontSize: isWeb ? 22 : isMobile ? 16 : 18 }
-            ]}>
-              {item.name}
-            </Text>
-          </View>
-          
-          {/* Officer details */}
-          <View style={styles.detailsContainer}>
-            <Text style={[
-              styles.classInfo, 
-              { fontSize: isWeb ? 16 : 14 }
-            ]}>
-              Class of {item.classYear}
-            </Text>
-            <Text style={[
-              styles.memberInfo, 
-              { fontSize: isWeb ? 16 : 14 }
-            ]}>
-              {item.memberYears}-year member
-            </Text>
-          </View>
-        </ImageBackground>
-        
-        {/* Floral border at bottom */}
-        <Image 
-          source={require('../assets/images/floral_border.png')} 
-          style={styles.floralBorder} 
-          resizeMode="cover"
-        />
-        
-        {/* Position banner */}
-        <View style={styles.positionContainer}>
-          <Text style={[
-            styles.positionText,
-            { fontSize: isWeb ? 16 : isMobile ? 14 : 15 }
-          ]}>
-            {item.position}
-          </Text>
-        </View>
-      </View>
-    </View>
+    <AnimatedOfficerCard
+      item={item}
+      index={index}
+      cardWidth={cardWidth}
+      cardHeight={cardHeight}
+      numColumns={numColumns}
+      isWeb={isWeb}
+      isMobile={isMobile}
+    />
   );
 
   // Use ScrollView with flexWrap for web, FlatList for mobile
@@ -314,12 +546,20 @@ export default function OfficersScreen() {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
         
-        <View style={styles.header}>
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: headerFadeAnim,
+              transform: [{ translateY: headerSlideAnim }],
+            },
+          ]}
+        >
           <Text style={[styles.headerTitle, { fontSize: 28 }]}>Our Leadership Team</Text>
           <Text style={[styles.headerSubtitle, { fontSize: 18 }]}>
             Meet the dedicated individuals who lead our Key Club.
           </Text>
-        </View>
+        </Animated.View>
 
         <ScrollView 
           contentContainerStyle={[styles.webContainer, { padding: 20 }]}
@@ -328,7 +568,15 @@ export default function OfficersScreen() {
           <View style={[styles.webGrid, { maxWidth: 1400, alignSelf: 'center' }]}>
             {officers.map((item, index) => 
               <View key={item.id} style={{ marginBottom: 25 }}>
-                {renderOfficerCard({ item, index })}
+                <AnimatedOfficerCard
+                  item={item}
+                  index={index}
+                  cardWidth={cardWidth}
+                  cardHeight={cardHeight}
+                  numColumns={numColumns}
+                  isWeb={isWeb}
+                  isMobile={isMobile}
+                />
               </View>
             )}
           </View>
@@ -342,12 +590,20 @@ export default function OfficersScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      <View style={styles.header}>
+      <Animated.View
+        style={[
+          styles.header,
+          {
+            opacity: headerFadeAnim,
+            transform: [{ translateY: headerSlideAnim }],
+          },
+        ]}
+      >
         <Text style={styles.headerTitle}>Our Leadership Team</Text>
         <Text style={styles.headerSubtitle}>
           Meet the dedicated individuals who lead our Key Club.
         </Text>
-      </View>
+      </Animated.View>
 
       <FlatList
         data={officers}
