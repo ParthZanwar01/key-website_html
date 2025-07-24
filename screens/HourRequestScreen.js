@@ -25,7 +25,7 @@ import * as FileSystem from 'expo-file-system';
 // Updated Google Apps Script Service for direct folder upload
 class SimpleGoogleDriveService {
   // Google Apps Script Web App URL for photo uploads
-  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGszRmtd58snZTJ02qfxV0l452qz7KwJ2EPfvIclfYFuDdTMCLH7gzgaGizdDVnQlHIQ/exec';
+  static APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmCIbh-YQS5G2oFMqLFGa8LXZwwi4nkTBksAbdAvhlW_EaokITIbUcq3qAkga_hmxt/exec'
   
   static async uploadImage(imageUri, studentNumber, eventName) {
     try {
