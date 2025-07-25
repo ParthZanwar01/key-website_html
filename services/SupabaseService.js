@@ -386,8 +386,6 @@ class SupabaseService {
 
   // ========== EVENTS MANAGEMENT ==========
 
-    // ========== EVENTS MANAGEMENT ==========
-
   /**
    * Get all events WITH attendees - FIXED VERSION
    */
@@ -541,17 +539,185 @@ class SupabaseService {
     }
   }
 
+  /**
+   * Create new event - MISSING METHOD ADDED
+   */
+  static async createEvent(eventData) {
+    try {
+      console.log('➕ Creating new event:', eventData.title);
+      
+      const { data, error } = await supabase
+        .from('events')
+        .insert([{
+          title: eventData.title,
+          description: eventData.description,
+          location: eventData.location,
+          event_date: eventData.date,
+          start_time: eventData.startTime,
+          end_time: eventData.endTime,
+          capacity: parseInt(eventData.capacity),
+          color: eventData.color || '#4287f5',
+          created_by: eventData.createdBy || 'admin',
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating event:', error);
+        throw error;
+      }
+
+      console.log('✅ Event created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to create event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update existing event - MISSING METHOD ADDED
+   */
+  static async updateEvent(eventId, eventData) {
+    try {
+      console.log('📝 Updating event:', eventId);
+      
+      const { data, error } = await supabase
+        .from('events')
+        .update({
+          title: eventData.title,
+          description: eventData.description,
+          location: eventData.location,
+          event_date: eventData.date,
+          start_time: eventData.startTime,
+          end_time: eventData.endTime,
+          capacity: parseInt(eventData.capacity),
+          color: eventData.color || '#4287f5',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating event:', error);
+        throw error;
+      }
+
+      console.log('✅ Event updated successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to update event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete event - MISSING METHOD ADDED
+   */
+  static async deleteEvent(eventId) {
+    try {
+      console.log('🗑️ Deleting event:', eventId);
+      
+      // First, delete all attendees for this event
+      console.log('🗑️ Deleting event attendees...');
+      const { error: attendeesError } = await supabase
+        .from('event_attendees')
+        .delete()
+        .eq('event_id', eventId);
+
+      if (attendeesError) {
+        console.error('❌ Error deleting event attendees:', attendeesError);
+        throw attendeesError;
+      }
+
+      // Then delete the event itself
+      console.log('🗑️ Deleting event record...');
+      const { data, error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error deleting event:', error);
+        throw error;
+      }
+
+      console.log('✅ Event deleted successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to delete event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sign up for event - MISSING METHOD ADDED
+   */
+  static async signupForEvent(eventId, attendeeData) {
+    try {
+      console.log('✍️ Signing up for event:', eventId, attendeeData);
+      
+      // Check if already registered
+      const { data: existingAttendee, error: checkError } = await supabase
+        .from('event_attendees')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('email', attendeeData.email)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('❌ Error checking existing attendee:', checkError);
+        throw checkError;
+      }
+
+      if (existingAttendee) {
+        throw new Error('You are already registered for this event');
+      }
+
+      // Check event capacity
+      const event = await this.getEventById(eventId);
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      if (event.attendees && event.attendees.length >= event.capacity) {
+        throw new Error('Event is at full capacity');
+      }
+
+      // Add attendee
+      const { data, error } = await supabase
+        .from('event_attendees')
+        .insert([{
+          event_id: eventId,
+          name: attendeeData.name,
+          email: attendeeData.email,
+          registered_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error signing up for event:', error);
+        throw error;
+      }
+
+      console.log('✅ Successfully signed up for event:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to sign up for event:', error);
+      throw error;
+    }
+  }
+
   // ========== HOUR REQUESTS ==========
 
   /**
-   * Submit hour request
+   * Submit hour request with optional image filename
    */
-  // Simplified submitHourRequest method for SupabaseService.js
-// This only handles the hour request data + image filename
-
-/**
- * Submit hour request with optional image filename
- */
   static async submitHourRequest(requestData) {
     try {
       console.log('⏰ Submitting hour request to Supabase...');
@@ -771,146 +937,144 @@ class SupabaseService {
     }
   }
 
-// Replace your resetStudentPassword method with this version
-// This matches your actual database schema
-
-/**
- * Reset student password (corrected for your actual table structure)
- */
-static async resetStudentPassword(sNumber, newPassword) {
-  try {
-    console.log('🔒 Starting password reset for:', sNumber);
-    
-    // 1. Validate inputs
-    if (!sNumber || !newPassword) {
-      throw new Error('S-Number and password are required');
-    }
-    
-    if (newPassword.length < 6) {
-      throw new Error('Password must be at least 6 characters long');
-    }
-    
-    // 2. Check if student exists
-    console.log('🔍 Checking if student exists...');
-    const student = await this.getStudent(sNumber);
-    if (!student) {
-      console.error('❌ Student not found:', sNumber);
-      throw new Error('Student not found in system');
-    }
-    console.log('✅ Student found:', student.s_number);
-
-    // 3. Check if auth user exists
-    console.log('🔍 Checking if auth user exists...');
-    const authUser = await this.getAuthUser(sNumber);
-    if (!authUser) {
-      console.error('❌ Auth user not found:', sNumber);
-      throw new Error('No account found for this S-Number');
-    }
-    console.log('✅ Auth user found:', authUser.s_number);
-
-    // 4. Hash the new password
-    console.log('🔐 Hashing new password...');
-    const newPasswordHash = await this.hashPassword(newPassword);
-    console.log('✅ Password hashed successfully');
-
-    // 5. Update the password using your actual table columns
-    console.log('💾 Updating password in database...');
-    
-    const { data: updateData, error: updateError } = await supabase
-      .from('auth_users')
-      .update({ 
-        password_hash: newPasswordHash,
-        updated_at: new Date().toISOString() // Use your existing updated_at column
-      })
-      .eq('s_number', sNumber.toLowerCase())
-      .select();
-
-    if (updateError) {
-      console.error('❌ Database update error details:', {
-        error: updateError,
-        code: updateError.code,
-        message: updateError.message,
-        details: updateError.details,
-        hint: updateError.hint
-      });
-      throw new Error(`Database update failed: ${updateError.message}`);
-    }
-
-    console.log('✅ Password updated in database:', updateData);
-
-    // 6. Update student record to track password reset (optional)
-    console.log('📝 Updating student record...');
+  /**
+   * Reset student password (corrected for your actual table structure)
+   */
+  static async resetStudentPassword(sNumber, newPassword) {
     try {
-      await this.updateStudent(sNumber, {
-        last_password_reset: new Date().toISOString(),
-        account_status: 'active'
+      console.log('🔒 Starting password reset for:', sNumber);
+      
+      // 1. Validate inputs
+      if (!sNumber || !newPassword) {
+        throw new Error('S-Number and password are required');
+      }
+      
+      if (newPassword.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+      
+      // 2. Check if student exists
+      console.log('🔍 Checking if student exists...');
+      const student = await this.getStudent(sNumber);
+      if (!student) {
+        console.error('❌ Student not found:', sNumber);
+        throw new Error('Student not found in system');
+      }
+      console.log('✅ Student found:', student.s_number);
+
+      // 3. Check if auth user exists
+      console.log('🔍 Checking if auth user exists...');
+      const authUser = await this.getAuthUser(sNumber);
+      if (!authUser) {
+        console.error('❌ Auth user not found:', sNumber);
+        throw new Error('No account found for this S-Number');
+      }
+      console.log('✅ Auth user found:', authUser.s_number);
+
+      // 4. Hash the new password
+      console.log('🔐 Hashing new password...');
+      const newPasswordHash = await this.hashPassword(newPassword);
+      console.log('✅ Password hashed successfully');
+
+      // 5. Update the password using your actual table columns
+      console.log('💾 Updating password in database...');
+      
+      const { data: updateData, error: updateError } = await supabase
+        .from('auth_users')
+        .update({ 
+          password_hash: newPasswordHash,
+          updated_at: new Date().toISOString() // Use your existing updated_at column
+        })
+        .eq('s_number', sNumber.toLowerCase())
+        .select();
+
+      if (updateError) {
+        console.error('❌ Database update error details:', {
+          error: updateError,
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint
+        });
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
+
+      console.log('✅ Password updated in database:', updateData);
+
+      // 6. Update student record to track password reset (optional)
+      console.log('📝 Updating student record...');
+      try {
+        await this.updateStudent(sNumber, {
+          last_password_reset: new Date().toISOString(),
+          account_status: 'active'
+        });
+        console.log('✅ Student record updated');
+      } catch (studentUpdateError) {
+        console.warn('⚠️ Student record update failed (non-critical):', studentUpdateError);
+        // Don't throw here - password was already updated successfully
+      }
+
+      console.log('✅ Password reset completed successfully for:', sNumber);
+
+      return {
+        success: true,
+        message: 'Password reset successfully'
+      };
+    } catch (error) {
+      console.error('❌ Password reset failed:', {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        sNumber: sNumber
       });
-      console.log('✅ Student record updated');
-    } catch (studentUpdateError) {
-      console.warn('⚠️ Student record update failed (non-critical):', studentUpdateError);
-      // Don't throw here - password was already updated successfully
-    }
-
-    console.log('✅ Password reset completed successfully for:', sNumber);
-
-    return {
-      success: true,
-      message: 'Password reset successfully'
-    };
-  } catch (error) {
-    console.error('❌ Password reset failed:', {
-      error: error,
-      message: error.message,
-      stack: error.stack,
-      sNumber: sNumber
-    });
-    
-    // Re-throw with more specific error message
-    if (error.message.includes('Database update failed')) {
-      throw error;
-    } else if (error.message.includes('not found')) {
-      throw error;
-    } else {
-      throw new Error(`Password reset failed: ${error.message}`);
+      
+      // Re-throw with more specific error message
+      if (error.message.includes('Database update failed')) {
+        throw error;
+      } else if (error.message.includes('not found')) {
+        throw error;
+      } else {
+        throw new Error(`Password reset failed: ${error.message}`);
+      }
     }
   }
-}
 
-// Alternative minimal version if you prefer simplicity:
-static async resetStudentPasswordSimple(sNumber, newPassword) {
-  try {
-    console.log('🔒 Resetting password for:', sNumber);
-    
-    // Hash password
-    const newPasswordHash = await this.hashPassword(newPassword);
-    
-    // Update password and timestamp
-    const { data, error } = await supabase
-      .from('auth_users')
-      .update({ 
-        password_hash: newPasswordHash,
-        updated_at: new Date().toISOString()
-      })
-      .eq('s_number', sNumber.toLowerCase())
-      .select();
+  /**
+   * Alternative minimal version if you prefer simplicity
+   */
+  static async resetStudentPasswordSimple(sNumber, newPassword) {
+    try {
+      console.log('🔒 Resetting password for:', sNumber);
+      
+      // Hash password
+      const newPasswordHash = await this.hashPassword(newPassword);
+      
+      // Update password and timestamp
+      const { data, error } = await supabase
+        .from('auth_users')
+        .update({ 
+          password_hash: newPasswordHash,
+          updated_at: new Date().toISOString()
+        })
+        .eq('s_number', sNumber.toLowerCase())
+        .select();
 
-    if (error) {
-      console.error('Update error:', error);
-      throw new Error(`Failed to update password: ${error.message}`);
+      if (error) {
+        console.error('Update error:', error);
+        throw new Error(`Failed to update password: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('No user found with that S-Number');
+      }
+
+      console.log('✅ Password updated successfully');
+      return { success: true, message: 'Password reset successfully' };
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
     }
-
-    if (!data || data.length === 0) {
-      throw new Error('No user found with that S-Number');
-    }
-
-    console.log('✅ Password updated successfully');
-    return { success: true, message: 'Password reset successfully' };
-  } catch (error) {
-    console.error('Password reset error:', error);
-    throw error;
   }
-}
-
 }
 
 export default SupabaseService;
