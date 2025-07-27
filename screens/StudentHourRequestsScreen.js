@@ -26,15 +26,22 @@ export default function StudentHourRequestsScreen({ navigation }) {
     if (!user?.sNumber) return;
     
     try {
+      console.log('🔄 Loading student data from Supabase...');
+      
+      // Import and call SupabaseService directly
+      const SupabaseService = (await import('../services/SupabaseService')).default;
+      
       // Load student's requests
-      const studentRequests = getStudentRequests(user.sNumber);
+      const studentRequests = await SupabaseService.getStudentHourRequests(user.sNumber);
       setRequests(studentRequests);
+      console.log('✅ Loaded student requests:', studentRequests.length);
       
       // Load current hours
       const hours = await getStudentHours(user.sNumber);
       setCurrentHours(hours);
+      console.log('✅ Loaded current hours:', hours);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('❌ Failed to load data:', error);
     } finally {
       setLoading(false);
     }
@@ -43,10 +50,10 @@ export default function StudentHourRequestsScreen({ navigation }) {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshHourRequests();
-      await loadData();
+      console.log('🔄 Manual refresh triggered...');
+      await loadData(); // Load fresh data directly
     } catch (error) {
-      console.error('Failed to refresh:', error);
+      console.error('❌ Failed to refresh:', error);
     } finally {
       setRefreshing(false);
     }
@@ -85,7 +92,7 @@ export default function StudentHourRequestsScreen({ navigation }) {
   const renderRequestItem = ({ item }) => (
     <View style={styles.requestItem}>
       <View style={styles.requestHeader}>
-        <Text style={styles.eventName}>{item.eventName}</Text>
+        <Text style={styles.eventName}>{item.event_name || 'No Event Name'}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
           <Ionicons 
             name={getStatusIcon(item.status)} 
@@ -93,43 +100,43 @@ export default function StudentHourRequestsScreen({ navigation }) {
             color="white" 
             style={styles.statusIcon}
           />
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+          <Text style={styles.statusText}>{item.status?.toUpperCase() || 'UNKNOWN'}</Text>
         </View>
       </View>
       
       <View style={styles.requestDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="calendar-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>Event: {formatDate(item.eventDate)}</Text>
+          <Text style={styles.detailText}>Event: {formatDate(item.event_date)}</Text>
         </View>
         
         <View style={styles.detailRow}>
           <Ionicons name="time-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>Hours: {item.hoursRequested}</Text>
+          <Text style={styles.detailText}>Hours: {item.hours_requested || '0'}</Text>
         </View>
         
         <View style={styles.detailRow}>
           <Ionicons name="paper-plane-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>Submitted: {formatDate(item.submittedAt)}</Text>
+          <Text style={styles.detailText}>Submitted: {formatDate(item.submitted_at)}</Text>
         </View>
       </View>
       
       <Text style={styles.description} numberOfLines={2}>
-        {item.description}
+        {item.description || 'No description provided'}
       </Text>
       
-      {item.status === 'approved' && item.reviewedAt && (
+      {item.status === 'approved' && item.reviewed_at && (
         <View style={styles.approvalInfo}>
           <Text style={styles.approvalText}>
-            ✓ Approved on {formatDate(item.reviewedAt)}
+            ✓ Approved on {formatDate(item.reviewed_at)}
           </Text>
         </View>
       )}
       
-      {item.status === 'rejected' && item.adminNotes && (
+      {item.status === 'rejected' && item.admin_notes && (
         <View style={styles.rejectionInfo}>
           <Text style={styles.rejectionTitle}>Reason:</Text>
-          <Text style={styles.rejectionText}>{item.adminNotes}</Text>
+          <Text style={styles.rejectionText}>{item.admin_notes}</Text>
         </View>
       )}
     </View>
@@ -141,7 +148,7 @@ export default function StudentHourRequestsScreen({ navigation }) {
     const rejected = requests.filter(r => r.status === 'rejected').length;
     const totalRequested = requests
       .filter(r => r.status === 'approved')
-      .reduce((sum, r) => sum + parseFloat(r.hoursRequested || 0), 0);
+      .reduce((sum, r) => sum + parseFloat(r.hours_requested || 0), 0);
     
     return { pending, approved, rejected, totalRequested };
   };

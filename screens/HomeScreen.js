@@ -1,640 +1,168 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, Modal, Alert, Platform } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useHours } from '../contexts/HourContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../supabase/supabaseClient';
-import { Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop, RadialGradient } from 'react-native-svg';
 
-const CircularProgressLogo = ({ 
-  currentHours = 0, 
-  targetHours = 100, 
-  size = 200, 
-  strokeWidth = 8,
-  animated = true,
-  onPress
-}) => {
-  const animatedValue = useRef(0);
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const flipAnimation = useRef(new Animated.Value(0)).current;
-  const [showDetails, setShowDetails] = useState(false);
-  
-  // Calculate progress percentage (0-1)
-  const targetProgress = Math.min(currentHours / targetHours, 1);
-  const percentage = Math.round(targetProgress * 100);
-  
-  // Circle properties - adjusted to touch the logo
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  
-  // Logo size - make it slightly smaller so the progress ring touches it
-  const logoSize = size * 0.9;
-  
-  // Animate progress
-  useEffect(() => {
-    if (!animated) {
-      setDisplayProgress(targetProgress);
-      return;
-    }
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-    let animationId;
-    const animateProgress = () => {
-      const diff = targetProgress - animatedValue.current;
-      if (Math.abs(diff) > 0.001) {
-        animatedValue.current += diff * 0.08;
-        setDisplayProgress(animatedValue.current);
-        animationId = requestAnimationFrame(animateProgress);
-      } else {
-        animatedValue.current = targetProgress;
-        setDisplayProgress(targetProgress);
-      }
-    };
-    
-    animationId = requestAnimationFrame(animateProgress);
-    
-    return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    };
-  }, [targetProgress, animated]);
-
-  // Calculate stroke dash offset for progress
-  const strokeDashoffset = circumference - (displayProgress * circumference);
-
-  // Handle logo press
-  const handleLogoPress = () => {
-    setShowDetails(!showDetails);
-    
-    Animated.timing(flipAnimation, {
-      toValue: showDetails ? 0 : 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-    
-    if (onPress) onPress();
-  };
-
-  // Interpolate rotation values
-  const frontInterpolate = flipAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
-
-  const backInterpolate = flipAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['180deg', '360deg'],
-  });
-
-  return (
-    <TouchableOpacity 
-      style={styles.progressContainer}
-      onPress={handleLogoPress}
-      activeOpacity={0.8}
-    >
-      {/* SVG Progress Ring */}
-      <Svg width={size} height={size} style={styles.progressSvg}>
-        <Defs>
-          <LinearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#ffd60a" />
-            <Stop offset="50%" stopColor="#ffca3b" />
-            <Stop offset="100%" stopColor="#f1ca3b" />
-          </LinearGradient>
-        </Defs>
-        
-        {/* Background track - complete circle */}
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(255, 214, 10, 0.15)"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeLinecap="butt"
-        />
-        
-        {/* Progress circle - starts from top and goes clockwise */}
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="url(#progressGradient)"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="butt"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      
-      {/* Animated Logo Container */}
-      <View style={styles.logoContainer}>
-        {/* Front side - Logo */}
-        <Animated.View 
-          style={[
-            styles.logoSide,
-            { transform: [{ rotateY: frontInterpolate }] }
-          ]}
-        >
-          <Image 
-            source={require('../assets/images/keyclublogo-modified.png')} 
-            style={[styles.logo, { 
-              width: logoSize, 
-              height: logoSize 
-            }]}
-            resizeMode="contain"
-          />
-        </Animated.View>
-
-        {/* Back side - Progress Details */}
-        <Animated.View 
-          style={[
-            styles.logoSide,
-            styles.backSide,
-            { transform: [{ rotateY: backInterpolate }] }
-          ]}
-        >
-          <View style={[styles.progressDetails, {
-            width: logoSize,
-            height: logoSize,
-            borderRadius: logoSize / 2
-          }]}>
-            <Text style={styles.progressHours}>{currentHours.toFixed(1)}</Text>
-            <Text style={styles.progressHoursLabel}>hours</Text>
-            <Text style={styles.progressPercentage}>{percentage}%</Text>
-            <Text style={styles.progressTarget}>of {targetHours}</Text>
-          </View>
-        </Animated.View>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-const ANNOUNCEMENTS_READ_KEY = 'readAnnouncementIds';
-
-export default function HomeScreen() {
-  const { user, isAdmin } = useAuth();
-  const { getStudentHours } = useHours();
-  const navigation = useNavigation();
-  const [currentHours, setCurrentHours] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [screenData, setScreenData] = useState(Dimensions.get('window'));
-  const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(false);
-  const [unreadAnnouncements, setUnreadAnnouncements] = useState([]);
-  const bannerAnim = useRef(new Animated.Value(-100)).current;
-  const confettiAnim = useRef(new Animated.Value(0)).current;
-  
-  useEffect(() => {
-    const onChange = (result) => {
-      setScreenData(result.window);
-    };
-    
-    const subscription = Dimensions.addEventListener('change', onChange);
-    return () => subscription?.remove();
-  }, []);
-
-  // Calculate responsive layout
-  const isWeb = screenData.width > 768;
-  const isTablet = screenData.width > 480 && screenData.width <= 768;
-  const isMobile = screenData.width <= 480;
-  
-  // Responsive sizing calculations
-  const getResponsiveSizes = () => {
-    if (isWeb) {
-      return {
-        welcomeFontSize: 32,
-        titleFontSize: 24,
-        subtitleFontSize: 16,
-        logoSize: 200,
-        progressRingSize: 240,
-        strokeWidth: 12,
-        iconSize: 28,
-        padding: 20,
-        cardPadding: 20,
-      };
-    } else if (isTablet) {
-      return {
-        welcomeFontSize: 28,
-        titleFontSize: 22,
-        subtitleFontSize: 15,
-        logoSize: 180,
-        progressRingSize: 220,
-        strokeWidth: 10,
-        iconSize: 26,
-        padding: 18,
-        cardPadding: 18,
-      };
-    } else {
-      return {
-        welcomeFontSize: 24,
-        titleFontSize: 20,
-        subtitleFontSize: 14,
-        logoSize: 140,
-        progressRingSize: 180,
-        strokeWidth: 10,
-        iconSize: 24,
-        padding: 16,
-        cardPadding: 16,
-      };
-    }
-  };
-
-  const sizes = getResponsiveSizes();
-
-  // Load current hours when component mounts
-  useEffect(() => {
-    const loadCurrentHours = async () => {
-      if (user?.sNumber && !isAdmin) {
-        try {
-          const hours = await getStudentHours(user.sNumber);
-          setCurrentHours(hours);
-        } catch (error) {
-          console.error('Failed to load current hours:', error);
-        }
-      }
-      setLoading(false);
-    };
-    
-    loadCurrentHours();
-  }, [user, getStudentHours, isAdmin]);
-
-  // Fetch announcements and check for unread
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('id')
-        .order('date', { ascending: false });
-      if (!error && data && data.length > 0) {
-        const allIds = data.map(a => a.id);
-        const readIdsStr = await AsyncStorage.getItem(ANNOUNCEMENTS_READ_KEY);
-        const readIds = readIdsStr ? JSON.parse(readIdsStr) : [];
-        const unread = allIds.filter(id => !readIds.includes(id));
-        if (unread.length > 0) {
-          setUnreadAnnouncements(unread);
-          setShowAnnouncementBanner(true);
-          // Animate banner in
-          Animated.timing(bannerAnim, {
-            toValue: 0,
-            duration: 700,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: true,
-          }).start();
-          // Animate confetti
-          Animated.timing(confettiAnim, {
-            toValue: 1,
-            duration: 1200,
-            easing: Easing.bounce,
-            useNativeDriver: true,
-          }).start();
-          // Auto-dismiss after 5 seconds
-          setTimeout(() => {
-            Animated.timing(bannerAnim, {
-              toValue: -100,
-              duration: 600,
-              useNativeDriver: true,
-            }).start(() => setShowAnnouncementBanner(false));
-          }, 5000);
-        }
-      }
-    };
-    fetchAnnouncements();
-  }, []);
-
-  // Mark all as read
-  const markAnnouncementsRead = async () => {
-    if (unreadAnnouncements.length > 0) {
-      const readIdsStr = await AsyncStorage.getItem(ANNOUNCEMENTS_READ_KEY);
-      const readIds = readIdsStr ? JSON.parse(readIdsStr) : [];
-      const newReadIds = Array.from(new Set([...readIds, ...unreadAnnouncements]));
-      await AsyncStorage.setItem(ANNOUNCEMENTS_READ_KEY, JSON.stringify(newReadIds));
-      setUnreadAnnouncements([]);
-    }
-  };
-  
-  return (
-    <View style={styles.container}>
-      {/* Announcement Banner */}
-      {showAnnouncementBanner && (
-        <Animated.View
-          style={[
-            styles.announcementBanner,
-            { transform: [{ translateY: bannerAnim }] }
-          ]}
-        >
-          {/* Confetti Animation (simple circles, vibrant colors) */}
-          <Animated.View style={[styles.confettiContainer, { opacity: confettiAnim }]}> 
-            {[...Array(12)].map((_, i) => (
-              <Animated.View
-                key={i}
-                style={[
-                  styles.confetti,
-                  {
-                    left: Math.random() * 320,
-                    backgroundColor: `hsl(${Math.random() * 360}, 90%, 60%)`,
-                    top: Math.random() * 30,
-                    opacity: confettiAnim,
-                    transform: [
-                      { translateY: confettiAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 60 + Math.random() * 40],
-                        }) },
-                      { scale: confettiAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.7, 1.2],
-                        }) },
-                    ]
-                  }
-                ]}
-              />
-            ))}
-          </Animated.View>
-          <TouchableOpacity
-            style={styles.bannerContent}
-            activeOpacity={0.85}
-            onPress={async () => {
-              setShowAnnouncementBanner(false);
-              await markAnnouncementsRead();
-              navigation.navigate('Announcements');
-            }}
-          >
-            <Ionicons name="megaphone" size={28} color="#ffd60a" style={{ marginRight: 10 }} />
-            <Text style={styles.bannerText}>You have new announcements!</Text>
-            <Ionicons name="chevron-forward" size={22} color="#fff" style={{ marginLeft: 8 }} />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
-      {/* Grid-based Layout */}
-      <View style={styles.gridContainer}>
-        
-        {/* Row 1: Header Section */}
-        <View style={[styles.headerRow, { paddingHorizontal: sizes.padding }]}>
-          <Text style={[styles.welcome, { fontSize: sizes.welcomeFontSize }]}>
-            Welcome, {user?.name || user?.sNumber || 'Member'}
-          </Text>
-        </View>
-
-        {/* Row 2: Logo Section */}
-        <View style={[styles.logoRow, { paddingHorizontal: sizes.padding }]}>
-          {!isAdmin ? (
-            <CircularProgressLogo 
-              currentHours={currentHours}
-              targetHours={25}
-              size={sizes.progressRingSize}
-              strokeWidth={sizes.strokeWidth}
-              animated={true}
-            />
-          ) : (
-            <Image 
-              source={require('../assets/images/keyclublogo-modified.png')} 
-              style={[styles.simpleLogo, { width: sizes.logoSize, height: sizes.logoSize }]} 
-            />
-          )}
-        </View>
-
-        {/* Row 3: Title Section */}
-        <View style={[styles.titleRow, { paddingHorizontal: sizes.padding }]}>
-          <Text style={[styles.title, { fontSize: sizes.titleFontSize }]}>
-            Cypress Ranch Key Club
-          </Text>
-          <Text style={[styles.subtitle, { fontSize: sizes.subtitleFontSize }]}>
-            {isAdmin ? 'Manage events and oversee club activities' : 'Track events, hours, and stay connected'}
-          </Text>
-        </View>
-
-        {/* Row 4: Action Section */}
-        <View style={[styles.actionRow, { paddingHorizontal: sizes.padding }]}>
-          {!isAdmin ? (
-            /* Hours Card for Students */
-            <View style={[styles.hoursCard, { padding: sizes.cardPadding }]}>
-              <View style={styles.hoursHeader}>
-                <Ionicons name="trophy" size={sizes.iconSize} color="#ffd60a" />
-                <View style={styles.hoursInfo}>
-                  <Text style={[styles.hoursCardLabel, { fontSize: sizes.subtitleFontSize - 2 }]}>
-                    Your Progress
-                  </Text>
-                  <Text style={[styles.hoursCardValue, { fontSize: sizes.subtitleFontSize + 2 }]}>
-                    {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
-                  </Text>
-                </View>
-              </View>
-              
-              <TouchableOpacity
-                style={[styles.requestButton, { 
-                  paddingVertical: isMobile ? 10 : isTablet ? 11 : 12 
-                }]}
-                onPress={() => navigation.navigate('Hours')}
-              >
-                <Ionicons name="add-circle-outline" size={sizes.iconSize - 8} color="#0d1b2a" />
-                <Text style={[styles.requestButtonText, { fontSize: sizes.subtitleFontSize }]}>
-                  Request Hours
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            /* Admin Dashboard */
-            <View style={[styles.adminCard, { padding: sizes.cardPadding }]}>
-              <Text style={[styles.adminTitle, { fontSize: sizes.titleFontSize - 4 }]}>
-                Admin Dashboard
-              </Text>
-              <View style={styles.adminButtons}>
-                <TouchableOpacity
-                  style={[styles.adminButton, { 
-                    paddingVertical: isMobile ? 8 : isTablet ? 9 : 10 
-                  }]}
-                  onPress={() => navigation.navigate('Calendar', { screen: 'EventCreation' })}
-                >
-                  <Ionicons name="calendar" size={sizes.iconSize - 8} color="#0d1b2a" />
-                  <Text style={[styles.adminButtonText, { fontSize: sizes.subtitleFontSize - 2 }]}>
-                    Create Event
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[styles.adminButton, { 
-                    paddingVertical: isMobile ? 8 : isTablet ? 9 : 10 
-                  }]}
-                  onPress={() => navigation.navigate('Hours')}
-                >
-                  <Ionicons name="time" size={sizes.iconSize - 8} color="#0d1b2a" />
-                  <Text style={[styles.adminButtonText, { fontSize: sizes.subtitleFontSize - 2 }]}>
-                    Manage Hours
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-
-      </View>
-    </View>
-  );
-}
+const GLOW_ANIMATION_DURATION = 1200;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
-  },
-  
-  // Grid Layout Container
-  gridContainer: {
-    flex: 1,
-    paddingVertical: 20,
-  },
-  
-  // Grid Rows
-  headerRow: {
-    height: 80,
+    backgroundColor: '#1a365d',
+    padding: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    paddingTop: 100,
   },
-  logoRow: {
-    flex: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  titleRow: {
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionRow: {
-    height: 140,
-    justifyContent: 'flex-end',
-    paddingBottom: 20,
-  },
-  
-  // Header Styles
   welcome: {
-    fontWeight: 'bold',
-    color: '#ffd60a',
-    textAlign: 'center',
-  },
-  
-  // Logo Styles
-  simpleLogo: {
-    resizeMode: 'contain',
-  },
-  progressContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressSvg: {
-    position: 'absolute',
-  },
-  logoContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  logoSide: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backfaceVisibility: 'hidden',
-  },
-  backSide: {
-    transform: [{ rotateY: '180deg' }],
-  },
-  logo: {
-    opacity: 0.95,
-  },
-  progressDetails: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
-  },
-  progressHours: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffd60a',
-  },
-  progressHoursLabel: {
-    fontSize: 12,
-    color: '#ccc',
-    marginBottom: 6,
-  },
-  progressPercentage: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffd60a',
-  },
-  progressTarget: {
-    fontSize: 10,
-    color: '#ccc',
-  },
-  
-  // Title Styles
-  title: {
-    fontWeight: 'bold',
-    color: '#fff',
+    color: '#e2e8f0',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   subtitle: {
-    color: '#ccc',
+    fontSize: 16,
+    color: '#cbd5e0',
     textAlign: 'center',
-    lineHeight: 1.3,
-    paddingHorizontal: 8,
+    marginBottom: 30,
+    opacity: 0.9,
   },
-  
-  // Action Section Styles
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
   hoursCard: {
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   hoursHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 15,
   },
   hoursInfo: {
     marginLeft: 12,
     flex: 1,
   },
   hoursCardLabel: {
-    color: '#ccc',
+    color: '#e2e8f0',
+    fontSize: 14,
     marginBottom: 4,
   },
   hoursCardValue: {
     fontWeight: 'bold',
-    color: '#ffd60a',
+    color: '#4299e1',
+    fontSize: 24,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  progressRing: {
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  progressTextContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  progressText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4299e1',
+    textAlign: 'center',
+  },
+  progressSubtext: {
+    fontSize: 12,
+    color: '#cbd5e0',
+    textAlign: 'center',
+    marginTop: 2,
   },
   requestButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffd60a',
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: '#4299e1',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   requestButtonText: {
-    color: '#0d1b2a',
+    color: '#ffffff',
     fontWeight: 'bold',
     marginLeft: 8,
+    fontSize: 16,
+  },
+  debugButton: {
+    backgroundColor: '#e53e3e',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 10,
+    alignSelf: 'center',
+  },
+  debugButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   adminCard: {
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   adminTitle: {
     fontWeight: 'bold',
-    color: '#ffd60a',
-    textAlign: 'center',
+    color: '#4299e1',
     marginBottom: 15,
+    fontSize: 18,
   },
   adminButtons: {
     flexDirection: 'row',
@@ -643,65 +171,623 @@ const styles = StyleSheet.create({
   adminButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffd60a',
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: '#4299e1',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 16,
     flex: 0.48,
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   adminButtonText: {
-    color: '#0d1b2a',
+    color: '#ffffff',
     fontWeight: 'bold',
     marginLeft: 8,
+    fontSize: 14,
   },
-  // Announcement Banner Styles
-  announcementBanner: {
+  
+  // Hamburger Menu Styles
+  hamburgerButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  menuModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  menuContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    backgroundColor: '#ffd60a',
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    zIndex: 100,
-    borderBottomWidth: 3,
-    borderBottomColor: '#f1ca3b',
-    flexDirection: 'row',
+    width: screenWidth * 0.8,
+    height: screenHeight,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 10, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+    flexDirection: 'column', // Make sidebar a column
+    flex: 1, // Fill available space
+  },
+  menuHeader: {
+    paddingTop: Platform.OS === 'web' ? 20 : 60,
+    paddingBottom: Platform.OS === 'web' ? 10 : 30,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#1a365d',
+  },
+  menuUserInfo: {
+    alignItems: 'center',
+    marginBottom: Platform.OS === 'web' ? 8 : 20,
+  },
+  menuUserAvatar: {
+    width: Platform.OS === 'web' ? 40 : 60,
+    height: Platform.OS === 'web' ? 40 : 60,
+    borderRadius: Platform.OS === 'web' ? 20 : 30,
+    backgroundColor: '#4299e1',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 10,
-    shadowColor: '#ffd60a',
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    marginBottom: Platform.OS === 'web' ? 4 : 10,
   },
-  bannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingVertical: 2,
-  },
-  bannerText: {
-    color: '#0d1b2a',
+  menuUserName: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 10,
-    marginRight: 18,
-    letterSpacing: 0.5,
+    color: '#ffffff',
+    marginBottom: 5,
   },
-  confettiContainer: {
+  menuUserRole: {
+    fontSize: 14,
+    color: '#cbd5e0',
+  },
+  menuItems: {
+    flex: 1,
+    paddingTop: 20,
+    marginTop: Platform.OS === 'web' ? 20 : 0, // Move menu items down a bit on web only
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f7fafc',
+  },
+  menuItemIcon: {
+    width: Platform.OS === 'web' ? 28 : 40,
+    height: Platform.OS === 'web' ? 28 : 40,
+    borderRadius: Platform.OS === 'web' ? 14 : 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2d3748',
+    flex: 1,
+  },
+  menuItemArrow: {
+    color: '#a0aec0',
+  },
+  menuFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+  },
+  logoutIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e53e3e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#e53e3e',
+  },
+  glowCircle: {
     position: 'absolute',
-    top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: -1,
-  },
-  confetti: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: 0,
+    width: 100,
+    height: 100,
+    zIndex: 1,
   },
 });
+
+// Helper for Animated SVG Circle
+import { Animated as RNAnimated } from 'react-native';
+const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
+
+export default function HomeScreen() {
+  const { user, isAdmin, logout } = useAuth();
+  const { getStudentHours } = useHours();
+  const navigation = useNavigation();
+  const [currentHours, setCurrentHours] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [previousHours, setPreviousHours] = useState(0);
+  
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const menuSlideAnim = useRef(new Animated.Value(-screenWidth * 0.8)).current;
+  const menuFadeAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  // Load current hours when component mounts
+  useEffect(() => {
+    const loadCurrentHours = async () => {
+      if (user?.sNumber && !isAdmin) {
+        const hours = await getStudentHours(user.sNumber);
+        setCurrentHours(hours);
+        const progressPercentage = Math.min(hours / 25, 1);
+        progressAnim.setValue(progressPercentage);
+      }
+      setLoading(false);
+    };
+    loadCurrentHours();
+  }, [user, getStudentHours, isAdmin, progressAnim]);
+
+  // Animate progress and glow when hours increase
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshHours = async () => {
+        if (user?.sNumber && !isAdmin) {
+          const hours = await getStudentHours(user.sNumber);
+          if (hours > previousHours && previousHours > 0) {
+            setPreviousHours(currentHours);
+            setCurrentHours(hours);
+            // Animate progress and glow
+            const oldProgress = Math.min(currentHours / 25, 1);
+            const newProgress = Math.min(hours / 25, 1);
+            progressAnim.setValue(oldProgress);
+            Animated.parallel([
+              Animated.timing(progressAnim, {
+                toValue: newProgress,
+                duration: GLOW_ANIMATION_DURATION,
+                useNativeDriver: false,
+              }),
+              Animated.sequence([
+                Animated.timing(glowAnim, {
+                  toValue: 1,
+                  duration: GLOW_ANIMATION_DURATION / 2,
+                  useNativeDriver: false,
+                }),
+                Animated.timing(glowAnim, {
+                  toValue: 0,
+                  duration: GLOW_ANIMATION_DURATION / 2,
+                  useNativeDriver: false,
+                })
+              ])
+            ]).start();
+          } else {
+            setPreviousHours(currentHours);
+            setCurrentHours(hours);
+            progressAnim.setValue(Math.min(hours / 25, 1));
+          }
+        }
+      };
+      refreshHours();
+    }, [user, getStudentHours, isAdmin, progressAnim, currentHours, previousHours])
+  );
+
+  // Simple entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const toggleMenu = () => {
+    const toValue = menuVisible ? 0 : 1;
+    setMenuVisible(!menuVisible);
+    
+    Animated.parallel([
+      Animated.timing(menuSlideAnim, {
+        toValue: toValue === 1 ? 0 : -screenWidth * 0.8,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(menuFadeAnim, {
+        toValue: toValue,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const sidebarScreenMap = {
+    home: 'Home',
+    events: 'Calendar',
+    reviewHours: 'AdminHourManagement',
+    studentManagement: 'AdminStudentManagement',
+    hourRequest: 'HourRequest',
+    announcements: 'Announcements',
+    officers: 'Officers',
+    help: 'Contact',
+    contact: 'Contact',
+    logout: 'Logout',
+  };
+
+  const navigateTo = (screen) => {
+    setTimeout(() => {
+      if (screen === 'home') {
+        navigation.navigate('Home');
+      } else if (screen === 'calendar') {
+        navigation.navigate('Calendar');
+      } else if (screen === 'hours') {
+        if (isAdmin) {
+          navigation.navigate('Calendar', { screen: 'AdminHourManagement' });
+        } else {
+          navigation.navigate('Calendar', { screen: 'HourRequest' });
+        }
+      } else if (screen === 'announcements') {
+        navigation.navigate('Announcements');
+      } else if (screen === 'officers') {
+        navigation.navigate('Officers');
+      } else if (screen === 'contact' || screen === 'help') {
+        navigation.navigate('Contact');
+      } else if (screen === 'studentManagement') {
+        navigation.navigate('AdminStudentManagement');
+      } else if (screen === 'Logout' || screen === 'logout') {
+        logout();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Auth' }],
+        });
+      }
+    }, 150);
+  };
+
+  const menuItems = [
+    {
+      id: 'home',
+      title: 'Home',
+      icon: 'home',
+      gradient: ['#4299e1', '#3182ce'],
+      action: () => navigateTo('Home')
+    },
+    {
+      id: 'calendar',
+      title: 'Events',
+      icon: 'calendar',
+      gradient: ['#38b2ac', '#319795'],
+      action: () => navigateTo('Calendar')
+    },
+    {
+      id: 'hours',
+      title: isAdmin ? 'Review Hours' : 'Request Hours',
+      icon: isAdmin ? 'time' : 'add-circle',
+      gradient: ['#ed8936', '#dd6b20'],
+      action: () => navigateTo(isAdmin ? 'hours' : 'hours')
+    },
+    {
+      id: 'announcements',
+      title: 'Announcements',
+      icon: 'megaphone',
+      gradient: ['#9f7aea', '#805ad5'],
+      action: () => navigateTo('Announcements')
+    },
+    {
+      id: 'officers',
+      title: 'Officers',
+      icon: 'people',
+      gradient: ['#48bb78', '#38a169'],
+      action: () => navigateTo('Officers')
+    },
+    {
+      id: 'contact',
+      title: isAdmin ? 'Help' : 'Contact',
+      icon: isAdmin ? 'help-circle' : 'mail',
+      gradient: ['#ed64a6', '#d53f8c'],
+      action: () => navigateTo('Contact')
+    },
+    ...(isAdmin ? [{
+      id: 'studentManagement',
+      title: 'Student Management',
+      icon: 'people',
+      gradient: ['#4299e1', '#3182ce'],
+      action: () => navigateTo('studentManagement')
+    }] : []),
+  ];
+
+  return (
+    <View style={styles.container}>
+      {/* Hamburger Button */}
+      <LinearGradient
+        colors={['#4299e1', '#3182ce']}
+        style={styles.hamburgerButton}
+      >
+        <TouchableOpacity onPress={toggleMenu} activeOpacity={0.8}>
+          <Ionicons name="menu" size={24} color="#ffffff" />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [
+            { translateY: slideAnim },
+            { scale: scaleAnim }
+          ]
+        }}
+      >
+        <Text style={styles.welcome}>
+          Welcome, {user?.name || user?.sNumber || 'Member'}
+        </Text>
+        
+        <Image 
+          source={require('../assets/images/keyclublogo-modified.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        
+        <Text style={styles.title}>Key Club</Text>
+        <Text style={styles.subtitle}>
+          {isAdmin ? 'Manage events and oversee club activities' : 'Track events, hours, and stay connected'}
+        </Text>
+        
+        {!isAdmin ? (
+          <View style={styles.hoursCard}>
+            <View style={styles.hoursHeader}>
+              <Ionicons name="trophy" size={24} color="#4299e1" />
+              <View style={styles.hoursInfo}>
+                <Text style={styles.hoursCardLabel}>Your Progress</Text>
+                <Text style={styles.hoursCardValue}>
+                  {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.progressContainer}>
+              <View style={styles.progressRing}>
+                {/* Animated Glow Effect */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.glowCircle, {
+                    opacity: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 0.7]
+                    })
+                  }]}
+                >
+                  <Svg width="100" height="100">
+                    <Defs>
+                      <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+                        <Stop offset="0%" stopColor="#4299e1" stopOpacity="0.7" />
+                        <Stop offset="100%" stopColor="#4299e1" stopOpacity="0" />
+                      </RadialGradient>
+                    </Defs>
+                    <Circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="url(#glow)"
+                    />
+                  </Svg>
+                </Animated.View>
+                <Svg width="100" height="100">
+                  <Defs>
+                    <SvgLinearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <Stop offset="0%" stopColor="#4299e1" />
+                      <Stop offset="100%" stopColor="#3182ce" />
+                    </SvgLinearGradient>
+                  </Defs>
+                  {/* Background circle */}
+                  <Circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    stroke="rgba(66, 153, 225, 0.2)"
+                    strokeWidth="10"
+                    fill="transparent"
+                  />
+                  {/* Progress circle */}
+                  <AnimatedCircle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    stroke="url(#grad)"
+                    strokeWidth="10"
+                    strokeDasharray={`${Math.PI * 90} ${Math.PI * 90}`}
+                    strokeDashoffset={progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [Math.PI * 90, 0]
+                    })}
+                    strokeLinecap="round"
+                    fill="transparent"
+                    opacity={progressAnim.interpolate({
+                      inputRange: [0, 0.8, 1],
+                      outputRange: [0.7, 0.9, 1]
+                    })}
+                  />
+                </Svg>
+                <View style={styles.progressTextContainer}>
+                  <Animated.Text 
+                    style={[
+                      styles.progressText,
+                      {
+                        transform: [{
+                          scale: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 1]
+                          })
+                        }]
+                      }
+                    ]}
+                  >
+                    {loading ? '...' : `${Math.round((currentHours / 25) * 100)}%`}
+                  </Animated.Text>
+                  <Text style={styles.progressSubtext}>
+                    {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.requestButton}
+              onPress={() => navigateTo('hours')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+              <Text style={styles.requestButtonText}>Request Hours</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.adminCard}>
+            <Text style={styles.adminTitle}>Admin Dashboard</Text>
+            <View style={styles.adminButtons}>
+              <TouchableOpacity
+                style={styles.adminButton}
+                onPress={() => navigateTo('calendar')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="calendar" size={18} color="#ffffff" />
+                <Text style={styles.adminButtonText}>Create Event</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.adminButton}
+                onPress={() => navigateTo('hours')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="time" size={18} color="#ffffff" />
+                <Text style={styles.adminButtonText}>Review Hours</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </Animated.View>
+
+      {/* Hamburger Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={toggleMenu}
+      >
+        <Animated.View
+          style={[
+            styles.menuModal,
+            {
+              opacity: menuFadeAnim,
+            }
+          ]}
+        >
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={toggleMenu}
+            activeOpacity={1}
+          />
+          
+          <Animated.View
+            style={[
+              styles.menuContainer,
+              {
+                transform: [{ translateX: menuSlideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.menuHeader}>
+              <View style={styles.menuUserInfo}>
+                <LinearGradient
+                  colors={['#4299e1', '#3182ce']}
+                  style={styles.menuUserAvatar}
+                >
+                  <Ionicons name="person" size={30} color="#ffffff" />
+                </LinearGradient>
+                <Text style={styles.menuUserName}>
+                  {user?.name || user?.sNumber || 'Member'}
+                </Text>
+                <Text style={styles.menuUserRole}>
+                  {isAdmin ? 'Administrator' : 'Student'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.menuItems}>
+              {menuItems.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.menuItem}
+                  onPress={() => {
+                    console.log('Sidebar tab pressed:', item.id);
+                    toggleMenu();
+                    setTimeout(() => navigateTo(item.id), 150);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={item.gradient}
+                    style={styles.menuItemIcon}
+                  >
+                    <Ionicons name={item.icon} size={20} color="#ffffff" />
+                  </LinearGradient>
+                  <Text style={styles.menuItemText}>{item.title}</Text>
+                  <Ionicons name="chevron-forward" size={20} style={styles.menuItemArrow} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <View style={styles.menuFooter}>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={() => navigateTo('Logout')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.logoutIcon}>
+                  <Ionicons name="log-out" size={20} color="#ffffff" />
+                </View>
+                <Text style={styles.logoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
+    </View>
+  );
+}

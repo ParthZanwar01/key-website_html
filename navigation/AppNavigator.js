@@ -29,6 +29,7 @@ import CreateAnnouncementScreen from '../screens/CreateAnnouncementScreen';
 import AnimationScreen from '../screens/AnimationScreen';
 import SplashAnimationScreen from '../screens/SplashAnimationScreen'; // New splash screen
 import GoogleDriveService from '../screens/GoogleDriveService';
+import AdminStudentManagementScreen from '../screens/AdminStudentManagementScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -138,7 +139,8 @@ function AnnouncementsStack() {
 }
 
 // Main Tab Navigator
-function MainTabNavigator() {
+// Main Stack Navigator (Hamburger Menu Style)
+function MainStackNavigator() {
   const { logout, isAdmin } = useAuth();
 
   const handleLogout = async () => {
@@ -151,129 +153,71 @@ function MainTabNavigator() {
   };
 
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          
-          switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Calendar':
-              iconName = focused ? 'calendar' : 'calendar-outline';
-              break;
-            case 'Hours':
-              iconName = focused ? 'time' : 'time-outline';
-              break;
-            case 'Announcements':
-              iconName = focused ? 'megaphone' : 'megaphone-outline';
-              break;
-            case 'Officers':
-              iconName = focused ? 'people' : 'people-outline';
-              break;
-            case 'Contact':
-              iconName = isAdmin 
-                ? (focused ? 'help-circle' : 'help-circle-outline')
-                : (focused ? 'mail' : 'mail-outline');
-              break;
-            default:
-              iconName = 'ellipse';
-          }
-          
-          return <Ionicons name={iconName} size={size} color={color} />;
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#1a365d',
         },
-        tabBarActiveTintColor: '#ffca3b',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          paddingBottom: 5,
-          height: 60,
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
         },
-      })}
+        headerShown: false,
+      }}
     >
-      <Tab.Screen
+      <Stack.Screen
         name="Home"
         component={HomeScreen}
         options={{
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ marginRight: 15 }}
-            >
-              <Ionicons name="log-out-outline" size={24} color="black" />
-            </TouchableOpacity>
-          ),
+          title: 'Key Club Hub',
         }}
       />
 
-      <Tab.Screen
+      <Stack.Screen
         name="Calendar"
         component={CalendarStack}
-        options={{ headerShown: false }}
-      />
-
-      <Tab.Screen
-        name="Hours"
-        component={isAdmin ? AdminHourManagementScreen : HourRequestScreen}
-        options={{
-          title: isAdmin ? 'Manage Hours' : 'Hours',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ marginRight: 15 }}
-            >
-              <Ionicons name="log-out-outline" size={24} color="black" />
-            </TouchableOpacity>
-          ),
+        options={{ 
+          headerShown: false,
         }}
       />
 
-      <Tab.Screen
+      <Stack.Screen
         name="Announcements"
         component={AnnouncementsStack}
         options={{ 
           headerShown: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons 
-              name={focused ? "megaphone" : "megaphone-outline"} 
-              color={color} 
-              size={size} 
-            />
-          ),
         }}
       />
 
-      <Tab.Screen
+      <Stack.Screen
         name="Officers"
         component={OfficersScreen}
         options={{
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ marginRight: 15 }}
-            >
-              <Ionicons name="log-out-outline" size={24} color="black" />
-            </TouchableOpacity>
-          ),
+          title: 'Club Officers',
         }}
       />
 
-      <Tab.Screen
+      <Stack.Screen
         name="Contact"
         component={ContactScreen}
         options={{
-          title: isAdmin ? 'Support' : 'Contact',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ marginRight: 15 }}
-            >
-              <Ionicons name="log-out-outline" size={24} color="black" />
-            </TouchableOpacity>
-          ),
+          title: isAdmin ? 'Help' : 'Contact',
         }}
       />
-    </Tab.Navigator>
+
+      {isAdmin && (
+        <Stack.Screen
+          name="AdminStudentManagement"
+          component={AdminStudentManagementScreen}
+          options={{
+            headerShown: true,
+            headerTitle: 'Student Management',
+            headerStyle: { backgroundColor: '#1a365d' },
+            headerTintColor: '#fff',
+          }}
+        />
+      )}
+    </Stack.Navigator>
   );
 }
 
@@ -404,7 +348,7 @@ export default function AppNavigator() {
         ) : (
           <Stack.Screen 
             name="Main" 
-            component={MainTabNavigator}
+            component={MainStackNavigator}
             options={{
               animationEnabled: true,
               animationTypeForReplace: 'push',

@@ -53,23 +53,40 @@ export async function handler(event, context) {
       };
     }
 
-    // FIXED: Parse JSON body properly
-    let requestData;
-    try {
+      // Handle both JSON and form data
+  let requestData;
+  let isFileUpload = false;
+  
+  try {
+    // Check if this is a file upload (multipart/form-data)
+    if (event.headers['content-type'] && event.headers['content-type'].includes('multipart/form-data')) {
+      console.log('📁 File upload request detected');
+      isFileUpload = true;
+      
+      // For file uploads, we'll handle this differently
+      // The body will be base64 encoded
+      requestData = {
+        requestType: 'uploadToDrive',
+        fileData: event.body,
+        contentType: event.headers['content-type']
+      };
+    } else {
+      // Regular JSON request
       requestData = JSON.parse(event.body);
       console.log('✅ Successfully parsed JSON request body');
       console.log('📋 Request data keys:', Object.keys(requestData));
-    } catch (parseError) {
-      console.error('❌ Failed to parse JSON body:', parseError);
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ 
-          error: "Invalid JSON in request body",
-          details: parseError.message
-        }),
-      };
     }
+  } catch (parseError) {
+    console.error('❌ Failed to parse request body:', parseError);
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ 
+        error: "Invalid request body",
+        details: parseError.message
+      }),
+    };
+  }
 
     // Check if this is a connection test
     if (requestData.requestType === 'connectionTest') {

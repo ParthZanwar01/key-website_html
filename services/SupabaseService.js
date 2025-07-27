@@ -745,6 +745,9 @@ class SupabaseService {
         insertData.image_name = requestData.imageName;
       }
       
+      // Note: Image data processing skipped - database doesn't have image_data column
+      console.log('📎 Image data processing skipped - using filename only');
+      
       console.log('💾 Inserting hour request into database...');
       
       const { data, error } = await supabase
@@ -829,8 +832,9 @@ class SupabaseService {
   /**
    * Update hour request status
    */
-  static async updateHourRequestStatus(requestId, status, adminNotes = '', reviewedBy = 'Admin') {
+  static async updateHourRequestStatus(requestId, status, adminNotes = '', reviewedBy = 'Admin', hoursRequested = null) {
     try {
+      console.log('🔄 Starting hour request status update:', { requestId, status, adminNotes, reviewedBy, hoursRequested });
       // 1. Update request status
       const { data: request, error: updateError } = await supabase
         .from('hour_requests')
@@ -844,23 +848,56 @@ class SupabaseService {
         .select()
         .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Error updating request status:', updateError);
+        throw updateError;
+      }
 
-      // 2. If approved, update student's total hours
-      if (status === 'approved') {
-        const student = await this.getStudent(request.student_s_number);
+      console.log('✅ Request status updated successfully:', request);
+      const normalizedStatus = (status || '').toString().trim().toLowerCase();
+      console.log('🔔 Status value received:', status, '| Normalized:', normalizedStatus);
+      if (normalizedStatus === 'approved') {
+        console.log('📝 Full request object at approval:', request);
+        if (!request) {
+          console.error('❌ No request object found after update!');
+          return request;
+        }
+        const studentSNumber = request.student_s_number || request.s_number;
+        if (!studentSNumber) {
+          console.error('❌ No student S-number found in request:', request);
+          return request;
+        }
+        const student = await this.getStudent(studentSNumber);
+        console.log('👤 Current student data:', student);
         if (student) {
-          const newTotalHours = parseFloat(student.total_hours || 0) + parseFloat(request.hours_requested);
-          await this.updateStudent(request.student_s_number, {
+          const currentHours = parseFloat(student.total_hours || 0);
+          let requestedHours = hoursRequested !== null ? parseFloat(hoursRequested) : parseFloat(request.hours_requested);
+          console.log('🧪 Type of requestedHours:', typeof requestedHours, 'Value:', requestedHours);
+          if (isNaN(requestedHours) || requestedHours <= 0) {
+            console.error('❌ Invalid or missing hours_requested in request:', request);
+            return request;
+          }
+          const newTotalHours = currentHours + requestedHours;
+          console.log('📊 Hours calculation:', {
+            currentHours,
+            requestedHours,
+            newTotalHours
+          });
+          const updateResult = await this.updateStudent(studentSNumber, {
             total_hours: newTotalHours,
             last_hour_update: new Date().toISOString()
           });
+          console.log('✅ Student hours updated successfully:', updateResult);
+        } else {
+          console.error('❌ Student not found:', studentSNumber);
         }
+      } else {
+        console.warn('⚠️ Approval logic skipped: status was not "approved" (got:', status, ')');
       }
 
       return request;
     } catch (error) {
-      console.error('Error updating hour request status:', error);
+      console.error('❌ Error updating hour request status:', error);
       throw error;
     }
   }
@@ -1073,6 +1110,23 @@ class SupabaseService {
     } catch (error) {
       console.error('Password reset error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get all students (admin)
+   */
+  static async getAllStudents() {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return { data };
+    } catch (error) {
+      console.error('❌ Error getting all students:', error);
+      return { data: [], error };
     }
   }
 }

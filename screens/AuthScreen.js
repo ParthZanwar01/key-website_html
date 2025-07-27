@@ -24,7 +24,6 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 export default function AuthScreen({ navigation }) {
   const { loginAsStudent, registerStudent } = useAuth();
   const [isSignUpActive, setIsSignUpActive] = useState(false);
-  const slideAnim = useRef(new Animated.Value(0)).current;
   
   // Sign In State
   const [signInSNumber, setSignInSNumber] = useState('');
@@ -40,14 +39,6 @@ export default function AuthScreen({ navigation }) {
   
   // Toggle between sign in and sign up
   const toggleAuthMode = () => {
-    const toValue = isSignUpActive ? 0 : 1;
-    
-    Animated.timing(slideAnim, {
-      toValue,
-      duration: 600,
-      useNativeDriver: false, // Changed to false to fix the warning
-    }).start();
-    
     setIsSignUpActive(!isSignUpActive);
   };
   
@@ -123,42 +114,20 @@ export default function AuthScreen({ navigation }) {
       const success = await registerStudent(signUpSNumber.toLowerCase(), signUpPassword, signUpName);
       
       if (success) {
-        Alert.alert('Success', 'Account created successfully!', [
-          {
-            text: 'OK',
-            onPress: () => {
-              setSignUpSNumber('');
-              setSignUpName('');
-              setSignUpPassword('');
-              setSignUpConfirmPassword('');
-              toggleAuthMode();
-              setSignInSNumber(signUpSNumber);
-            }
-          }
-        ]);
+        Alert.alert('Success', 'Account created successfully! Please sign in.');
+        toggleAuthMode();
+        setSignUpSNumber('');
+        setSignUpName('');
+        setSignUpPassword('');
+        setSignUpConfirmPassword('');
       }
     } catch (error) {
       console.error('Sign up error:', error);
+      Alert.alert('Error', 'Failed to create account. Please try again.');
     } finally {
       setSignUpLoading(false);
     }
   };
-  
-  // Animation interpolations
-  const signInOpacity = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0]
-  });
-  
-  const signUpOpacity = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1]
-  });
-  
-  const overlayTranslateX = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -384] // Half of container width (768/2)
-  });
   
   // Dynamic content based on current state
   const getOverlayContent = () => {
@@ -183,26 +152,44 @@ export default function AuthScreen({ navigation }) {
   
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoid} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
       >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.authContainer}>
-            {/* Forms Container */}
-            <View style={styles.formsContainer}>
-              {/* Sign In Panel */}
-              <Animated.View 
-                style={[
-                  styles.formPanel,
-                  styles.signinPanel,
-                  { opacity: signInOpacity }
-                ]}
-                pointerEvents={isSignUpActive ? 'none' : 'auto'}
-              >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Student Login</Text>
+              <Text style={styles.headerSubtitle}>Access your Key Club account</Text>
+            </View>
+            
+            <View style={styles.authContainer}>
+              {/* Toggle Buttons */}
+              <View style={styles.toggleContainer}>
+                <TouchableOpacity
+                  style={[styles.toggleButton, !isSignUpActive && styles.toggleButtonActive]}
+                  onPress={() => !isSignUpActive && toggleAuthMode()}
+                >
+                  <Text style={[styles.toggleButtonText, !isSignUpActive && styles.toggleButtonTextActive]}>
+                    Sign In
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleButton, isSignUpActive && styles.toggleButtonActive]}
+                  onPress={() => isSignUpActive && toggleAuthMode()}
+                >
+                  <Text style={[styles.toggleButtonText, isSignUpActive && styles.toggleButtonTextActive]}>
+                    Sign Up
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Sign In Form */}
+              {!isSignUpActive && (
+                <View style={styles.formPanel}>
                 <View style={styles.keyClubLogoContainer}>
                   <Image 
                     source={require('../assets/images/keyclublogo.png')} 
@@ -214,30 +201,34 @@ export default function AuthScreen({ navigation }) {
                 <Text style={styles.formTitle}>Sign In</Text>
                 <Text style={styles.formSubtitle}>Use your S-Number to access your account</Text>
                 
-                <Text style={styles.orText}>Enter your credentials</Text>
-                
-                <View style={styles.inputGroup}>
-                  <Ionicons name="person" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="S-Number"
-                    value={signInSNumber}
-                    onChangeText={setSignInSNumber}
-                    autoCapitalize="none"
-                    editable={!signInLoading}
-                  />
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>S-Number</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="person" size={20} color="#4299e1" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="s150712"
+                      value={signInSNumber}
+                      onChangeText={setSignInSNumber}
+                      autoCapitalize="none"
+                      editable={!signInLoading}
+                    />
+                  </View>
                 </View>
                 
-                <View style={styles.inputGroup}>
-                  <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    value={signInPassword}
-                    onChangeText={setSignInPassword}
-                    secureTextEntry
-                    editable={!signInLoading}
-                  />
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Password</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="lock-closed" size={20} color="#4299e1" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your password"
+                      value={signInPassword}
+                      onChangeText={setSignInPassword}
+                      secureTextEntry
+                      editable={!signInLoading}
+                    />
+                  </View>
                 </View>
                 
                 <TouchableOpacity 
@@ -248,28 +239,25 @@ export default function AuthScreen({ navigation }) {
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                  style={[styles.btn, signInLoading && styles.disabledBtn]}
+                  style={[styles.button, signInLoading && styles.disabledButton]}
                   onPress={handleSignIn}
                   disabled={signInLoading}
                 >
                   {signInLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color="#ffffff" size="small" />
                   ) : (
-                    <Text style={styles.btnText}>SIGN IN</Text>
+                    <>
+                      <Text style={styles.buttonText}>Sign In</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#ffffff" style={styles.buttonIcon} />
+                    </>
                   )}
-                </TouchableOpacity>
-              </Animated.View>
+                                  </TouchableOpacity>
+                </View>
+              )}
               
-              {/* Sign Up Panel */}
-              <Animated.View 
-                style={[
-                  styles.formPanel,
-                  styles.signupPanel,
-                  isSignUpActive && styles.signupPanelActive,
-                  { opacity: signUpOpacity }
-                ]}
-                pointerEvents={isSignUpActive ? 'auto' : 'none'}
-              >
+              {/* Sign Up Form */}
+              {isSignUpActive && (
+                <View style={styles.formPanel}>
                 <View style={styles.keyClubLogoContainer}>
                   <Image 
                     source={require('../assets/images/keyclublogo.png')} 
@@ -281,92 +269,82 @@ export default function AuthScreen({ navigation }) {
                 <Text style={styles.formTitle}>Create Account</Text>
                 <Text style={styles.formSubtitle}>Register with your personal details to join Key Club</Text>
                 
-                <Text style={styles.orText}>Use your S-Number for registration</Text>
-                
-                <View style={styles.inputGroup}>
-                  <Ionicons name="card" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="S-Number (e.g., s150712)"
-                    value={signUpSNumber}
-                    onChangeText={setSignUpSNumber}
-                    autoCapitalize="none"
-                    editable={!signUpLoading}
-                  />
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>S-Number</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="card" size={20} color="#4299e1" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="s150712"
+                      value={signUpSNumber}
+                      onChangeText={setSignUpSNumber}
+                      autoCapitalize="none"
+                      editable={!signUpLoading}
+                    />
+                  </View>
                 </View>
                 
-                <View style={styles.inputGroup}>
-                  <Ionicons name="person" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Full Name"
-                    value={signUpName}
-                    onChangeText={setSignUpName}
-                    editable={!signUpLoading}
-                  />
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="person" size={20} color="#4299e1" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Your full name"
+                      value={signUpName}
+                      onChangeText={setSignUpName}
+                      editable={!signUpLoading}
+                    />
+                  </View>
                 </View>
                 
-                <View style={styles.inputGroup}>
-                  <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    value={signUpPassword}
-                    onChangeText={setSignUpPassword}
-                    secureTextEntry
-                    editable={!signUpLoading}
-                  />
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Password</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="lock-closed" size={20} color="#4299e1" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Create a password"
+                      value={signUpPassword}
+                      onChangeText={setSignUpPassword}
+                      secureTextEntry
+                      editable={!signUpLoading}
+                    />
+                  </View>
                 </View>
                 
-                <View style={styles.inputGroup}>
-                  <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm Password"
-                    value={signUpConfirmPassword}
-                    onChangeText={setSignUpConfirmPassword}
-                    secureTextEntry
-                    editable={!signUpLoading}
-                  />
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Confirm Password</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="lock-closed" size={20} color="#4299e1" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Confirm your password"
+                      value={signUpConfirmPassword}
+                      onChangeText={setSignUpConfirmPassword}
+                      secureTextEntry
+                      editable={!signUpLoading}
+                    />
+                  </View>
                 </View>
                 
                 <TouchableOpacity
-                  style={[styles.btn, signUpLoading && styles.disabledBtn]}
+                  style={[styles.button, signUpLoading && styles.disabledButton]}
                   onPress={handleSignUp}
                   disabled={signUpLoading}
                 >
                   {signUpLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color="#ffffff" size="small" />
                   ) : (
-                    <Text style={styles.btnText}>SIGN UP</Text>
+                    <>
+                      <Text style={styles.buttonText}>Create Account</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#ffffff" style={styles.buttonIcon} />
+                    </>
                   )}
                 </TouchableOpacity>
-              </Animated.View>
-            </View>
-            
-            {/* Overlay Container */}
-            <Animated.View 
-              style={[
-                styles.overlayContainer,
-                { transform: [{ translateX: overlayTranslateX }] }
-              ]}
-            >
-              <View style={styles.overlay}>
-                {/* Dynamic Overlay Panel */}
-                <View style={[styles.overlayPanel, styles.overlayCenter]}>
-                  <Text style={styles.overlayTitle}>{overlayContent.title}</Text>
-                  <Text style={styles.overlayText}>
-                    {overlayContent.text}
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.ghostBtn}
-                    onPress={toggleAuthMode}
-                  >
-                    <Text style={styles.ghostBtnText}>{overlayContent.buttonText}</Text>
-                  </TouchableOpacity>
                 </View>
-              </View>
-            </Animated.View>
+              )}
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -377,197 +355,237 @@ export default function AuthScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#667eea',
-    backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  keyboardAvoid: {
-    flex: 1,
+    backgroundColor: '#1a365d', // Deep navy blue background
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    padding: 16,
     minHeight: screenHeight,
   },
-  authContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.35,
-    shadowRadius: 35,
-    elevation: 15,
-    position: 'relative',
-    overflow: 'hidden',
-    width: Math.min(768, screenWidth - 40),
-    height: 580,
-    maxWidth: 768,
-  },
-  formsContainer: {
-    position: 'absolute',
-    top: 0,
-    height: '100%',
-    width: '100%',
-    flexDirection: 'row',
-  },
-  formPanel: {
-    position: 'absolute',
-    top: 0,
-    height: '100%',
-    width: '50%',
-    padding: 40,
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  signinPanel: {
-    left: 0,
-    zIndex: 2,
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
-  signupPanel: {
-    left: 0,
-    zIndex: 1,
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#4299e1', // Professional blue
+    textAlign: 'center',
+    marginBottom: 10,
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  signupPanelActive: {
-    transform: [{ translateX: 384 }], // Half of container width
-    zIndex: 2,
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#e2e8f0', // Light gray
+    textAlign: 'center',
+    opacity: 0.9,
   },
+  authContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    borderRadius: 20,
+    padding: 25,
+    width: '100%',
+    maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+    width: '100%',
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#4299e1', // Professional blue
+  },
+  toggleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#e2e8f0', // Light gray
+  },
+  toggleButtonTextActive: {
+    color: '#ffffff',
+  },
+
+  formPanel: {
+    width: '100%',
+    padding: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    position: 'relative',
+  },
+
   keyClubLogoContainer: {
     width: 80,
     height: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   keyClubLogo: {
     width: 80,
     height: 80,
   },
   formTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: '#4299e1', // Professional blue
+    marginBottom: 8,
+    textAlign: 'center',
   },
   formSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 15,
+    color: '#e2e8f0', // Light gray
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     lineHeight: 20,
   },
   orText: {
-    fontSize: 12,
-    color: '#999',
-    marginVertical: 10,
+    fontSize: 13,
+    color: '#cbd5e0', // Medium gray
+    marginVertical: 8,
   },
   inputGroup: {
-    position: 'relative',
-    width: '100%',
-    marginVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 25,
-    paddingHorizontal: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4299e1', // Professional blue
+    paddingHorizontal: 12,
+    marginVertical: 8,
+    width: '100%',
   },
   inputIcon: {
     marginRight: 10,
+    color: '#4299e1', // Professional blue
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 16,
+    color: '#2d3748', // Dark gray
+    backgroundColor: 'transparent',
+    marginLeft: 12,
+    paddingVertical: 8,
+    minHeight: 20,
   },
   forgotLink: {
-    marginVertical: 15,
+    marginVertical: 10,
+    alignSelf: 'flex-end',
   },
   forgotLinkText: {
-    color: '#666',
-    fontSize: 12,
+    color: '#4299e1', // Professional blue
+    fontSize: 13,
+    fontWeight: '600',
   },
   btn: {
-    backgroundColor: '#512da8',
-    paddingVertical: 12,
+    backgroundColor: '#4299e1', // Professional blue
+    paddingVertical: 15,
     paddingHorizontal: 45,
-    borderRadius: 20,
-    marginTop: 10,
+    borderRadius: 14,
+    marginTop: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   disabledBtn: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#718096', // Medium gray
   },
   btnText: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
   overlayContainer: {
-    position: 'absolute',
-    top: 0,
-    left: '50%',
-    width: '50%',
-    height: '100%',
-    overflow: 'hidden',
-    zIndex: 100,
+    display: 'none', // hide overlay on mobile for simplicity
   },
-  overlay: {
-    backgroundColor: '#667eea',
-    backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    position: 'relative',
-    left: '-100%',
-    height: '100%',
-    width: '200%',
+  overlay: {},
+  overlayPanel: {},
+  overlayRight: {},
+  overlayLeft: {},
+  overlayCenter: {},
+  overlayTitle: {},
+  overlayText: {},
+  ghostBtn: {},
+  ghostBtnText: {},
+  // New styles for the new AuthScreen structure
+  formGroup: {
+    marginBottom: 16,
+    width: '100%',
+  },
+  label: {
+    fontSize: 15,
+    color: '#e2e8f0', // Light gray
+    marginBottom: 10,
+    fontWeight: '600',
+    textAlign: 'left',
+    width: '100%',
+  },
+  inputWrapper: {
     flexDirection: 'row',
-  },
-  overlayPanel: {
-    position: 'absolute',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    textAlign: 'center',
-    top: 0,
-    height: '100%',
-    width: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4299e1', // Professional blue
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    minHeight: 50,
+    width: '100%',
   },
-  overlayRight: {
-    right: 0,
+  button: {
+    backgroundColor: '#4299e1', // Professional blue
+    paddingVertical: 16,
+    paddingHorizontal: 50,
+    borderRadius: 14,
+    marginTop: 20,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    width: '100%',
   },
-  overlayLeft: {
-    left: 0,
-  },
-  overlayCenter: {
-    left: '50%',
-    right: 0,
-  },
-  overlayTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 15,
-  },
-  overlayText: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 30,
-    lineHeight: 20,
-    opacity: 0.9,
-    textAlign: 'center',
-  },
-  ghostBtn: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 45,
-    borderRadius: 20,
-  },
-  ghostBtnText: {
-    color: '#fff',
-    fontSize: 12,
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  buttonIcon: {
+    marginLeft: 10,
+  },
+  disabledButton: {
+    backgroundColor: '#718096', // Medium gray
   },
 });

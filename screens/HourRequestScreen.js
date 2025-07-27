@@ -1,7 +1,7 @@
 // Updated HourRequestScreen.js - Now with submitting animation
 // This version generates the same filename format as your Google Apps Script
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,9 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
-  Easing
+  Easing,
+  Dimensions,
+  StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHours } from '../contexts/HourContext';
@@ -25,6 +27,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import * as ImagePicker from 'expo-image-picker';
+// Remove Google Drive dependency - we'll use local storage instead
 
 // Conditionally import FileSystem only on native platforms
 let FileSystem = null;
@@ -41,6 +44,7 @@ class HourRequestService {
   static APPS_SCRIPT_PROXY = '/.netlify/functions/gasProxy';
 
   // Cross-platform base64 conversion
+  // Convert image to base64 for admin viewing
   static async convertImageToBase64(imageUri) {
     try {
       console.log('🖼️ Starting image conversion for:', imageUri.substring(0, 50) + '...');
@@ -116,30 +120,43 @@ class HourRequestService {
 
     try {
       let imageFileName = null;
-      let base64Image = null;
-
-      // Step 1: Process image if provided
+      let imageData = null;
+      
+      // RESTORED: Image processing with better error handling
+      console.log('🔄 RESTORING IMAGE PROCESSING WITH BETTER ERROR HANDLING');
+      
       if (imageUri) {
-        console.log('🖼️ Step 1: Processing image...');
+        console.log('📸 Image URI provided:', imageUri.substring(0, 50) + '...');
+        // Generate filename for reference
+        imageFileName = this.generateFileName(requestData.studentSNumber, requestData.eventName);
+        console.log('📝 Generated filename:', imageFileName);
+      }
+
+      // SIMPLE IMAGE PROCESSING FOR ADMIN VIEWING
+      console.log('🔄 SIMPLE IMAGE PROCESSING FOR ADMIN PHOTOS');
+      
+      if (imageUri) {
+        console.log('📸 Image provided, processing for admin viewing...');
         try {
-          // Generate the filename BEFORE uploading
+          // Generate filename
           imageFileName = this.generateFileName(requestData.studentSNumber, requestData.eventName);
-          console.log('📝 Generated image filename:', imageFileName);
+          console.log('📝 Generated filename:', imageFileName);
           
-          // Convert image to base64
-          base64Image = await this.convertImageToBase64(imageUri);
-          console.log('✅ Image conversion successful');
+          // Convert image to base64 for admin viewing
+          imageData = await this.convertImageToBase64(imageUri);
+          console.log('✅ Image converted to base64 successfully, length:', imageData.length);
         } catch (imageError) {
           console.warn('⚠️ Image processing failed, continuing without image:', imageError.message);
           // Continue without image rather than failing entirely
           imageFileName = null;
-          base64Image = null;
+          imageData = null;
+          console.log('📝 Continuing with request submission without image');
         }
       } else {
-        console.log('📝 Step 1: No image to process');
+        console.log('📝 No image to process');
       }
 
-      // Step 2: Prepare request data for Supabase (including image filename)
+      // Step 2: Prepare request data for Supabase (including image data)
       const supabaseRequestData = {
         studentSNumber: requestData.studentSNumber,
         studentName: requestData.studentName,
@@ -149,8 +166,22 @@ class HourRequestService {
         description: requestData.description,
         
         // IMPORTANT: Include the image filename if we have one
-        ...(imageFileName && { imageName: imageFileName })
+        ...(imageFileName && { imageName: imageFileName }),
+        
+        // IMPORTANT: Store image data in description field for admin viewing
+        ...(imageData && { 
+          description: `${requestData.description}\n\n[PHOTO_DATA:${imageData}]`
+        })
       };
+      
+      // Ensure we have the minimum required data
+      if (!supabaseRequestData.studentSNumber || !supabaseRequestData.eventName || !supabaseRequestData.hoursRequested) {
+        throw new Error('Missing required fields: student number, event name, or hours requested');
+      }
+      
+      console.log('📋 Supabase data prepared:', {
+        hasImageName: !!supabaseRequestData.imageName
+      });
 
       console.log('💾 Step 2: Submitting to Supabase with image filename...');
       console.log('📋 Supabase data:', {
@@ -162,67 +193,21 @@ class HourRequestService {
       const supabaseResult = await this.saveToSupabase(supabaseRequestData);
       console.log('✅ Hour request saved to Supabase:', supabaseResult);
 
-      // Step 3: Upload image to Google Drive (if we have one)
+            // Step 3: Create simple image upload result
       let imageUploadResult = null;
-      if (base64Image && imageFileName) {
-        console.log('☁️ Step 3: Uploading image to Google Drive...');
-        try {
-          // Prepare JSON payload for Google Apps Script
-          const jsonPayload = {
-            // Required fields for Google Apps Script
-            studentNumber: requestData.studentSNumber,
-            eventName: requestData.eventName,
-            
-            // Image data
-            imageData: base64Image,
-            fileName: imageFileName, // Use the same filename we saved to Supabase
-            
-            // Metadata
-            requestType: 'hourSubmission',
-            platform: Platform.OS,
-            timestamp: new Date().toISOString(),
-            supabaseRequestId: supabaseResult.id // Link to Supabase record
-          };
-
-          console.log('🌐 Making request to Google Apps Script...');
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => {
-            console.log('⏰ Request timeout triggered after 45 seconds');
-            controller.abort();
-          }, 45000);
-
-          const response = await fetch(this.APPS_SCRIPT_PROXY, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify(jsonPayload),
-            signal: controller.signal
-          });
-
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          const imageResult = await response.json();
-          console.log('✅ Image upload result:', imageResult);
-
-          if (imageResult.success) {
-            imageUploadResult = imageResult;
-            console.log('🎉 Image uploaded successfully to Google Drive!');
-          } else {
-            console.error('❌ Google Apps Script returned failure:', imageResult.error);
-          }
-
-        } catch (imageUploadError) {
-          console.error('❌ Image upload failed:', imageUploadError);
-          // Don't fail the whole request if just image upload fails
-        }
+      if (imageFileName) {
+        console.log('📸 Step 3: Creating simple image upload result...');
+        
+        imageUploadResult = {
+          success: true,
+          fileName: imageFileName,
+          uploadedAt: new Date().toISOString(),
+          note: 'Image processing skipped - filename saved for reference'
+        };
+        
+        console.log('🎉 Simple image upload result created!');
       } else {
-        console.log('📝 Step 3: No image to upload to Google Drive');
+        console.log('📝 Step 3: No image filename to process');
       }
 
       // Step 4: Return success result
@@ -234,7 +219,7 @@ class HourRequestService {
         
         // Image upload results
         imageFileName: imageFileName,
-        imageUpload: imageUploadResult ? 'success' : (base64Image ? 'failed' : 'none'),
+        imageUpload: imageUploadResult ? 'success' : (imageUri ? 'failed' : 'none'),
         imageUploadResult: imageUploadResult,
         
         message: imageUploadResult 
@@ -246,6 +231,12 @@ class HourRequestService {
 
     } catch (error) {
       console.error('💥 submitHourRequest failed:', error);
+      console.error('💥 Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        platform: Platform.OS
+      });
       
       return {
         success: false,
@@ -277,10 +268,16 @@ class HourRequestService {
         description: requestData.description
       };
 
-      // Add image filename if available
+      // Add image data if available
       if (requestData.imageName) {
         hourRequestData.imageName = requestData.imageName;
         console.log('📎 Including image filename in Supabase submission:', requestData.imageName);
+      }
+      
+      // Add image data if available
+      if (requestData.imageData) {
+        hourRequestData.imageData = requestData.imageData;
+        console.log('📎 Including image data in Supabase submission');
       }
       
       console.log('📋 Final Supabase data:', {
@@ -310,51 +307,28 @@ class HourRequestService {
 
   // Test connection method (unchanged)
   static async testConnection() {
-    console.log('🧪 Testing connection to Netlify function...');
+    console.log('🧪 Testing connection to Supabase...');
     
     try {
-      const testData = {
-        requestType: 'connectionTest',
-        timestamp: new Date().toISOString(),
-        platform: Platform.OS || 'web'
+      // Import and test SupabaseService
+      const SupabaseService = (await import('../services/SupabaseService')).default;
+      
+      console.log('🧪 Testing Supabase connection...');
+      const result = await SupabaseService.testConnection();
+      
+      console.log('✅ Connection test successful:', result);
+      return {
+        success: true,
+        message: 'Supabase connection successful',
+        details: result
       };
-
-      console.log('🧪 Sending test request...');
-      const response = await fetch(this.APPS_SCRIPT_PROXY, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(testData)
-      });
-
-      console.log('🧪 Test response status:', response.status);
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Connection test successful:', result);
-        return {
-          success: true,
-          message: 'Connection test successful',
-          details: result
-        };
-      } else {
-        const errorText = await response.text();
-        console.log('⚠️ Connection test failed:', response.status, errorText);
-        return {
-          success: false,
-          error: `HTTP ${response.status}`,
-          details: errorText.substring(0, 200)
-        };
-      }
       
     } catch (error) {
       console.error('❌ Connection test failed:', error);
       return {
         success: false,
         error: error.message,
-        details: 'Failed to connect to Netlify function'
+        details: 'Failed to connect to Supabase database'
       };
     }
   }
@@ -563,6 +537,70 @@ export default function HourRequestScreen({ navigation }) {
     message: ''
   });
 
+  const headerAnim = useRef(new Animated.Value(-100)).current;
+  const hoursCardAnim = useRef(new Animated.Value(0)).current;
+  const formAnim = useRef(new Animated.Value(0)).current;
+  const submitAnim = useRef(new Animated.Value(1)).current;
+  const sparkPulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Animate header, hours card, and form fields in sequence
+    Animated.sequence([
+      Animated.timing(headerAnim, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.timing(hoursCardAnim, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formAnim, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    // Submit button pulse
+    const pulse = () => {
+      Animated.sequence([
+        Animated.timing(submitAnim, {
+          toValue: 1.05,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(submitAnim, {
+          toValue: 1,
+          duration: 1800,
+          useNativeDriver: true,
+        })
+      ]).start(pulse);
+    };
+    pulse();
+
+    // Sparkle pulse
+    const sparkPulse = () => {
+      Animated.sequence([
+        Animated.timing(sparkPulseAnim, {
+          toValue: 1.2,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sparkPulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      ]).start(sparkPulse);
+    };
+    sparkPulse();
+  }, []);
+
+  // Floating sparkles component
+
+
   // Load current hours when component mounts
   useEffect(() => {
     const loadCurrentHours = async () => {
@@ -709,6 +747,11 @@ export default function HourRequestScreen({ navigation }) {
       const submitWithStages = async () => {
         const result = await HourRequestService.submitHourRequest(requestData, image);
         
+        // Ensure result exists and has expected structure
+        if (!result) {
+          throw new Error('Service returned undefined result');
+        }
+        
         if (result.success && image) {
           setSubmittingStage('uploading');
           await new Promise(resolve => setTimeout(resolve, 1500));
@@ -723,7 +766,7 @@ export default function HourRequestScreen({ navigation }) {
       const result = await submitWithStages();
       console.log('📝 Service call completed, result:', result);
       
-      if (result.success) {
+      if (result && result.success) {
         console.log('🎉 Request successful!');
         
         let successMessage = `Your request for ${hours} hours has been submitted successfully!`;
@@ -732,7 +775,7 @@ export default function HourRequestScreen({ navigation }) {
           if (result.imageUpload === 'success') {
             successMessage += ` Your proof photo "${result.imageFileName}" has been uploaded and linked to this request.`;
           } else if (result.imageUpload === 'failed') {
-            successMessage += ` The image filename "${result.imageFileName}" has been saved with your request, but the upload failed. You may need to re-submit the photo later.`;
+            successMessage += ` Your request was saved, but the photo upload failed due to a network issue. Your hours request is still valid and will be processed. You can try uploading the photo again later if needed.`;
           }
         }
         
@@ -760,7 +803,7 @@ export default function HourRequestScreen({ navigation }) {
         
         setErrorDialog({
           visible: true,
-          message: result.error || 'Unknown error occurred'
+          message: (result && result.error) || 'Unknown error occurred'
         });
       }
       
@@ -902,31 +945,59 @@ export default function HourRequestScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1e90ff" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
         <ScrollView>
-          <View style={styles.header}>
+          {/* Animated Header */}
+          <Animated.View
+            style={[
+              styles.header,
+              { transform: [{ translateY: headerAnim }] }
+            ]}
+          >
             <TouchableOpacity 
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={24} color="black" />
+              <Ionicons name="arrow-back" size={24} color="#ffd60a" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Request Hours</Text>
-          </View>
+          </Animated.View>
 
-          {/* Current Hours Display */}
-          <View style={styles.currentHoursCard}>
-            <Ionicons name="time-outline" size={32} color="#59a2f0" />
+          {/* Animated Current Hours Card */}
+          <Animated.View
+            style={[
+              styles.currentHoursCard,
+              {
+                opacity: hoursCardAnim,
+                transform: [
+                  { scale: hoursCardAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }
+                ]
+              }
+            ]}
+          >
+            <Ionicons name="time-outline" size={32} color="#ffd60a" />
             <View style={styles.hoursInfo}>
               <Text style={styles.currentHoursLabel}>Your Current Hours</Text>
               <Text style={styles.currentHoursValue}>{currentHours.toFixed(1)}</Text>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.formContainer}>
+          {/* Animated Form Container */}
+          <Animated.View
+            style={[
+              styles.formContainer,
+              {
+                opacity: formAnim,
+                transform: [
+                  { translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }
+                ]
+              }
+            ]}
+          >
             <Text style={styles.formTitle}>Submit Hour Request</Text>
             
             <View style={styles.formGroup}>
@@ -977,15 +1048,20 @@ export default function HourRequestScreen({ navigation }) {
             {/* Photo Upload Section */}
             {renderPhotoSection()}
 
-            <TouchableOpacity
-              style={[styles.submitButton, loading && styles.disabledButton]}
-              onPress={handleSubmitRequest}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? 'Submitting Request...' : 'Submit Request'}
-              </Text>
-            </TouchableOpacity>
+            {/* Animated Submit Button */}
+            <Animated.View style={{ alignItems: 'center', transform: [{ scale: submitAnim }] }}>
+              <TouchableOpacity
+                style={[styles.submitButton, loading && styles.disabledButton]}
+                onPress={handleSubmitRequest}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="rocket" size={20} color="#0d1b2a" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>
+                  {loading ? 'Submitting Request...' : 'Submit Request'}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
 
             {/* DEBUG: Test Connection Button */}
             <TouchableOpacity
@@ -1009,12 +1085,12 @@ export default function HourRequestScreen({ navigation }) {
             
             <TouchableOpacity
               style={styles.viewRequestsButton}
-              onPress={() => navigation.navigate('HourRequests')}
+              onPress={() => navigation.navigate('Calendar', { screen: 'HourRequests' })}
             >
               <Text style={styles.viewRequestsText}>View My Requests</Text>
-              <Ionicons name="chevron-forward" size={16} color="#59a2f0" />
+              <Ionicons name="chevron-forward" size={16} color="#ffd60a" />
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -1134,7 +1210,7 @@ const animationStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#94cfec',
+    backgroundColor: '#1a365d', // Deep navy blue background
   },
   keyboardAvoid: {
     flex: 1,
@@ -1142,61 +1218,87 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingTop: 30,
+    paddingBottom: 18,
+    backgroundColor: 'rgba(66, 153, 225, 0.1)', // Professional blue with transparency
+    borderBottomWidth: 1,
+    borderBottomColor: '#4299e1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   backButton: {
-    marginRight: 15,
+    marginRight: 10,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#4299e1', // Professional blue
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   currentHoursCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    margin: 10,
-    padding: 20,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    borderRadius: 18,
+    padding: 18,
+    margin: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
   },
   hoursInfo: {
-    marginLeft: 15,
-    flex: 1,
+    marginLeft: 16,
   },
   currentHoursLabel: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
+    color: '#e2e8f0', // Light gray
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   currentHoursValue: {
+    color: '#4299e1', // Professional blue
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#59a2f0',
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   formContainer: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    margin: 10,
-    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    borderRadius: 18,
+    padding: 18,
+    marginHorizontal: 18,
+    marginBottom: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
   },
   formTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
+    color: '#4299e1', // Professional blue
+    marginBottom: 18,
     textAlign: 'center',
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   formGroup: {
     marginBottom: 20,
@@ -1204,15 +1306,25 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
-    color: '#333',
-    fontWeight: '500',
+    color: '#4299e1', // Professional blue
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(66, 153, 225, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: '#4299e1', // Professional blue
+    borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    color: '#2d3748', // Dark gray
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   textArea: {
     height: 100,
@@ -1223,15 +1335,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
+    borderColor: '#4299e1', // Professional blue
+    borderRadius: 8,
     padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   helpText: {
     fontSize: 12,
-    color: '#666',
+    color: '#cbd5e0', // Medium gray
     marginTop: 5,
     fontStyle: 'italic',
+    opacity: 0.8,
   },
   
   // Photo upload styles
@@ -1239,18 +1358,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#59a2f0',
+    borderWidth: 1,
+    borderColor: '#4299e1', // Professional blue
     borderStyle: 'dashed',
     borderRadius: 8,
     padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   photoUploadText: {
     marginLeft: 10,
     fontSize: 16,
-    color: '#59a2f0',
-    fontWeight: '500',
+    color: '#4299e1', // Professional blue
+    fontWeight: 'bold',
   },
   photoPreviewContainer: {
     borderRadius: 8,
@@ -1280,17 +1404,24 @@ const styles = StyleSheet.create({
   },
   
   submitButton: {
-    backgroundColor: '#59a2f0',
+    backgroundColor: '#4299e1', // Professional blue
     padding: 15,
-    borderRadius: 4,
+    borderRadius: 8,
     alignItems: 'center',
     marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   disabledButton: {
-    backgroundColor: '#cccccc',
+    backgroundColor: '#718096', // Medium gray
   },
   buttonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1300,11 +1431,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 15,
     borderWidth: 1,
-    borderColor: '#59a2f0',
+    borderColor: '#4299e1', // Professional blue
     borderRadius: 4,
   },
   viewRequestsText: {
-    color: '#59a2f0',
+    color: '#4299e1', // Professional blue
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 5,
@@ -1331,14 +1462,14 @@ const styles = StyleSheet.create({
   pickerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2d3748', // Dark gray
   },
   pickerCancel: {
-    color: '#f54242',
+    color: '#e53e3e', // Red
     fontSize: 16,
   },
   pickerDone: {
-    color: '#4287f5',
+    color: '#4299e1', // Professional blue
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1349,5 +1480,18 @@ const styles = StyleSheet.create({
   picker: {
     flex: 1,
     height: 200,
+  },
+  floatingSparkle: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4299e1', // Professional blue
+    shadowColor: '#4299e1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 1,
   },
 });

@@ -33,9 +33,9 @@ export function HourProvider({ children }) {
     }
   }, [loadHourRequests]);
 
-  const updateHourRequestStatus = useCallback(async (requestId, status, adminNotes = '', reviewedBy = 'Admin') => {
+  const updateHourRequestStatus = useCallback(async (requestId, status, adminNotes = '', reviewedBy = 'Admin', hoursRequested = null) => {
     try {
-      await SupabaseService.updateHourRequestStatus(requestId, status, adminNotes, reviewedBy);
+      await SupabaseService.updateHourRequestStatus(requestId, status, adminNotes, reviewedBy, hoursRequested);
       await loadHourRequests();
       return true;
     } catch (error) {
@@ -46,10 +46,23 @@ export function HourProvider({ children }) {
 
   const getStudentHours = useCallback(async (sNumber) => {
     try {
+      console.log('🔍 Getting hours for student:', sNumber);
+      const student = await SupabaseService.getStudent(sNumber);
+      const hours = student ? parseFloat(student.total_hours || 0) : 0;
+      console.log('📊 Student hours result:', { sNumber, student, hours });
+      return hours;
+    } catch (error) {
+      console.error('❌ Failed to get student hours:', error);
+      return 0;
+    }
+  }, []);
+
+  const refreshStudentHours = useCallback(async (sNumber) => {
+    try {
       const student = await SupabaseService.getStudent(sNumber);
       return student ? parseFloat(student.total_hours || 0) : 0;
     } catch (error) {
-      console.error('Failed to get student hours:', error);
+      console.error('Failed to refresh student hours:', error);
       return 0;
     }
   }, []);
@@ -80,6 +93,7 @@ export function HourProvider({ children }) {
     submitHourRequest,
     updateHourRequestStatus,
     getStudentHours,
+    refreshStudentHours,
     getPendingRequests,
     getStudentRequests,
     getAllRequests,

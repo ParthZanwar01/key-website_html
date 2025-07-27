@@ -92,7 +92,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#94cfec',
+    backgroundColor: '#1e90ff', // Ocean blue background
   },
   keyboardAvoid: {
     flex: 1,
@@ -100,59 +100,73 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center', // center card on mobile
+    padding: 18,
   },
   loginCard: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#fffbe6', // subtle warm background
+    borderRadius: 18,
+    padding: 28,
+    shadowColor: '#ffd60a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 10,
+    borderWidth: 2,
+    borderColor: '#ffd60a',
+    width: '100%',
+    maxWidth: 400,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#000080', // Navy blue for contrast
+    marginBottom: 18,
     textAlign: 'center',
-    color: '#333',
   },
   formGroup: {
-    marginBottom: 15,
+    marginBottom: 18,
   },
   label: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#333',
+    fontSize: 15,
+    color: '#000080', // Navy blue for contrast
+    marginBottom: 6,
+    fontWeight: '700',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    padding: 10,
+    borderWidth: 2,
+    borderColor: '#f4d03f', // Softer yellow
+    borderRadius: 10,
+    padding: 13,
     fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#2c3e50', // Dark blue-gray for contrast
   },
   loginButton: {
-    backgroundColor: '#f1ca3b',
-    padding: 15,
-    borderRadius: 4,
+    backgroundColor: '#f4d03f', // Softer yellow
+    borderRadius: 12,
+    paddingVertical: 15,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: '#f4d03f',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
   },
   loginButtonText: {
-    color: 'white',
-    fontSize: 16,
+    color: '#2c3e50', // Dark blue-gray for contrast
+    fontSize: 17,
     fontWeight: 'bold',
   },
   hint: {
     marginTop: 20,
     textAlign: 'center',
-    color: '#666',
-    fontSize: 12,
+    color: '#ffffff', // White for contrast against ocean blue
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

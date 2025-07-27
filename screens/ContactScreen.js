@@ -509,13 +509,13 @@ export default function ContactScreen() {
     return (
       <View key={item.id} style={styles.faqItem}>
         <TouchableOpacity
-          style={styles.faqQuestion}
+          style={styles.faqHeader}
           onPress={() => toggleFaq(item.id)}
           activeOpacity={0.7}
         >
-          <Text style={styles.faqQuestionText}>{item.question}</Text>
+          <Text style={styles.faqQuestion}>{item.question}</Text>
           <Animated.View style={{ transform: [{ rotate: iconRotation }] }}>
-            <Ionicons name="chevron-down" size={20} color="#59a2f0" />
+            <Ionicons name="chevron-down" size={20} color="#4299e1" />
           </Animated.View>
         </TouchableOpacity>
         
@@ -528,7 +528,7 @@ export default function ContactScreen() {
 
   // Render support question item (admin only)
   const renderSupportQuestion = (question, index) => (
-    <View key={question.id || index} style={styles.questionItem}>
+    <View key={question.id || index} style={styles.supportQuestion}>
       <View style={styles.questionHeader}>
         <View style={styles.questionInfo}>
           <Text style={styles.questionSubject}>{question.subject}</Text>
@@ -544,7 +544,7 @@ export default function ContactScreen() {
         </View>
         <View style={[
           styles.statusBadge, 
-          { backgroundColor: (question.resolved === true || question.status === 'resolved') ? '#27ae60' : '#f39c12' }
+          { backgroundColor: (question.resolved === true || question.status === 'resolved') ? '#48bb78' : '#6c757d' }
         ]}>
           <Text style={styles.statusText}>
             {(question.resolved === true || question.status === 'resolved') ? 'RESOLVED' : 'OPEN'}
@@ -587,7 +587,7 @@ export default function ContactScreen() {
             </View>
           ) : (
             <View style={styles.resolvedIndicator}>
-              <Ionicons name="checkmark-circle" size={16} color="#27ae60" />
+              <Ionicons name="checkmark-circle" size={16} color="#48bb78" />
               <Text style={styles.resolvedText}>Resolved</Text>
             </View>
           )}
@@ -620,7 +620,7 @@ export default function ContactScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Ionicons name="help-circle" size={32} color="#ffd60a" />
+          <Ionicons name="help-circle" size={32} color="#4299e1" />
           <Text style={styles.headerTitle}>Help & Support</Text>
           <Text style={styles.headerSubtitle}>
             Find answers, watch guides, or contact us directly
@@ -631,16 +631,16 @@ export default function ContactScreen() {
         {isAdmin && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="settings" size={24} color="#59a2f0" />
+              <Ionicons name="settings" size={24} color="#4299e1" />
               <Text style={styles.sectionTitle}>Support Questions Management</Text>
               <View style={styles.headerActions}>
                 <TouchableOpacity
                   style={styles.sortButton}
                   onPress={() => setShowSortMenu(!showSortMenu)}
                 >
-                  <Ionicons name="funnel" size={16} color="#59a2f0" />
+                  <Ionicons name="funnel" size={16} color="#4299e1" />
                   <Text style={styles.sortButtonText}>Sort</Text>
-                  <Ionicons name={showSortMenu ? "chevron-up" : "chevron-down"} size={14} color="#59a2f0" />
+                  <Ionicons name={showSortMenu ? "chevron-up" : "chevron-down"} size={14} color="#4299e1" />
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -676,7 +676,7 @@ export default function ContactScreen() {
                     <Ionicons 
                       name={option.icon} 
                       size={16} 
-                      color={sortBy === option.key ? "#59a2f0" : "#ccc"} 
+                      color={sortBy === option.key ? "#4299e1" : "#cbd5e0"} 
                     />
                     <Text style={[
                       styles.sortOptionText,
@@ -685,7 +685,7 @@ export default function ContactScreen() {
                       {option.label}
                     </Text>
                     {sortBy === option.key && (
-                      <Ionicons name="checkmark" size={16} color="#59a2f0" />
+                      <Ionicons name="checkmark" size={16} color="#4299e1" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -694,11 +694,11 @@ export default function ContactScreen() {
             
             {loadingQuestions ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#59a2f0" />
+                <ActivityIndicator size="large" color="#4299e1" />
                 <Text style={styles.loadingText}>Loading support questions...</Text>
               </View>
             ) : (
-              <View style={styles.questionsContainer}>
+              <View style={styles.supportSection}>
                 {supportQuestions.length > 0 ? (
                   <>
                     <Text style={styles.questionsCount}>
@@ -717,7 +717,7 @@ export default function ContactScreen() {
                         loadSupportQuestions();
                       }}
                     >
-                      <Ionicons name="refresh" size={16} color="#59a2f0" />
+                      <Ionicons name="refresh" size={16} color="#4299e1" />
                       <Text style={styles.refreshButtonText}>Refresh</Text>
                     </TouchableOpacity>
                     
@@ -749,7 +749,7 @@ export default function ContactScreen() {
         {/* FAQ Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="help-buoy" size={24} color="#59a2f0" />
+            <Ionicons name="help-buoy" size={24} color="#4299e1" />
             <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
           </View>
           
@@ -761,7 +761,7 @@ export default function ContactScreen() {
         {/* Video Guides Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="play-circle" size={24} color="#59a2f0" />
+            <Ionicons name="play-circle" size={24} color="#4299e1" />
             <Text style={styles.sectionTitle}>Video Guides</Text>
           </View>
           
@@ -773,7 +773,7 @@ export default function ContactScreen() {
         {/* Contact Form Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="mail" size={24} color="#59a2f0" />
+            <Ionicons name="mail" size={24} color="#4299e1" />
             <Text style={styles.sectionTitle}>Contact Us</Text>
           </View>
           
@@ -792,9 +792,9 @@ export default function ContactScreen() {
             </View>
             
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Subject *</Text>
+              <Text style={styles.formLabel}>Subject *</Text>
               <TextInput
-                style={styles.input}
+                style={styles.formInput}
                 value={contactForm.subject}
                 onChangeText={(text) => setContactForm(prev => ({ ...prev, subject: text }))}
                 placeholder="Brief description of your inquiry"
@@ -803,9 +803,9 @@ export default function ContactScreen() {
             </View>
             
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Message *</Text>
+              <Text style={styles.formLabel}>Message *</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={styles.formTextArea}
                 value={contactForm.message}
                 onChangeText={(text) => setContactForm(prev => ({ ...prev, message: text }))}
                 placeholder="Please provide details about your question or issue..."
@@ -952,81 +952,104 @@ export default function ContactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: '#1a365d', // Deep navy blue background
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: 'rgba(66, 153, 225, 0.1)', // Professional blue with transparency
     borderBottomWidth: 1,
-    borderBottomColor: '#2a3950',
+    borderBottomColor: '#4299e1',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffd60a',
-    marginTop: 10,
-    marginBottom: 5,
+    color: '#4299e1', // Professional blue
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#ccc',
-    textAlign: 'center',
+  headerSpacer: {
+    width: 40,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
   section: {
-    margin: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 15,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 30,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
-    marginLeft: 10,
+    color: '#4299e1', // Professional blue
+    marginBottom: 15,
+    textShadowColor: 'rgba(66, 153, 225, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  
-  // FAQ Styles
   faqContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 8,
     overflow: 'hidden',
   },
   faqItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
   },
   faqQuestion: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  },
-  faqQuestionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#e2e8f0', // Light gray
     flex: 1,
     marginRight: 10,
   },
+  faqIcon: {
+    color: '#4299e1', // Professional blue
+  },
   faqAnswer: {
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(66, 153, 225, 0.1)',
   },
   faqAnswerText: {
     fontSize: 14,
-    color: '#ccc',
+    color: '#cbd5e0', // Medium gray
     lineHeight: 20,
-    padding: 15,
   },
   
   // Video Guide Styles
@@ -1078,9 +1101,16 @@ const styles = StyleSheet.create({
   
   // Contact Form Styles
   contactForm: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 8,
-    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   contactFormDescription: {
     fontSize: 14,
@@ -1108,49 +1138,73 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   formGroup: {
-    marginBottom: 15,
+    marginBottom: 16,
   },
-  label: {
+  formLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
-    marginBottom: 5,
+    color: '#e2e8f0', // Light gray
+    marginBottom: 8,
   },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
+  formInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#fff',
+    color: '#2d3748', // Dark gray
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(66, 153, 225, 0.2)',
   },
-  textArea: {
-    height: 100,
+  formTextArea: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#2d3748', // Dark gray
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
+    minHeight: 100,
     textAlignVertical: 'top',
   },
   submitButton: {
-    backgroundColor: '#ffd60a',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 15,
+    backgroundColor: '#4299e1', // Professional blue
     borderRadius: 8,
-    marginTop: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   submitButtonDisabled: {
-    backgroundColor: '#666',
+    backgroundColor: '#718096', // Medium gray
   },
   submitButtonText: {
-    color: '#0d1b2a',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  submitButtonTextDisabled: {
+    color: '#a0aec0', // Light gray
   },
   sendIcon: {
     marginLeft: 8,
   },
   
   // Admin Question Management Styles
+  supportSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   questionsContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 8,
@@ -1201,41 +1255,41 @@ const styles = StyleSheet.create({
   questionSubject: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#e2e8f0', // Light gray
     marginBottom: 5,
   },
   questionMeta: {
     fontSize: 12,
-    color: '#ccc',
+    color: '#a0aec0', // Light gray
     marginBottom: 2,
   },
   questionMessage: {
     fontSize: 14,
-    color: '#ddd',
+    color: '#cbd5e0', // Medium gray
     lineHeight: 18,
     marginBottom: 10,
   },
   adminResponseContainer: {
-    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+    backgroundColor: 'rgba(72, 187, 120, 0.1)', // Green with transparency
     borderRadius: 6,
     padding: 10,
     borderLeftWidth: 2,
-    borderLeftColor: '#27ae60',
+    borderLeftColor: '#48bb78', // Green
   },
   adminResponseLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#27ae60',
+    color: '#48bb78', // Green
     marginBottom: 5,
   },
   adminResponseText: {
     fontSize: 14,
-    color: '#fff',
+    color: '#e2e8f0', // Light gray
     marginBottom: 5,
   },
   adminResponseMeta: {
     fontSize: 11,
-    color: '#aaa',
+    color: '#a0aec0', // Light gray
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -1250,14 +1304,14 @@ const styles = StyleSheet.create({
   exportButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffd60a',
+    backgroundColor: '#4299e1', // Professional blue
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     marginLeft: 10,
   },
   exportButtonText: {
-    color: '#0d1b2a',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 4,
@@ -1267,7 +1321,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   loadingText: {
-    color: '#ccc',
+    color: '#a0aec0', // Light gray
     marginTop: 10,
     fontSize: 14,
   },
@@ -1276,13 +1330,13 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   noQuestionsText: {
-    color: '#666',
+    color: '#718096', // Medium gray
     fontSize: 16,
     marginTop: 10,
   },
   moreQuestionsText: {
     fontSize: 12,
-    color: '#999',
+    color: '#a0aec0', // Light gray
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 15,
@@ -1293,14 +1347,14 @@ const styles = StyleSheet.create({
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(89, 162, 240, 0.2)',
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
     marginRight: 10,
   },
   sortButtonText: {
-    color: '#59a2f0',
+    color: '#4299e1', // Professional blue
     fontSize: 12,
     fontWeight: 'bold',
     marginHorizontal: 4,
@@ -1315,12 +1369,12 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: 'rgba(89, 162, 240, 0.3)',
+    borderColor: 'rgba(66, 153, 225, 0.3)',
   },
   sortMenuTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#e2e8f0', // Light gray
     marginBottom: 10,
   },
   sortOption: {
@@ -1332,21 +1386,21 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   activeSortOption: {
-    backgroundColor: 'rgba(89, 162, 240, 0.2)',
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
   },
   sortOptionText: {
     fontSize: 14,
-    color: '#ccc',
+    color: '#cbd5e0', // Medium gray
     marginLeft: 10,
     flex: 1,
   },
   activeSortOptionText: {
-    color: '#59a2f0',
+    color: '#4299e1', // Professional blue
     fontWeight: 'bold',
   },
   sortIndicator: {
     fontSize: 12,
-    color: '#59a2f0',
+    color: '#4299e1', // Professional blue
     fontStyle: 'italic',
   },
   
@@ -1364,7 +1418,7 @@ const styles = StyleSheet.create({
   respondButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#59a2f0',
+    backgroundColor: '#4299e1', // Professional blue
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -1374,7 +1428,7 @@ const styles = StyleSheet.create({
   resolveButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#27ae60',
+    backgroundColor: '#48bb78', // Green
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -1382,7 +1436,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 4,
@@ -1394,7 +1448,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   resolvedText: {
-    color: '#27ae60',
+    color: '#48bb78', // Green
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 5,
@@ -1405,75 +1459,76 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   questionPreview: {
-    backgroundColor: 'rgba(89, 162, 240, 0.1)',
+    backgroundColor: 'rgba(66, 153, 225, 0.1)',
     borderRadius: 6,
     padding: 12,
     marginBottom: 15,
     borderLeftWidth: 3,
-    borderLeftColor: '#59a2f0',
+    borderLeftColor: '#4299e1', // Professional blue
   },
   questionPreviewTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#59a2f0',
+    color: '#4299e1', // Professional blue
     marginBottom: 5,
   },
   questionPreviewSubject: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2d3748', // Dark gray
     marginBottom: 3,
   },
   questionPreviewFrom: {
     fontSize: 12,
-    color: '#666',
+    color: '#718096', // Medium gray
     marginBottom: 8,
   },
   questionPreviewMessage: {
     fontSize: 13,
-    color: '#555',
+    color: '#4a5568', // Dark gray
     lineHeight: 18,
   },
   responseLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2d3748', // Dark gray
     marginBottom: 8,
   },
   responseInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e2e8f0', // Light gray
     borderRadius: 6,
     padding: 12,
     fontSize: 14,
     textAlignVertical: 'top',
     minHeight: 100,
     marginBottom: 10,
+    backgroundColor: '#ffffff',
   },
   responseNote: {
     fontSize: 11,
-    color: '#666',
+    color: '#718096', // Medium gray
     fontStyle: 'italic',
     textAlign: 'center',
   },
   quickContact: {
     margin: 15,
     padding: 15,
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+    backgroundColor: 'rgba(66, 153, 225, 0.1)', // Professional blue with transparency
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
+    borderColor: 'rgba(66, 153, 225, 0.3)',
     alignItems: 'center',
   },
   quickContactTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffd60a',
+    color: '#4299e1', // Professional blue
     marginBottom: 5,
   },
   quickContactText: {
     fontSize: 14,
-    color: '#ccc',
+    color: '#cbd5e0', // Medium gray
     textAlign: 'center',
   },
 });

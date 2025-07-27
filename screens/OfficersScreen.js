@@ -13,14 +13,16 @@ import {
   Animated,
   TouchableOpacity
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, isWeb, isMobile }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const [isVisible, setIsVisible] = useState(false);
 
   // Reset animations when component mounts
@@ -29,7 +31,30 @@ const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, i
     slideAnim.setValue(50);
     scaleAnim.setValue(0.8);
     rotateAnim.setValue(0);
+    pulseAnim.setValue(1);
     setIsVisible(false);
+
+    // Start pulsing animation
+    const pulseAnimation = () => {
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.02,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        })
+      ]).start(pulseAnimation);
+    };
+    pulseAnimation();
+
+    // Auto-trigger animation after a short delay
+    setTimeout(() => {
+      animateIn();
+    }, 200);
   }, []);
 
   const animateIn = () => {
@@ -106,19 +131,18 @@ const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, i
           width: cardWidth,
           marginLeft: index % numColumns === 0 ? 0 : 10,
           marginBottom: isWeb ? 25 : 20,
-          opacity: fadeAnim,
+          opacity: fadeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.3, 1]
+          }),
           transform: [
             { translateY: slideAnim },
             { scale: scaleAnim },
+            { scale: pulseAnim },
+            { rotateY: rotation }
           ],
         },
       ]}
-      onLayout={() => {
-        // Use a timeout to ensure the component is mounted and visible
-        setTimeout(() => {
-          animateIn();
-        }, 100);
-      }}
     >
       <TouchableOpacity
         style={[styles.officerCard, { height: cardHeight }]}
@@ -223,7 +247,6 @@ const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, i
 };
 
 const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideUpAnim = useRef(new Animated.Value(30)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -231,7 +254,6 @@ const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
     // Reset animations on mount
     slideUpAnim.setValue(30);
     opacityAnim.setValue(0);
-    pulseAnim.setValue(1);
 
     // Initial slide up animation
     Animated.parallel([
@@ -250,29 +272,13 @@ const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
       }),
     ]).start();
 
-    // Continuous pulse animation
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
+    // Simple entrance animation only
     const pulseTimeout = setTimeout(() => {
-      pulseAnimation.start();
+      // No continuous animations
     }, delay + 800);
 
     return () => {
       clearTimeout(pulseTimeout);
-      pulseAnimation.stop();
     };
   }, [delay]);
 
@@ -284,11 +290,12 @@ const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
           opacity: opacityAnim,
           transform: [
             { translateY: slideUpAnim },
-            { scale: pulseAnim },
           ],
         },
       ]}
     >
+
+      
       <Text style={[
         styles.positionText,
         { fontSize: isWeb ? 16 : isMobile ? 14 : 15 }
@@ -303,6 +310,8 @@ export default function OfficersScreen() {
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const headerSlideAnim = useRef(new Animated.Value(-50)).current;
+  const headerAnim = useRef(new Animated.Value(-100)).current;
+  const titleAnim = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
     const onChange = (result) => {
@@ -327,6 +336,20 @@ export default function OfficersScreen() {
         friction: 8,
         useNativeDriver: true,
       }),
+    ]).start();
+
+    // Start entrance animations
+    Animated.sequence([
+      Animated.timing(headerAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(titleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      })
     ]).start();
     
     return () => subscription?.remove();
@@ -540,25 +563,40 @@ export default function OfficersScreen() {
     />
   );
 
+
+
   // Use ScrollView with flexWrap for web, FlatList for mobile
   if (isWeb) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="light-content" backgroundColor="#0d1b2a" />
         
-        <Animated.View
+        {/* Floating Sparkles Background */}
+        <FloatingSparkles />
+        
+        {/* Header */}
+        <Animated.View 
           style={[
             styles.header,
-            {
-              opacity: headerFadeAnim,
-              transform: [{ translateY: headerSlideAnim }],
-            },
+            { transform: [{ translateY: headerAnim }] }
           ]}
         >
-          <Text style={[styles.headerTitle, { fontSize: 28 }]}>Our Leadership Team</Text>
-          <Text style={[styles.headerSubtitle, { fontSize: 18 }]}>
-            Meet the dedicated individuals who lead our Key Club.
-          </Text>
+          <Animated.Text 
+            style={[
+              styles.headerTitle,
+              { opacity: titleAnim }
+            ]}
+          >
+            Meet Our Officers
+          </Animated.Text>
+          <Animated.Text 
+            style={[
+              styles.headerSubtitle,
+              { opacity: titleAnim }
+            ]}
+          >
+            The dedicated leaders of Cypress Ranch Key Club
+          </Animated.Text>
         </Animated.View>
 
         <ScrollView 
@@ -588,21 +626,31 @@ export default function OfficersScreen() {
   // Mobile/Tablet layout with FlatList
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#0d1b2a" />
       
-      <Animated.View
+      {/* Header */}
+      <Animated.View 
         style={[
           styles.header,
-          {
-            opacity: headerFadeAnim,
-            transform: [{ translateY: headerSlideAnim }],
-          },
+          { transform: [{ translateY: headerAnim }] }
         ]}
       >
-        <Text style={styles.headerTitle}>Our Leadership Team</Text>
-        <Text style={styles.headerSubtitle}>
-          Meet the dedicated individuals who lead our Key Club.
-        </Text>
+        <Animated.Text 
+          style={[
+            styles.headerTitle,
+            { opacity: titleAnim }
+          ]}
+        >
+          Meet Our Officers
+        </Animated.Text>
+        <Animated.Text 
+          style={[
+            styles.headerSubtitle,
+            { opacity: titleAnim }
+          ]}
+        >
+          The dedicated leaders of Cypress Ranch Key Club
+        </Animated.Text>
       </Animated.View>
 
       <FlatList
@@ -621,27 +669,45 @@ export default function OfficersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: '#1a365d', // Deep navy blue background
   },
   header: {
-    padding: 16,
-    backgroundColor: '#0d1b2a',
-    alignItems: 'center',
+    backgroundColor: 'rgba(66, 153, 225, 0.1)', // Professional blue with transparency
     borderBottomWidth: 1,
-    borderBottomColor: '#2a3950',
-    marginBottom: 10,
+    borderBottomColor: '#4299e1',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffd60a',
-    marginBottom: 8,
-    textAlign: 'center',
+    color: '#4299e1', // Professional blue
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
+  headerSpacer: {
+    width: 40,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
   listContainer: {
     paddingHorizontal: 10,
@@ -661,16 +727,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   officerCard: {
-    borderRadius: 20,
+    margin: 8,
+    borderRadius: 16,
     overflow: 'hidden',
-    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: '#374151',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 10,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
   },
   keyClubLogo: {
     position: 'absolute',
@@ -704,23 +770,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   officerName: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    color: '#4299e1', // Professional blue
     textAlign: 'center',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  officerPosition: {
+    fontSize: 14,
+    color: '#e2e8f0', // Light gray
+    textAlign: 'center',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   detailsContainer: {
     alignItems: 'center',
     marginTop: 5,
   },
   classInfo: {
-    color: '#e2e8f0',
+    color: '#e2e8f0', // Light gray
     textAlign: 'center',
   },
   memberInfo: {
-    color: '#e2e8f0',
+    color: '#e2e8f0', // Light gray
     textAlign: 'center',
     marginBottom: 15,
   },
@@ -741,18 +818,56 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   positionText: {
-    backgroundColor: '#f8a3a3',
-    color: '#0d1b2a',
+    backgroundColor: '#4299e1', // Professional blue
+    color: '#ffffff',
     fontWeight: 'bold',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
     overflow: 'hidden',
     textAlign: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.3)',
+  },
+  positionGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    backgroundColor: '#4299e1', // Professional blue
+    borderRadius: 25,
+    opacity: 0.2,
+  },
+  positionSparkle: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTouchable: {
+    flex: 1,
+  },
+  cardImage: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  cardImageStyle: {
+    borderRadius: 14,
+  },
+  cardOverlay: {
+    backgroundColor: 'rgba(26, 54, 93, 0.8)', // Deep navy blue with transparency
+    padding: 16,
+  },
+  cardContent: {
+    alignItems: 'center',
   },
 });

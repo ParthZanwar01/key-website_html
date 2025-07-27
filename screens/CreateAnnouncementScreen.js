@@ -154,7 +154,7 @@ export default function CreateAnnouncementScreen() {
         <Text style={styles.headerText}>Create Announcement</Text>
         
         <View style={styles.inputContainer}>
-          <Ionicons name="create-outline" size={20} color="#00b894" style={styles.inputIcon} />
+          <Ionicons name="create-outline" size={20} color="#4299e1" style={styles.inputIcon} />
           <TextInput 
             placeholder="Title" 
             value={title} 
@@ -165,7 +165,7 @@ export default function CreateAnnouncementScreen() {
         </View>
         
         <View style={[styles.inputContainer, styles.messageContainer]}>
-          <Ionicons name="chatbubble-outline" size={20} color="#00b894" style={[styles.inputIcon, styles.messageIcon]} />
+          <Ionicons name="chatbubble-outline" size={20} color="#4299e1" style={[styles.inputIcon, styles.messageIcon]} />
           <TextInput
             placeholder="Message"
             value={message}
@@ -220,7 +220,7 @@ export default function CreateAnnouncementScreen() {
         pointerEvents="none"
       >
         <View style={styles.successContainer}>
-          <Ionicons name="checkmark-circle" size={80} color="#00b894" />
+          <Ionicons name="checkmark-circle" size={80} color="#4299e1" />
           <Text style={styles.successText}>Announcement Created!</Text>
         </View>
       </Animated.View>
@@ -229,56 +229,74 @@ export default function CreateAnnouncementScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
+    backgroundColor: '#1a365d',
     padding: 20,
-    backgroundColor: '#f8f9fa',
   },
   headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2d3436',
+    color: '#4299e1',
     marginBottom: 30,
     textAlign: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4299e1',
     marginBottom: 20,
-    paddingHorizontal: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   messageContainer: {
     alignItems: 'flex-start',
     paddingVertical: 15,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 8,
+    color: '#4299e1',
   },
   messageIcon: {
-    marginTop: 5,
+    marginTop: 8,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 15,
-    color: '#2d3436',
+    color: '#2d3748',
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    borderWidth: 0,
   },
-  messageInput: {
-    height: 100,
+  textArea: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#2d3748',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(66,153,225,0.18)',
+    minHeight: 80,
     textAlignVertical: 'top',
+  },
+  label: {
+    color: '#e2e8f0',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 6,
+    marginTop: 10,
+    alignSelf: 'flex-start',
   },
   buttonContainer: {
     marginTop: 20,
   },
   postButton: {
-    backgroundColor: '#00b894',
+    backgroundColor: '#4299e1',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -295,10 +313,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#a0a0a0',
   },
   buttonText: {
-    color: 'white',
-    fontSize: 18,
+    color: '#fff',
     fontWeight: 'bold',
-    marginLeft: 10,
+    fontSize: 17,
   },
   successOverlay: {
     position: 'absolute',

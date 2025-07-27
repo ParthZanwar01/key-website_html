@@ -58,12 +58,15 @@ export default function StudentLoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}> 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
+        style={[styles.keyboardAvoid, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+        >
           <View style={styles.loginCard}>
             <View style={styles.headerContainer}>
               <Ionicons name="person-circle" size={80} color="#59a2f0" />
@@ -174,6 +177,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#add8e6',
+    minHeight: Platform.OS === 'web' ? '100vh' : undefined, // Allow scrolling on web
   },
   keyboardAvoid: {
     flex: 1,

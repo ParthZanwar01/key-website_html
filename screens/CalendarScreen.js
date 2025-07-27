@@ -18,6 +18,7 @@ import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -28,10 +29,11 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function CalendarScreen({ navigation, route }) {
   const { events, deleteEvent, refreshEvents } = useEvents();
-  const { isAdmin } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -43,6 +45,8 @@ export default function CalendarScreen({ navigation, route }) {
   const monthTransitionAnim = useRef(new Animated.Value(1)).current;
   const deletingEventId = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const menuSlideAnim = useRef(new Animated.Value(-screenWidth * 0.8)).current;
+  const menuFadeAnim = useRef(new Animated.Value(0)).current;
   
   // State for context menu
   const [contextMenu, setContextMenu] = useState({
@@ -553,12 +557,104 @@ export default function CalendarScreen({ navigation, route }) {
     );
   };
 
+  // Add floating sparkles component after the existing functions
+  const FloatingSparkles = () => {
+    const sparkles = [...Array(12)].map((_, i) => {
+      const sparkleAnim = useRef(new Animated.Value(0)).current;
+      
+      useEffect(() => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(sparkleAnim, {
+              toValue: 1,
+              duration: 5000 + Math.random() * 3000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(sparkleAnim, {
+              toValue: 0,
+              duration: 5000 + Math.random() * 3000,
+              useNativeDriver: true,
+            })
+          ])
+        ).start();
+      }, []);
+
+      return (
+        <Animated.View
+          key={i}
+          style={[
+            styles.floatingSparkle,
+            {
+              left: Math.random() * screenWidth,
+              top: Math.random() * screenHeight,
+              opacity: sparkleAnim,
+              transform: [
+                { translateY: sparkleAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -25 - Math.random() * 30]
+                }) },
+                { scale: sparkleAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.3, 1.1]
+                }) }
+              ]
+            }
+          ]}
+        />
+      );
+    });
+
+    return <>{sparkles}</>;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Floating Sparkles Background */}
+      <FloatingSparkles />
+      
+      {/* Header */}
+      <Animated.View 
+        style={[
+          styles.header,
+          { transform: [{ translateY: headerSlideAnim }] }
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.monthButton}
+            onPress={prevMonth}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={24} color="#4299e1" />
+          </TouchableOpacity>
+          
+          <Animated.Text 
+            style={[
+              styles.monthText,
+              { opacity: monthTransitionAnim }
+            ]}
+          >
+            {currentDate.toLocaleDateString('en-US', { 
+              month: 'long', 
+              year: 'numeric' 
+            })}
+          </Animated.Text>
+          
+          <TouchableOpacity 
+            style={styles.monthButton}
+            onPress={nextMonth}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward" size={24} color="#4299e1" />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
+      {/* Calendar Grid */}
       <Animated.View 
         style={[
           styles.calendarContainer,
-          {
+          { 
             opacity: fadeAnim,
             transform: [
               { translateY: slideAnim },
@@ -567,200 +663,149 @@ export default function CalendarScreen({ navigation, route }) {
           }
         ]}
       >
-        {/* Enhanced Header with slide animation */}
+        {/* Day headers */}
+        <View style={styles.dayHeaders}>
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+            <View key={index} style={styles.dayHeader}>
+              <Text style={styles.dayHeaderText}>{day}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Calendar days */}
+        <FlatList
+          data={calendarDays}
+          renderItem={renderDay}
+          keyExtractor={(item, index) => `day-${index}`}
+          numColumns={7}
+          scrollEnabled={false}
+          key={refreshKey}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.calendarGrid}
+        />
+      </Animated.View>
+
+      {/* FAB */}
+      {isAdmin && (
         <Animated.View 
           style={[
-            styles.calendarHeader,
-            { transform: [{ translateY: headerSlideAnim }] }
+            styles.fabContainer,
+            { 
+              transform: [
+                { scale: fabScaleAnim },
+                { scale: pulseAnim }
+              ]
+            }
           ]}
         >
-          <TouchableOpacity 
-            onPress={prevMonth} 
-            style={styles.navButton}
-            activeOpacity={0.7}
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => handleFabPress('create')}
+            activeOpacity={0.8}
           >
-            <Ionicons name="chevron-back" size={20} color="white" />
-          </TouchableOpacity>
-          
-          <Animated.View style={{ transform: [{ scale: monthTransitionAnim }] }}>
-            <Text style={styles.headerTitle}>
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </Text>
-          </Animated.View>
-          
-          <TouchableOpacity 
-            onPress={nextMonth} 
-            style={styles.navButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-forward" size={20} color="white" />
+            <Ionicons name="add" size={28} color="white" />
           </TouchableOpacity>
         </Animated.View>
+      )}
 
-        {/* Weekday Header */}
-        <Animated.View 
-          style={[
-            styles.weekdayHeader,
-            { opacity: fadeAnim }
-          ]}
+      {/* Enhanced Context Menu Modal */}
+      <Modal
+        transparent={true}
+        visible={contextMenu.visible}
+        animationType="fade"
+        onRequestClose={() => setContextMenu({ visible: false, eventId: null })}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setContextMenu({ visible: false, eventId: null })}
         >
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+          <Animated.View 
+            style={[
+              styles.contextMenuContainer,
+              {
+                transform: [{ scale: contextMenu.visible ? 1 : 0.8 }],
+                opacity: contextMenu.visible ? 1 : 0,
+              }
+            ]}
+          >
+            {[
+              { key: 'view', icon: 'eye-outline', text: 'View Event', color: '#333' },
+              { key: 'edit', icon: 'create-outline', text: 'Edit Event', color: '#333' },
+              { key: 'attendees', icon: 'people-outline', text: 'View Attendees', color: '#333' },
+              { key: 'delete', icon: 'trash-outline', text: 'Delete Event', color: '#e53e3e' },
+            ].map((item, index) => (
+              <TouchableOpacity 
+                key={item.key}
+                style={[
+                  styles.contextMenuItem,
+                  item.key === 'delete' && styles.deleteMenuItem
+                ]}
+                onPress={() => handleMenuOption(item.key)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name={item.icon} size={20} color={item.color} />
+                <Text style={[
+                  styles.contextMenuText,
+                  item.key === 'delete' && styles.deleteMenuText
+                ]}>
+                  {item.text}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Loading Overlay */}
+      {isRefreshing && (
+        <Animated.View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
             <Animated.View
-              key={day}
               style={[
-                styles.weekdayContainer,
+                styles.loadingSpinner,
                 {
                   transform: [{
-                    translateY: slideAnim.interpolate({
-                      inputRange: [-50, 0],
-                      outputRange: [-20 - (index * 3), 0],
+                    rotate: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
                     })
                   }]
                 }
               ]}
             >
-              <Text style={styles.weekdayText}>{day}</Text>
+              <Ionicons name="refresh" size={24} color="#4299e1" />
             </Animated.View>
-          ))}
+            <Text style={styles.loadingText}>Refreshing...</Text>
+          </View>
         </Animated.View>
+      )}
 
-        {/* Calendar Grid */}
-        <FlatList
-          key={`calendar-${refreshKey}`}
-          data={calendarDays}
-          renderItem={renderDay}
-          keyExtractor={(_, index) => index.toString()}
-          numColumns={7}
-          scrollEnabled={false}
-          extraData={events}
-          showsVerticalScrollIndicator={false}
-        />
-        
-        {/* Animated Floating Action Buttons */}
-        {isAdmin && (
-          <Animated.View 
-            style={[
-              styles.fabContainer,
-              { transform: [{ scale: fabScaleAnim }] }
-            ]}
-          >
-            <TouchableOpacity
-              style={[styles.manageFab, styles.fabShadow]}
-              onPress={() => handleFabPress('manage')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="trash-outline" size={24} color="white" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.fab, styles.fabShadow]}
-              onPress={() => handleFabPress('create')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add" size={28} color="white" />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
-        
-        {/* Enhanced Context Menu Modal */}
-        <Modal
-          transparent={true}
-          visible={contextMenu.visible}
-          animationType="fade"
-          onRequestClose={() => setContextMenu({ visible: false, eventId: null })}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setContextMenu({ visible: false, eventId: null })}
-          >
-            <Animated.View 
-              style={[
-                styles.contextMenuContainer,
-                {
-                  transform: [{ scale: contextMenu.visible ? 1 : 0.8 }],
-                  opacity: contextMenu.visible ? 1 : 0,
-                }
-              ]}
-            >
-              {[
-                { key: 'view', icon: 'eye-outline', text: 'View Event', color: '#333' },
-                { key: 'edit', icon: 'create-outline', text: 'Edit Event', color: '#333' },
-                { key: 'attendees', icon: 'people-outline', text: 'View Attendees', color: '#333' },
-                { key: 'delete', icon: 'trash-outline', text: 'Delete Event', color: '#ff4d4d' },
-              ].map((item, index) => (
-                <TouchableOpacity 
-                  key={item.key}
-                  style={[
-                    styles.contextMenuItem,
-                    item.key === 'delete' && styles.deleteMenuItem
-                  ]}
-                  onPress={() => handleMenuOption(item.key)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name={item.icon} size={20} color={item.color} />
-                  <Text style={[
-                    styles.contextMenuText,
-                    item.key === 'delete' && styles.deleteMenuText
-                  ]}>
-                    {item.text}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </Animated.View>
-          </TouchableOpacity>
-        </Modal>
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        visible={confirmDialog.visible}
+        title="Delete Event"
+        message={`Are you sure you want to delete "${confirmDialog.eventTitle}"? This action cannot be undone.`}
+        onCancel={() => setConfirmDialog({ visible: false, eventId: null, eventTitle: '' })}
+        onConfirm={handleDeleteConfirm}
+        cancelText="Cancel"
+        confirmText="Delete"
+        destructive={true}
+        icon="trash-outline"
+      />
 
-        {/* Loading Overlay */}
-        {isRefreshing && (
-          <Animated.View style={styles.loadingOverlay}>
-            <View style={styles.loadingContainer}>
-              <Animated.View
-                style={[
-                  styles.loadingSpinner,
-                  {
-                    transform: [{
-                      rotate: fadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', '360deg'],
-                      })
-                    }]
-                  }
-                ]}
-              >
-                <Ionicons name="refresh" size={24} color="#59a2f0" />
-              </Animated.View>
-              <Text style={styles.loadingText}>Refreshing...</Text>
-            </View>
-          </Animated.View>
-        )}
-
-        {/* Confirmation Dialog */}
-        <ConfirmationDialog
-          visible={confirmDialog.visible}
-          title="Delete Event"
-          message={`Are you sure you want to delete "${confirmDialog.eventTitle}"? This action cannot be undone.`}
-          onCancel={() => setConfirmDialog({ visible: false, eventId: null, eventTitle: '' })}
-          onConfirm={handleDeleteConfirm}
-          cancelText="Cancel"
-          confirmText="Delete"
-          destructive={true}
-          icon="trash-outline"
-        />
-
-        {/* Message Dialog (Success/Error) */}
-        <ConfirmationDialog
-          visible={messageDialog.visible}
-          title={messageDialog.title}
-          message={messageDialog.message}
-          onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-          onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-          cancelText=""
-          confirmText="OK"
-          icon={messageDialog.isError ? "alert-circle" : "checkmark-circle"}
-          iconColor={messageDialog.isError ? "#ff4d4d" : "#4CAF50"}
-        />
-      </Animated.View>
+      {/* Message Dialog (Success/Error) */}
+      <ConfirmationDialog
+        visible={messageDialog.visible}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+        cancelText=""
+        confirmText="OK"
+        icon={messageDialog.isError ? "alert-circle" : "checkmark-circle"}
+        iconColor={messageDialog.isError ? "#e53e3e" : "#4CAF50"}
+      />
     </SafeAreaView>
   );
 }
@@ -768,78 +813,150 @@ export default function CalendarScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#94cfec',
+    backgroundColor: '#1a365d', // Deep navy blue background
   },
-  calendarContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    margin: 10,
-    overflow: 'hidden',
+  header: {
+    backgroundColor: 'rgba(66, 153, 225, 0.1)', // Professional blue with transparency
+    borderBottomWidth: 1,
+    borderBottomColor: '#4299e1',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 8,
   },
-  calendarHeader: {
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#59a2f0',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
-  headerTitle: {
-    fontSize: 20,
+  monthButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
+  },
+  monthText: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    minWidth: 200,
+    color: '#4299e1', // Professional blue
+    textShadowColor: 'rgba(66, 153, 225, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  navButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+  calendarContainer: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingTop: 20,
   },
-  weekdayHeader: {
+  dayHeaders: {
     flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    marginBottom: 10,
   },
-  weekdayContainer: {
+  dayHeader: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: 10,
   },
-  weekdayText: {
-    flex: 1,
-    textAlign: 'center',
-    padding: 12,
-    fontWeight: 'bold',
-    color: '#666',
+  dayHeaderText: {
     fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4299e1', // Professional blue
+  },
+  calendarGrid: {
+    flexGrow: 1,
+  },
+  dayContainer: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  dayText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#e2e8f0', // Light gray text
+  },
+  todayText: {
+    color: '#4299e1', // Professional blue
+    fontWeight: 'bold',
+  },
+  otherMonthText: {
+    color: '#718096', // Medium gray
+  },
+  eventDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4299e1', // Professional blue
+    shadowColor: '#4299e1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#4299e1', // Professional blue
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  floatingSparkle: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#4299e1', // Professional blue
+    shadowColor: '#4299e1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
   },
   calendarDay: {
     flex: 1,
     minHeight: 100,
     borderWidth: 0.5,
-    borderColor: '#e0e0e0',
+    borderColor: 'rgba(66, 153, 225, 0.2)',
     padding: 6,
     width: '14.28%',
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyDay: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'rgba(248, 249, 250, 0.8)',
   },
   todayDay: {
-    backgroundColor: '#fff3e0',
-    borderColor: '#ff9800',
-    borderWidth: 1,
+    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+    borderColor: '#4299e1',
+    borderWidth: 2,
   },
   dayNumberContainer: {
     alignItems: 'flex-start',
@@ -847,11 +964,11 @@ const styles = StyleSheet.create({
   },
   dayNumber: {
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2d3748', // Dark gray
     fontSize: 14,
   },
   todayDayNumber: {
-    color: '#ff9800',
+    color: '#4299e1', // Professional blue
     fontSize: 16,
     fontWeight: '800',
   },
@@ -873,29 +990,6 @@ const styles = StyleSheet.create({
   eventTime: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 9,
-  },
-  fabContainer: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    alignItems: 'center',
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f1ca3b',
-    borderRadius: 30,
-    marginTop: 12,
-  },
-  manageFab: {
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ff6b6b',
-    borderRadius: 28,
   },
   fabShadow: {
     shadowColor: '#000',
@@ -935,11 +1029,11 @@ const styles = StyleSheet.create({
   contextMenuText: {
     fontSize: 16,
     marginLeft: 12,
-    color: '#333',
+    color: '#2d3748', // Dark gray
     fontWeight: '500',
   },
   deleteMenuText: {
-    color: '#ff4d4d',
+    color: '#e53e3e', // Red
     fontWeight: '600',
   },
   loadingOverlay: {
@@ -962,7 +1056,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#59a2f0',
+    color: '#4299e1', // Professional blue
     fontWeight: '500',
   },
 });
