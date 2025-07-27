@@ -1,7 +1,7 @@
 // services/GoogleOAuthService.js
 // OAuth2 implementation for Google Drive uploads with cross-platform storage
 
-import { Platform } from 'react-native';
+import { Platform } from 'react-native-web';
 import * as AuthSession from 'expo-auth-session';
 import * as Crypto from 'expo-crypto';
 import CrossPlatformStorage from './CrossPlatformStorage';

@@ -1,7 +1,7 @@
 // services/SimpleDriveService.js
 // Enhanced Google Drive upload service with better error handling and configuration
 
-import { Platform } from 'react-native';
+import { Platform } from 'react-native-web';
 
 // Conditionally import expo-file-system only on native platforms
 let FileSystem = null;

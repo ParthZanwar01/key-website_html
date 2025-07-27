@@ -1,7 +1,7 @@
 // services/CrossPlatformStorage.js
 // Universal storage solution that works on all platforms
 
-import { Platform } from 'react-native';
+import { Platform } from 'react-native-web';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Conditionally import SecureStore only on native platforms
