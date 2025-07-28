@@ -17,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import SupabaseService from '../services/SupabaseService';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
-export default function ContactScreen() {
+export default function ContactScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
   
   // FAQ dropdown states
@@ -617,22 +617,39 @@ export default function ContactScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Ionicons name="help-circle" size={32} color="#4299e1" />
-          <Text style={styles.headerTitle}>Help & Support</Text>
-          <Text style={styles.headerSubtitle}>
-            Find answers, watch guides, or contact us directly
-          </Text>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#4299e1" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerTitleContainer}>
+            <Ionicons name="help-circle" size={28} color="#4299e1" />
+            <Text style={styles.headerTitle}>Help & Support</Text>
+          </View>
+          
+          <View style={styles.headerSpacer} />
         </View>
+        
+        <Text style={styles.headerSubtitle}>
+          Find answers, watch guides, or contact us directly
+        </Text>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
         {/* Admin Section - Support Questions Management */}
         {isAdmin && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="settings" size={24} color="#4299e1" />
-              <Text style={styles.sectionTitle}>Support Questions Management</Text>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="settings" size={24} color="#4299e1" />
+                <Text style={styles.sectionTitle}>Support Questions Management</Text>
+              </View>
               <View style={styles.headerActions}>
                 <TouchableOpacity
                   style={styles.sortButton}
@@ -749,8 +766,10 @@ export default function ContactScreen() {
         {/* FAQ Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="help-buoy" size={24} color="#4299e1" />
-            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="help-buoy" size={24} color="#4299e1" />
+              <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+            </View>
           </View>
           
           <View style={styles.faqContainer}>
@@ -761,8 +780,10 @@ export default function ContactScreen() {
         {/* Video Guides Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="play-circle" size={24} color="#4299e1" />
-            <Text style={styles.sectionTitle}>Video Guides</Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="play-circle" size={24} color="#4299e1" />
+              <Text style={styles.sectionTitle}>Video Guides</Text>
+            </View>
           </View>
           
           <View style={styles.videoContainer}>
@@ -773,8 +794,10 @@ export default function ContactScreen() {
         {/* Contact Form Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="mail" size={24} color="#4299e1" />
-            <Text style={styles.sectionTitle}>Contact Us</Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="mail" size={24} color="#4299e1" />
+              <Text style={styles.sectionTitle}>Contact Us</Text>
+            </View>
           </View>
           
           <View style={styles.contactForm}>
@@ -961,7 +984,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(66, 153, 225, 0.1)', // Professional blue with transparency
     borderBottomWidth: 1,
     borderBottomColor: '#4299e1',
-    paddingVertical: 15,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -973,22 +996,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
     borderRadius: 8,
     backgroundColor: 'rgba(66, 153, 225, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(66, 153, 225, 0.3)',
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#4299e1', // Professional blue
+    marginLeft: 8,
     textShadowColor: 'rgba(66, 153, 225, 0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   headerSpacer: {
-    width: 40,
+    width: 44,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#cbd5e0',
+    textAlign: 'center',
+    marginTop: 4,
   },
   content: {
     flex: 1,
@@ -997,12 +1036,27 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(66, 153, 225, 0.2)',
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#4299e1', // Professional blue
-    marginBottom: 15,
+    marginLeft: 8,
     textShadowColor: 'rgba(66, 153, 225, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -1013,11 +1067,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   faqItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle transparency
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(66, 153, 225, 0.2)',
+    borderColor: 'rgba(66, 153, 225, 0.15)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1028,14 +1082,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 18,
   },
   faqQuestion: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#e2e8f0', // Light gray
     flex: 1,
-    marginRight: 10,
+    marginRight: 12,
+    lineHeight: 20,
   },
   faqIcon: {
     color: '#4299e1', // Professional blue
@@ -1101,11 +1156,11 @@ const styles = StyleSheet.create({
   
   // Contact Form Styles
   contactForm: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle transparency
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle transparency
+    borderRadius: 16,
+    padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(66, 153, 225, 0.2)',
+    borderColor: 'rgba(66, 153, 225, 0.15)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -1114,8 +1169,9 @@ const styles = StyleSheet.create({
   },
   contactFormDescription: {
     fontSize: 14,
-    color: '#ccc',
-    marginBottom: 20,
+    color: '#cbd5e0',
+    marginBottom: 24,
+    lineHeight: 20,
     textAlign: 'center',
   },
   userInfoDisplay: {
@@ -1147,30 +1203,42 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   formInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 10,
+    padding: 14,
     fontSize: 16,
     color: '#2d3748', // Dark gray
     borderWidth: 1,
     borderColor: 'rgba(66, 153, 225, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   formTextArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 10,
+    padding: 14,
     fontSize: 16,
     color: '#2d3748', // Dark gray
     borderWidth: 1,
     borderColor: 'rgba(66, 153, 225, 0.2)',
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   submitButton: {
     backgroundColor: '#4299e1', // Professional blue
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
