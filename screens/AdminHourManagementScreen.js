@@ -700,13 +700,6 @@ export default function AdminHourManagementScreen({ navigation }) {
         ]}
       >
         <Text style={styles.headerTitle}>Hour Requests</Text>
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={testGoogleDriveConnection}
-        >
-          <Ionicons name="bug" size={16} color="#ffd60a" />
-          <Text style={styles.testButtonText}>Test Drive</Text>
-        </TouchableOpacity>
       </Animated.View>
 
       {/* Filter Tabs */}
@@ -1378,21 +1371,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ffd60a',
-  },
-  testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
-  },
-  testButtonText: {
-    color: '#ffd60a',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 4,
   },
 });
