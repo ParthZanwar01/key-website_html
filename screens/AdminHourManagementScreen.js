@@ -329,12 +329,13 @@ export default function AdminHourManagementScreen({ navigation }) {
         eventName: eventName,
         timestamp: timestamp,
         folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        photoData: imageData, // Include the actual photo data
-        photoDataLength: imageData.length
+        imageData: imageData, // Changed from photoData to imageData to match Google Apps Script
+        imageDataLength: imageData.length // Changed from photoDataLength to imageDataLength
       };
       
       console.log('📤 Sending request to Netlify function...');
       console.log('📋 Request data keys:', Object.keys(photoInfo));
+      console.log('🌐 Request URL:', '/.netlify/functions/gasProxy');
       
       // Send to Google Apps Script via Netlify function proxy
       const response = await fetch('/.netlify/functions/gasProxy', {
@@ -344,6 +345,11 @@ export default function AdminHourManagementScreen({ navigation }) {
         },
         body: JSON.stringify(photoInfo)
       });
+      
+      console.log('📨 Response received!');
+      console.log('📨 Response status:', response.status);
+      console.log('📨 Response status text:', response.statusText);
+      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
       
       console.log('📨 Response status:', response.status);
       console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
@@ -375,7 +381,8 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
-  const testGoogleDriveConnection = async () => {
+  // Make the test function globally available for browser console testing
+  window.testGoogleDriveConnection = async () => {
     try {
       console.log('🧪 Testing Google Drive connection...');
       
@@ -408,8 +415,8 @@ export default function AdminHourManagementScreen({ navigation }) {
           eventName: 'Test Event',
           timestamp: new Date().toISOString(),
           folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-          photoData: 'dGVzdCBkYXRh', // base64 encoded "test data"
-          photoDataLength: 9
+          imageData: 'dGVzdCBkYXRh', // base64 encoded "test data"
+          imageDataLength: 9
         };
         
         const fileResponse = await fetch('/.netlify/functions/gasProxy', {
