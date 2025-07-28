@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
+    "@expo/webpack-config": "^19.0.1",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/cli": "^18.0.0",
     "@react-native-picker/picker": "^2.11.1",
@@ -31,7 +32,7 @@
     "firebase-admin": "^13.4.0",
     "install": "^0.13.0",
     "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react-dom": "^19.0.0",
     "react-native": "^0.79.5",
     "react-native-gesture-handler": "^2.24.0",
     "react-native-paper": "^5.14.5",
