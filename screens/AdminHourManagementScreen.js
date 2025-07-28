@@ -241,10 +241,10 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       console.log('📊 Student hours BEFORE approval:', studentBefore?.total_hours || 0);
       
-      // Force status to 'approved' and pass hours_requested explicitly
+      // Use the correct action (approve or reject) and pass hours_requested explicitly
       await updateHourRequestStatus(
         request.id, 
-        'approved', // force lowercase, no spaces
+        action, // use the actual action from the modal
         notes, 
         'Admin',
         request.hours_requested // pass the hours explicitly
@@ -266,7 +266,7 @@ export default function AdminHourManagementScreen({ navigation }) {
       setMessageDialog({
         visible: true,
         title: 'Success',
-        message: `Request approved successfully! Student hours have been updated.`,
+        message: `Request ${action === 'approved' ? 'approved' : 'rejected'} successfully!${action === 'approved' ? ' Student hours have been updated.' : ''}`,
         isError: false
       });
       
@@ -275,7 +275,7 @@ export default function AdminHourManagementScreen({ navigation }) {
       setMessageDialog({
         visible: true,
         title: 'Error',
-        message: `Failed to approve request: ${error.message}`,
+        message: `Failed to ${action} request: ${error.message}`,
         isError: true
       });
     } finally {
