@@ -519,7 +519,17 @@ export default function ContactScreen({ navigation }) {
           </Animated.View>
         </TouchableOpacity>
         
-        <Animated.View style={[styles.faqAnswer, { maxHeight, overflow: 'hidden' }]}>
+        <Animated.View style={[
+          styles.faqAnswer, 
+          { 
+            maxHeight, 
+            overflow: 'hidden',
+            opacity: animatedValue.interpolate({
+              inputRange: [0, 0.1, 1],
+              outputRange: [0, 1, 1],
+            })
+          }
+        ]}>
           <Text style={styles.faqAnswerText}>
             {item.answer}
           </Text>
