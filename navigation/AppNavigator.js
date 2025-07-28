@@ -127,7 +127,7 @@ function AnnouncementsStack() {
       <Stack.Screen 
         name="AnnouncementsMain" 
         component={AnnouncementsScreen} 
-        options={{ title: "Announcements" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="CreateAnnouncement" 
