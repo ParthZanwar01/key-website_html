@@ -342,7 +342,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         eventName: eventName,
         timestamp: timestamp,
         folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        imageData: imageData // Changed back to imageData to match updated Google Apps Script
+        imageData: imageData // Changed back to imageData to match updated Google Apps Script - v2
       };
       
       console.log('📤 Sending request to Netlify function...');
