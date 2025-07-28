@@ -498,7 +498,7 @@ export default function ContactScreen({ navigation }) {
     
     const maxHeight = animatedValue.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, 200],
+      outputRange: [0, 300],
     });
 
     const iconRotation = animatedValue.interpolate({
@@ -520,7 +520,9 @@ export default function ContactScreen({ navigation }) {
         </TouchableOpacity>
         
         <Animated.View style={[styles.faqAnswer, { maxHeight }]}>
-          <Text style={styles.faqAnswerText}>{item.answer}</Text>
+          <Text style={styles.faqAnswerText} numberOfLines={isExpanded ? undefined : 0}>
+            {item.answer}
+          </Text>
         </Animated.View>
       </View>
     );
@@ -1065,6 +1067,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 8,
     overflow: 'hidden',
+    paddingHorizontal: 4,
   },
   faqItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle transparency
@@ -1077,12 +1080,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: 'hidden',
   },
   faqHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     padding: 18,
+    minHeight: 60,
   },
   faqQuestion: {
     fontSize: 15,
@@ -1090,21 +1095,24 @@ const styles = StyleSheet.create({
     color: '#e2e8f0', // Light gray
     flex: 1,
     marginRight: 12,
-    lineHeight: 20,
+    lineHeight: 22,
+    textAlignVertical: 'center',
   },
   faqIcon: {
     color: '#4299e1', // Professional blue
   },
   faqAnswer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(66, 153, 225, 0.1)',
   },
   faqAnswerText: {
     fontSize: 14,
     color: '#cbd5e0', // Medium gray
-    lineHeight: 20,
+    lineHeight: 22,
+    textAlign: 'left',
   },
   
   // Video Guide Styles
