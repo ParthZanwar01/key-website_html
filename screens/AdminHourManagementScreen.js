@@ -514,6 +514,9 @@ export default function AdminHourManagementScreen({ navigation }) {
     const testImageData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
     
     try {
+      console.log('🧪 Test image data length:', testImageData.length);
+      console.log('🧪 Test image data preview:', testImageData.substring(0, 50) + '...');
+      
       const result = await savePhotoToDrive(
         'test_photo.jpg',
         testImageData,
@@ -527,10 +530,37 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
+  // Test function to test photo data extraction
+  window.testPhotoExtraction = () => {
+    console.log('🧪 Testing photo data extraction...');
+    
+    // Test with a sample description that has photo data
+    const testDescription = 'This is a test description with [PHOTO_DATA:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==] at the end';
+    
+    console.log('📝 Test description:', testDescription);
+    
+    const photoData = extractPhotoData(testDescription);
+    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
+    
+    if (photoData) {
+      console.log('✅ Photo data extraction works!');
+      Alert.alert('Extraction Test', 'Photo data extraction is working!');
+    } else {
+      console.log('❌ Photo data extraction failed!');
+      Alert.alert('Extraction Test', 'Photo data extraction failed! Check console for details.');
+    }
+  };
+
   // Test function to check what's in the actual photo data
   window.debugPhotoData = () => {
     console.log('🔍 Debugging photo data...');
     console.log('📊 All requests:', allRequests.length);
+    
+    if (allRequests.length === 0) {
+      console.log('❌ No requests found!');
+      Alert.alert('Debug Info', 'No requests found in the system.');
+      return;
+    }
     
     allRequests.forEach((request, index) => {
       console.log(`📋 Request ${index + 1}:`, {
@@ -552,6 +582,13 @@ export default function AdminHourManagementScreen({ navigation }) {
         }
       }
     });
+    
+    // Show summary alert
+    const requestsWithPhotos = allRequests.filter(r => r.description && r.description.includes('[PHOTO_DATA:'));
+    Alert.alert(
+      'Debug Summary', 
+      `Total requests: ${allRequests.length}\nRequests with photo data: ${requestsWithPhotos.length}\n\nCheck console for details.`
+    );
   };
 
   // Test function to check photo data from a specific request
@@ -908,6 +945,13 @@ export default function AdminHourManagementScreen({ navigation }) {
           >
             <Ionicons name="bug" size={16} color="#ffd60a" />
             <Text style={styles.testButtonText}>Debug Photos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={window.testPhotoExtraction}
+          >
+            <Ionicons name="test-tube" size={16} color="#ffd60a" />
+            <Text style={styles.testButtonText}>Test Extraction</Text>
           </TouchableOpacity>
       </Animated.View>
 
