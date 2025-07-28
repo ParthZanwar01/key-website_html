@@ -111,6 +111,8 @@ export async function handler(event, context) {
     
     // For Google Apps Script, we'll send the JSON directly
     console.log('🌐 Sending to:', GOOGLE_SCRIPT_URL);
+    console.log('📋 Request type:', requestData.requestType);
+    console.log('📋 Request data size:', JSON.stringify(requestData).length, 'characters');
     
     const fetchOptions = {
       method: 'POST',

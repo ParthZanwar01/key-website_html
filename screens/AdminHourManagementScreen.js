@@ -379,10 +379,12 @@ export default function AdminHourManagementScreen({ navigation }) {
     try {
       console.log('🧪 Testing Google Drive connection...');
       
+      // First test: Basic connection test
       const testRequest = {
         requestType: 'connectionTest'
       };
       
+      console.log('📤 Sending connection test request...');
       const response = await fetch('/.netlify/functions/gasProxy', {
         method: 'POST',
         headers: {
@@ -391,10 +393,44 @@ export default function AdminHourManagementScreen({ navigation }) {
         body: JSON.stringify(testRequest)
       });
       
+      console.log('📨 Connection test response status:', response.status);
+      
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Connection test successful:', result);
-        Alert.alert('Connection Test', 'Google Drive connection is working!');
+        
+        // Second test: Try to save a small test file
+        console.log('🧪 Testing file upload...');
+        const testFileRequest = {
+          requestType: 'savePhotoToDrive',
+          fileName: 'test_file.txt',
+          studentName: 'Test Student',
+          eventName: 'Test Event',
+          timestamp: new Date().toISOString(),
+          folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
+          photoData: 'dGVzdCBkYXRh', // base64 encoded "test data"
+          photoDataLength: 9
+        };
+        
+        const fileResponse = await fetch('/.netlify/functions/gasProxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testFileRequest)
+        });
+        
+        console.log('📨 File upload response status:', fileResponse.status);
+        
+        if (fileResponse.ok) {
+          const fileResult = await fileResponse.json();
+          console.log('✅ File upload test successful:', fileResult);
+          Alert.alert('Connection Test', 'Google Drive connection is working! Both connection and file upload tests passed.');
+        } else {
+          const errorText = await fileResponse.text();
+          console.error('❌ File upload test failed:', errorText);
+          Alert.alert('Connection Test', 'Basic connection works, but file upload failed. Check the console for details.');
+        }
       } else {
         const errorText = await response.text();
         console.error('❌ Connection test failed:', errorText);
