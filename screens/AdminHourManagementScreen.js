@@ -301,7 +301,7 @@ export default function AdminHourManagementScreen({ navigation }) {
     return description.replace(/\n\n\[PHOTO_DATA:.*?\]/, '');
   };
 
-  const savePhotoToDrive = async (imageName, imageData, studentName, eventName, studentSNumber) => {
+  const savePhotoToDrive = async (imageName, imageData, studentName, eventName) => {
     if (!imageData) {
       Alert.alert('Error', 'No photo data available to save');
       return;
@@ -326,12 +326,10 @@ export default function AdminHourManagementScreen({ navigation }) {
         requestType: 'savePhotoToDrive',
         fileName: fileName,
         studentName: studentName,
-        studentNumber: studentSNumber || 'unknown', // Use passed student S-number
         eventName: eventName,
         timestamp: timestamp,
         folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        imageData: imageData, // Changed from photoData to imageData to match Google Apps Script
-        imageDataLength: imageData.length // Changed from photoDataLength to imageDataLength
+        photoData: imageData // Match the exact field name from Google Apps Script
       };
       
       console.log('📤 Sending request to Netlify function...');
@@ -413,12 +411,10 @@ export default function AdminHourManagementScreen({ navigation }) {
           requestType: 'savePhotoToDrive',
           fileName: 'test_file.txt',
           studentName: 'Test Student',
-          studentNumber: 's123456', // Add test student number
           eventName: 'Test Event',
           timestamp: new Date().toISOString(),
           folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-          imageData: 'dGVzdCBkYXRh', // base64 encoded "test data"
-          imageDataLength: 9
+          photoData: 'dGVzdCBkYXRh' // base64 encoded "test data"
         };
         
         const fileResponse = await fetch('/.netlify/functions/gasProxy', {
@@ -602,7 +598,7 @@ export default function AdminHourManagementScreen({ navigation }) {
                 
                 <TouchableOpacity
                   style={styles.saveToDriveButton}
-                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name, item.student_s_number)}
+                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name)}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
                   <Text style={styles.saveToDriveText}>Save to Drive</Text>
