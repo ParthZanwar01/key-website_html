@@ -314,7 +314,7 @@ export default function AdminHourManagementScreen({ navigation }) {
     return description.replace(/\n\n\[PHOTO_DATA:.*?\]/, '');
   };
 
-  const savePhotoToDrive = async (imageName, imageData, studentName, eventName, studentSNumber) => {
+  const savePhotoToDrive = async (imageName, imageData, studentName, eventName) => {
     if (!imageData) {
       Alert.alert('Error', 'No photo data available to save');
       return;
@@ -339,11 +339,10 @@ export default function AdminHourManagementScreen({ navigation }) {
         requestType: 'savePhotoToDrive',
         fileName: fileName,
         studentName: studentName,
-        studentNumber: studentSNumber || 'unknown', // Add student S-number back
         eventName: eventName,
         timestamp: timestamp,
         folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        imageData: imageData // Changed back to imageData to match updated Google Apps Script - v2
+        photoData: imageData // Match the Google Apps Script expectation
       };
       
       console.log('📤 Sending request to Netlify function...');
@@ -659,7 +658,7 @@ export default function AdminHourManagementScreen({ navigation }) {
                     const photoData = extractPhotoData(item.description);
                     console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
                     
-                    savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name, item.student_s_number);
+                    savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
                   }}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
