@@ -75,6 +75,7 @@ export async function handler(event, context) {
       requestData = JSON.parse(event.body);
       console.log('✅ Successfully parsed JSON request body');
       console.log('📋 Request data keys:', Object.keys(requestData));
+    console.log('📋 Request data preview:', JSON.stringify(requestData).substring(0, 500));
     }
   } catch (parseError) {
     console.error('❌ Failed to parse request body:', parseError);
