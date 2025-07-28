@@ -306,6 +306,56 @@ const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
   );
 };
 
+// Add floating sparkles component
+const FloatingSparkles = () => {
+  const sparkles = [...Array(12)].map((_, i) => {
+    const sparkleAnim = useRef(new Animated.Value(0)).current;
+    
+    useEffect(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(sparkleAnim, {
+            toValue: 1,
+            duration: 5000 + Math.random() * 3000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(sparkleAnim, {
+            toValue: 0,
+            duration: 5000 + Math.random() * 3000,
+            useNativeDriver: true,
+          })
+        ])
+      ).start();
+    }, []);
+
+    return (
+      <Animated.View
+        key={i}
+        style={[
+          styles.floatingSparkle,
+          {
+            left: Math.random() * screenWidth,
+            top: Math.random() * screenHeight,
+            opacity: sparkleAnim,
+            transform: [
+              { translateY: sparkleAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -25 - Math.random() * 30]
+              }) },
+              { scale: sparkleAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 1.1]
+              }) }
+            ]
+          }
+        ]}
+      />
+    );
+  });
+
+  return <>{sparkles}</>;
+};
+
 export default function OfficersScreen() {
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
@@ -869,5 +919,18 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     alignItems: 'center',
+  },
+  floatingSparkle: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#4299e1', // Professional blue
+    shadowColor: '#4299e1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
   },
 });
