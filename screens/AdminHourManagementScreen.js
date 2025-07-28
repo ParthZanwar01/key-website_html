@@ -435,7 +435,7 @@ export default function AdminHourManagementScreen({ navigation }) {
           eventName: 'Test Event',
           timestamp: new Date().toISOString(),
           folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-          imageData: 'dGVzdCBkYXRh' // base64 encoded "test data"
+          photoData: 'dGVzdCBkYXRh' // base64 encoded "test data"
         };
         
         const fileResponse = await fetch('/.netlify/functions/gasProxy', {
