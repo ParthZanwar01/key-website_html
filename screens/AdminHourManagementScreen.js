@@ -340,6 +340,14 @@ export default function AdminHourManagementScreen({ navigation }) {
       return;
     }
 
+    // Show loading state
+    Alert.alert(
+      'Saving to Drive...', 
+      'Please wait while we save your photo to Google Drive...',
+      [],
+      { cancelable: false }
+    );
+
     try {
       console.log('📁 Starting Google Drive upload...');
       console.log('📊 Photo data length:', imageData.length);
@@ -389,10 +397,15 @@ export default function AdminHourManagementScreen({ navigation }) {
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Photo saved to Google Drive:', result);
-        Alert.alert(
-          'Success!', 
-          `Photo saved to Google Drive as "${fileName}"\n\nStudent: ${studentName}\nEvent: ${eventName}\n\nCheck your Google Drive folder for the new file!`
-        );
+        
+        if (result.success) {
+          Alert.alert(
+            '✅ Success!', 
+            `Photo saved to Google Drive!\n\n📁 File: ${fileName}\n👤 Student: ${studentName}\n📅 Event: ${eventName}\n\nCheck your Google Drive folder for the new file!`
+          );
+        } else {
+          throw new Error(`Google Apps Script error: ${result.error}`);
+        }
       } else {
         const errorText = await response.text();
         console.error('❌ Response error text:', errorText);
@@ -485,6 +498,27 @@ export default function AdminHourManagementScreen({ navigation }) {
     } catch (error) {
       console.error('❌ Connection test error:', error);
       Alert.alert('Connection Test Error', `Failed to test connection: ${error.message}`);
+    }
+  };
+
+  // Test function to create a fake photo and upload it
+  window.testPhotoUpload = async () => {
+    console.log('🧪 Testing photo upload with fake data...');
+    
+    // Create a simple test image (1x1 pixel red PNG in base64)
+    const testImageData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    
+    try {
+      const result = await savePhotoToDrive(
+        'test_photo.jpg',
+        testImageData,
+        'Test Student',
+        'Test Event'
+      );
+      console.log('🧪 Test upload result:', result);
+    } catch (error) {
+      console.error('🧪 Test upload failed:', error);
+      Alert.alert('Test Failed', error.message);
     }
   };
 
@@ -699,6 +733,24 @@ export default function AdminHourManagementScreen({ navigation }) {
                     const photoData = extractPhotoData(item.description);
                     console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
                     
+                    if (!photoData) {
+                      Alert.alert(
+                        '❌ No Photo Data', 
+                        'No photo data found in this request. The photo might not have been uploaded properly.',
+                        [{ text: 'OK' }]
+                      );
+                      return;
+                    }
+                    
+                    if (photoData.length < 100) {
+                      Alert.alert(
+                        '❌ Invalid Photo Data', 
+                        'The photo data seems too small to be valid. Please try again.',
+                        [{ text: 'OK' }]
+                      );
+                      return;
+                    }
+                    
                     savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
                   }}
                 >
@@ -808,6 +860,13 @@ export default function AdminHourManagementScreen({ navigation }) {
         >
           <Ionicons name="bug" size={16} color="#ffd60a" />
           <Text style={styles.testButtonText}>Test Drive</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={window.testPhotoUpload}
+        >
+          <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
+          <Text style={styles.testButtonText}>Test Upload</Text>
         </TouchableOpacity>
       </Animated.View>
 
