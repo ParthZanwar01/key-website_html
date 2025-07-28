@@ -305,6 +305,13 @@ export default function AdminHourManagementScreen({ navigation }) {
       return match[1];
     }
     
+    // Method 1.5: Look for [PHOTO_DATA:...] pattern with different regex
+    const match2 = description.match(/\[PHOTO_DATA:([^\]]+)\]/);
+    if (match2) {
+      console.log('✅ Photo data found using alternative [PHOTO_DATA:...] pattern, length:', match2[1].length);
+      return match2[1];
+    }
+    
     // Method 2: Look for data:image/...;base64,... pattern
     const base64Match = description.match(/data:image\/[^;]+;base64,([^"]+)/);
     if (base64Match) {
@@ -518,6 +525,33 @@ export default function AdminHourManagementScreen({ navigation }) {
       console.error('🧪 Test upload failed:', error);
       Alert.alert('Test Failed', error.message);
     }
+  };
+
+  // Test function to check what's in the actual photo data
+  window.debugPhotoData = () => {
+    console.log('🔍 Debugging photo data...');
+    console.log('📊 All requests:', allRequests.length);
+    
+    allRequests.forEach((request, index) => {
+      console.log(`📋 Request ${index + 1}:`, {
+        id: request.id,
+        student_name: request.student_name,
+        event_name: request.event_name,
+        description_length: request.description?.length || 0,
+        has_image_name: !!request.image_name
+      });
+      
+      if (request.description && request.description.length > 100) {
+        console.log(`📸 Request ${index + 1} has large description:`, request.description.substring(0, 200) + '...');
+        
+        const photoData = extractPhotoData(request.description);
+        console.log(`📸 Request ${index + 1} photo data:`, photoData ? `Length: ${photoData.length}` : 'null');
+        
+        if (photoData) {
+          console.log(`📸 Request ${index + 1} photo data preview:`, photoData.substring(0, 100) + '...');
+        }
+      }
+    });
   };
 
   // Test function to check photo data from a specific request
@@ -861,13 +895,20 @@ export default function AdminHourManagementScreen({ navigation }) {
           <Ionicons name="bug" size={16} color="#ffd60a" />
           <Text style={styles.testButtonText}>Test Drive</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={window.testPhotoUpload}
-        >
-          <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-          <Text style={styles.testButtonText}>Test Upload</Text>
-        </TouchableOpacity>
+                  <TouchableOpacity
+            style={styles.testButton}
+            onPress={window.testPhotoUpload}
+          >
+            <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
+            <Text style={styles.testButtonText}>Test Upload</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={window.debugPhotoData}
+          >
+            <Ionicons name="bug" size={16} color="#ffd60a" />
+            <Text style={styles.testButtonText}>Debug Photos</Text>
+          </TouchableOpacity>
       </Animated.View>
 
       {/* Filter Tabs */}
