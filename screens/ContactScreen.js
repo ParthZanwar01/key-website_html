@@ -1096,8 +1096,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    minHeight: 48,
+    padding: 15,
+    minHeight: 40,
   },
   faqQuestion: {
     fontSize: 15,
@@ -1111,8 +1111,8 @@ const styles = StyleSheet.create({
     color: '#4299e1', // Professional blue
   },
   faqAnswer: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 15,
+    paddingBottom: 15,
     paddingTop: 0,
     borderTopWidth: 0,
     borderTopColor: 'transparent',
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
   },
   faqAnswerText: {
     fontSize: 14,
-    color: '#cbd5e0', // Medium gray
+    color: '#ccc',
     lineHeight: 20,
     textAlign: 'left',
   },
