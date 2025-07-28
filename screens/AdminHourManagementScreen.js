@@ -297,15 +297,35 @@ export default function AdminHourManagementScreen({ navigation }) {
     console.log('🔍 Extracting photo data from description...');
     console.log('📝 Description preview:', description.substring(0, 200) + '...');
     
+    // Method 1: Look for [PHOTO_DATA:...] pattern
     const match = description.match(/\[PHOTO_DATA:(.*?)\]/);
     if (match) {
-      console.log('✅ Photo data found, length:', match[1].length);
+      console.log('✅ Photo data found using [PHOTO_DATA:...] pattern, length:', match[1].length);
       return match[1];
-    } else {
-      console.log('❌ No photo data found in description');
-      console.log('🔍 Looking for pattern: [PHOTO_DATA:...]');
-      return null;
     }
+    
+    // Method 2: Look for data:image/...;base64,... pattern
+    const base64Match = description.match(/data:image\/[^;]+;base64,([^"]+)/);
+    if (base64Match) {
+      console.log('✅ Photo data found using data:image pattern, length:', base64Match[1].length);
+      return base64Match[1];
+    }
+    
+    // Method 3: Look for any long base64 string
+    const anyBase64 = description.match(/[A-Za-z0-9+/]{100,}={0,2}/);
+    if (anyBase64) {
+      console.log('✅ Photo data found using base64 pattern, length:', anyBase64[0].length);
+      return anyBase64[0];
+    }
+    
+    // Method 4: Check if the entire description is base64
+    if (description.length > 100 && /^[A-Za-z0-9+/=]+$/.test(description)) {
+      console.log('✅ Description appears to be base64 data directly, length:', description.length);
+      return description;
+    }
+    
+    console.log('❌ No photo data found using any method');
+    return null;
   };
 
   // Helper function to clean description (remove photo data)
@@ -486,9 +506,30 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       if (photoData) {
         console.log('✅ Photo data found!');
+        console.log('📸 Photo data preview:', photoData.substring(0, 100) + '...');
       } else {
-        console.log('❌ No photo data found in description');
-        console.log('📝 Description preview:', request.description?.substring(0, 500) + '...');
+        console.log('❌ No photo data found');
+        console.log('📝 Full description:', request.description);
+        
+        // Try alternative extraction methods
+        console.log('🔍 Trying alternative extraction methods...');
+        
+        // Method 1: Look for base64 data directly
+        const base64Match = request.description.match(/data:image\/[^;]+;base64,([^"]+)/);
+        if (base64Match) {
+          console.log('✅ Found base64 data directly:', base64Match[1].substring(0, 100) + '...');
+        }
+        
+        // Method 2: Look for any base64 pattern
+        const anyBase64 = request.description.match(/[A-Za-z0-9+/]{50,}={0,2}/);
+        if (anyBase64) {
+          console.log('✅ Found potential base64 data:', anyBase64[0].substring(0, 100) + '...');
+        }
+        
+        // Method 3: Check if description is just base64
+        if (request.description && request.description.length > 100 && /^[A-Za-z0-9+/=]+$/.test(request.description)) {
+          console.log('✅ Description appears to be base64 data directly');
+        }
       }
     } else {
       console.log('❌ Request not found with ID:', requestId);
