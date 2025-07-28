@@ -290,9 +290,22 @@ export default function AdminHourManagementScreen({ navigation }) {
 
   // Helper function to extract photo data from description
   const extractPhotoData = (description) => {
-    if (!description) return null;
+    if (!description) {
+      console.log('❌ No description provided to extractPhotoData');
+      return null;
+    }
+    console.log('🔍 Extracting photo data from description...');
+    console.log('📝 Description preview:', description.substring(0, 200) + '...');
+    
     const match = description.match(/\[PHOTO_DATA:(.*?)\]/);
-    return match ? match[1] : null;
+    if (match) {
+      console.log('✅ Photo data found, length:', match[1].length);
+      return match[1];
+    } else {
+      console.log('❌ No photo data found in description');
+      console.log('🔍 Looking for pattern: [PHOTO_DATA:...]');
+      return null;
+    }
   };
 
   // Helper function to clean description (remove photo data)
@@ -598,7 +611,20 @@ export default function AdminHourManagementScreen({ navigation }) {
                 
                 <TouchableOpacity
                   style={styles.saveToDriveButton}
-                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name)}
+                  onPress={() => {
+                    console.log('🖱️ Save to Drive button clicked');
+                    console.log('📋 Item data:', {
+                      image_name: item.image_name,
+                      student_name: item.student_name,
+                      event_name: item.event_name,
+                      description_length: item.description?.length || 0
+                    });
+                    
+                    const photoData = extractPhotoData(item.description);
+                    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
+                    
+                    savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
+                  }}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
                   <Text style={styles.saveToDriveText}>Save to Drive</Text>
