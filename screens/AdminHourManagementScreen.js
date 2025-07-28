@@ -291,6 +291,7 @@ export default function AdminHourManagementScreen({ navigation }) {
 
   // Helper function to extract photo data from description
   const extractPhotoData = (description) => {
+<<<<<<< HEAD
     if (!description) {
       console.log('❌ No description provided to extractPhotoData');
       return null;
@@ -334,6 +335,11 @@ export default function AdminHourManagementScreen({ navigation }) {
     
     console.log('❌ No photo data found using any method');
     return null;
+=======
+    if (!description) return null;
+    const match = description.match(/\[PHOTO_DATA:(.*?)\]/);
+    return match ? match[1] : null;
+>>>>>>> parent of b7a6b26 (Merge branch 'main' of https://github.com/Nike885/key-website)
   };
 
   // Helper function to clean description (remove photo data)
@@ -514,6 +520,9 @@ export default function AdminHourManagementScreen({ navigation }) {
     const testImageData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
     
     try {
+      console.log('🧪 Test image data length:', testImageData.length);
+      console.log('🧪 Test image data preview:', testImageData.substring(0, 50) + '...');
+      
       const result = await savePhotoToDrive(
         'test_photo.jpg',
         testImageData,
@@ -527,10 +536,37 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
+  // Test function to test photo data extraction
+  window.testPhotoExtraction = () => {
+    console.log('🧪 Testing photo data extraction...');
+    
+    // Test with a sample description that has photo data
+    const testDescription = 'This is a test description with [PHOTO_DATA:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==] at the end';
+    
+    console.log('📝 Test description:', testDescription);
+    
+    const photoData = extractPhotoData(testDescription);
+    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
+    
+    if (photoData) {
+      console.log('✅ Photo data extraction works!');
+      Alert.alert('Extraction Test', 'Photo data extraction is working!');
+    } else {
+      console.log('❌ Photo data extraction failed!');
+      Alert.alert('Extraction Test', 'Photo data extraction failed! Check console for details.');
+    }
+  };
+
   // Test function to check what's in the actual photo data
   window.debugPhotoData = () => {
     console.log('🔍 Debugging photo data...');
     console.log('📊 All requests:', allRequests.length);
+    
+    if (allRequests.length === 0) {
+      console.log('❌ No requests found!');
+      Alert.alert('Debug Info', 'No requests found in the system.');
+      return;
+    }
     
     allRequests.forEach((request, index) => {
       console.log(`📋 Request ${index + 1}:`, {
@@ -552,6 +588,13 @@ export default function AdminHourManagementScreen({ navigation }) {
         }
       }
     });
+    
+    // Show summary alert
+    const requestsWithPhotos = allRequests.filter(r => r.description && r.description.includes('[PHOTO_DATA:'));
+    Alert.alert(
+      'Debug Summary', 
+      `Total requests: ${allRequests.length}\nRequests with photo data: ${requestsWithPhotos.length}\n\nCheck console for details.`
+    );
   };
 
   // Test function to check photo data from a specific request
@@ -753,6 +796,7 @@ export default function AdminHourManagementScreen({ navigation }) {
                 
                 <TouchableOpacity
                   style={styles.saveToDriveButton}
+<<<<<<< HEAD
                   onPress={() => {
                     console.log('🖱️ Save to Drive button clicked');
                     console.log('📋 Item data:', {
@@ -785,6 +829,9 @@ export default function AdminHourManagementScreen({ navigation }) {
                     
                     savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
                   }}
+=======
+                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name)}
+>>>>>>> parent of b7a6b26 (Merge branch 'main' of https://github.com/Nike885/key-website)
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
                   <Text style={styles.saveToDriveText}>
@@ -908,6 +955,13 @@ export default function AdminHourManagementScreen({ navigation }) {
           >
             <Ionicons name="bug" size={16} color="#ffd60a" />
             <Text style={styles.testButtonText}>Debug Photos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={window.testPhotoExtraction}
+          >
+            <Ionicons name="test-tube" size={16} color="#ffd60a" />
+            <Text style={styles.testButtonText}>Test Extraction</Text>
           </TouchableOpacity>
       </Animated.View>
 
