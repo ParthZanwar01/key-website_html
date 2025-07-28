@@ -309,6 +309,9 @@ export default function AdminHourManagementScreen({ navigation }) {
 
     try {
       console.log('📁 Starting Google Drive upload...');
+      console.log('📊 Photo data length:', imageData.length);
+      console.log('👤 Student name:', studentName);
+      console.log('📅 Event name:', eventName);
       
       // Create filename with student and event info
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -318,8 +321,7 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       console.log('📝 Filename:', fileName);
       
-      // For now, let's use a simple approach that saves the photo data
-      // to a text file in your Google Drive using the existing gasProxy
+      // Prepare the photo info for Google Apps Script
       const photoInfo = {
         requestType: 'savePhotoToDrive',
         fileName: fileName,
@@ -331,6 +333,9 @@ export default function AdminHourManagementScreen({ navigation }) {
         photoDataLength: imageData.length
       };
       
+      console.log('📤 Sending request to Netlify function...');
+      console.log('📋 Request data keys:', Object.keys(photoInfo));
+      
       // Send to Google Apps Script via Netlify function proxy
       const response = await fetch('/.netlify/functions/gasProxy', {
         method: 'POST',
@@ -339,6 +344,9 @@ export default function AdminHourManagementScreen({ navigation }) {
         },
         body: JSON.stringify(photoInfo)
       });
+      
+      console.log('📨 Response status:', response.status);
+      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (response.ok) {
         const result = await response.json();
@@ -349,15 +357,52 @@ export default function AdminHourManagementScreen({ navigation }) {
         );
       } else {
         const errorText = await response.text();
+        console.error('❌ Response error text:', errorText);
         throw new Error(`Upload failed: ${response.status} - ${errorText}`);
       }
       
     } catch (error) {
       console.error('❌ Google Drive upload failed:', error);
+      console.error('❌ Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       Alert.alert(
         'Upload Failed', 
-        `Failed to save photo to Google Drive: ${error.message}\n\nThis feature requires Google Apps Script setup.`
+        `Failed to save photo to Google Drive: ${error.message}\n\nPlease check the console for more details.`
       );
+    }
+  };
+
+  const testGoogleDriveConnection = async () => {
+    try {
+      console.log('🧪 Testing Google Drive connection...');
+      
+      const testRequest = {
+        requestType: 'connectionTest'
+      };
+      
+      const response = await fetch('/.netlify/functions/gasProxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testRequest)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Connection test successful:', result);
+        Alert.alert('Connection Test', 'Google Drive connection is working!');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Connection test failed:', errorText);
+        Alert.alert('Connection Test Failed', `Error: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ Connection test error:', error);
+      Alert.alert('Connection Test Error', `Failed to test connection: ${error.message}`);
     }
   };
 
@@ -614,6 +659,13 @@ export default function AdminHourManagementScreen({ navigation }) {
         ]}
       >
         <Text style={styles.headerTitle}>Hour Requests</Text>
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={testGoogleDriveConnection}
+        >
+          <Ionicons name="bug" size={16} color="#ffd60a" />
+          <Text style={styles.testButtonText}>Test Drive</Text>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Filter Tabs */}
@@ -1285,5 +1337,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ffd60a',
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 10, 0.3)',
+  },
+  testButtonText: {
+    color: '#ffd60a',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
 });
