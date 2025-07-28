@@ -356,7 +356,7 @@ const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
   );
 };
 
-export default function OfficersScreen() {
+export default function OfficersScreen({ navigation }) {
   const [screenData, setScreenData] = useState(Dimensions.get('window'));
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const headerSlideAnim = useRef(new Animated.Value(-50)).current;
