@@ -1105,7 +1105,7 @@ const styles = StyleSheet.create({
     color: '#ffffff', // Pure white
     flex: 1,
     marginRight: 12,
-    lineHeight: 20,
+    lineHeight: 10,
   },
   faqIcon: {
     color: '#4299e1', // Professional blue
