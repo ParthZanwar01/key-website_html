@@ -301,7 +301,7 @@ export default function AdminHourManagementScreen({ navigation }) {
     return description.replace(/\n\n\[PHOTO_DATA:.*?\]/, '');
   };
 
-  const savePhotoToDrive = async (imageName, imageData, studentName, eventName) => {
+  const savePhotoToDrive = async (imageName, imageData, studentName, eventName, studentSNumber) => {
     if (!imageData) {
       Alert.alert('Error', 'No photo data available to save');
       return;
@@ -326,6 +326,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         requestType: 'savePhotoToDrive',
         fileName: fileName,
         studentName: studentName,
+        studentNumber: studentSNumber || 'unknown', // Use passed student S-number
         eventName: eventName,
         timestamp: timestamp,
         folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
@@ -412,6 +413,7 @@ export default function AdminHourManagementScreen({ navigation }) {
           requestType: 'savePhotoToDrive',
           fileName: 'test_file.txt',
           studentName: 'Test Student',
+          studentNumber: 's123456', // Add test student number
           eventName: 'Test Event',
           timestamp: new Date().toISOString(),
           folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
@@ -600,7 +602,7 @@ export default function AdminHourManagementScreen({ navigation }) {
                 
                 <TouchableOpacity
                   style={styles.saveToDriveButton}
-                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name)}
+                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name, item.student_s_number)}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
                   <Text style={styles.saveToDriveText}>Save to Drive</Text>
