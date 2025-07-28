@@ -631,22 +631,35 @@ export default function OfficersScreen() {
             { transform: [{ translateY: headerAnim }] }
           ]}
         >
-          <Animated.Text 
-            style={[
-              styles.headerTitle,
-              { opacity: titleAnim }
-            ]}
-          >
-            Meet Our Officers
-          </Animated.Text>
-          <Animated.Text 
-            style={[
-              styles.headerSubtitle,
-              { opacity: titleAnim }
-            ]}
-          >
-            The dedicated leaders of Cypress Ranch Key Club
-          </Animated.Text>
+          <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#4299e1" />
+            </TouchableOpacity>
+            
+            <View style={styles.headerTitleContainer}>
+              <Animated.Text 
+                style={[
+                  styles.headerTitle,
+                  { opacity: titleAnim }
+                ]}
+              >
+                Meet Our Officers
+              </Animated.Text>
+              <Animated.Text 
+                style={[
+                  styles.headerSubtitle,
+                  { opacity: titleAnim }
+                ]}
+              >
+                The dedicated leaders of Cypress Ranch Key Club
+              </Animated.Text>
+            </View>
+            
+            <View style={styles.headerSpacer} />
+          </View>
         </Animated.View>
 
         <ScrollView 
@@ -685,22 +698,35 @@ export default function OfficersScreen() {
           { transform: [{ translateY: headerAnim }] }
         ]}
       >
-        <Animated.Text 
-          style={[
-            styles.headerTitle,
-            { opacity: titleAnim }
-          ]}
-        >
-          Meet Our Officers
-        </Animated.Text>
-        <Animated.Text 
-          style={[
-            styles.headerSubtitle,
-            { opacity: titleAnim }
-          ]}
-        >
-          The dedicated leaders of Cypress Ranch Key Club
-        </Animated.Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#4299e1" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerTitleContainer}>
+            <Animated.Text 
+              style={[
+                styles.headerTitle,
+                { opacity: titleAnim }
+              ]}
+            >
+              Meet Our Officers
+            </Animated.Text>
+            <Animated.Text 
+              style={[
+                styles.headerSubtitle,
+                { opacity: titleAnim }
+              ]}
+            >
+              The dedicated leaders of Cypress Ranch Key Club
+            </Animated.Text>
+          </View>
+          
+          <View style={styles.headerSpacer} />
+        </View>
       </Animated.View>
 
       <FlatList
@@ -743,6 +769,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(66, 153, 225, 0.2)',
   },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -750,6 +781,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(66, 153, 225, 0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+    textAlign: 'center',
   },
   headerSpacer: {
     width: 40,
