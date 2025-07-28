@@ -39,7 +39,9 @@ export default function AuthScreen({ navigation }) {
   
   // Toggle between sign in and sign up
   const toggleAuthMode = () => {
+    console.log('Toggle button clicked! Current state:', isSignUpActive);
     setIsSignUpActive(!isSignUpActive);
+    console.log('New state will be:', !isSignUpActive);
   };
   
   // Handle Sign In
@@ -171,7 +173,7 @@ export default function AuthScreen({ navigation }) {
               <View style={styles.toggleContainer}>
                 <TouchableOpacity
                   style={[styles.toggleButton, !isSignUpActive && styles.toggleButtonActive]}
-                  onPress={() => isSignUpActive && toggleAuthMode()}
+                  onPress={toggleAuthMode}
                 >
                   <Text style={[styles.toggleButtonText, !isSignUpActive && styles.toggleButtonTextActive]}>
                     Sign In
@@ -179,7 +181,7 @@ export default function AuthScreen({ navigation }) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.toggleButton, isSignUpActive && styles.toggleButtonActive]}
-                  onPress={() => !isSignUpActive && toggleAuthMode()}
+                  onPress={toggleAuthMode}
                 >
                   <Text style={[styles.toggleButtonText, isSignUpActive && styles.toggleButtonTextActive]}>
                     Sign Up
