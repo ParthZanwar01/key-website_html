@@ -41,6 +41,7 @@ export default function AdminHourManagementScreen({ navigation }) {
   
   // Track which requests are being processed to prevent double-clicks
   const [processingRequests, setProcessingRequests] = useState(new Set());
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
   // Animation refs
   const headerAnim = useRef(new Animated.Value(-100)).current;
@@ -340,13 +341,8 @@ export default function AdminHourManagementScreen({ navigation }) {
       return;
     }
 
-    // Show loading state
-    Alert.alert(
-      'Saving to Drive...', 
-      'Please wait while we save your photo to Google Drive...',
-      [],
-      { cancelable: false }
-    );
+    // Set loading state
+    setUploadingPhoto(true);
 
     try {
       console.log('📁 Starting Google Drive upload...');
@@ -423,6 +419,8 @@ export default function AdminHourManagementScreen({ navigation }) {
         'Upload Failed', 
         `Failed to save photo to Google Drive: ${error.message}\n\nPlease check the console for more details.`
       );
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -755,7 +753,9 @@ export default function AdminHourManagementScreen({ navigation }) {
                   }}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-                  <Text style={styles.saveToDriveText}>Save to Drive</Text>
+                  <Text style={styles.saveToDriveText}>
+                    {uploadingPhoto ? 'Saving...' : 'Save to Drive'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
