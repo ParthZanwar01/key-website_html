@@ -329,8 +329,8 @@ export default function AdminHourManagementScreen({ navigation }) {
         eventName: eventName,
         timestamp: timestamp,
         folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        photoData: imageData, // Include the actual photo data
-        photoDataLength: imageData.length
+        imageData: imageData, // Changed from photoData to imageData to match Google Apps Script
+        imageDataLength: imageData.length // Changed from photoDataLength to imageDataLength
       };
       
       console.log('📤 Sending request to Netlify function...');
@@ -415,8 +415,8 @@ export default function AdminHourManagementScreen({ navigation }) {
           eventName: 'Test Event',
           timestamp: new Date().toISOString(),
           folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-          photoData: 'dGVzdCBkYXRh', // base64 encoded "test data"
-          photoDataLength: 9
+          imageData: 'dGVzdCBkYXRh', // base64 encoded "test data"
+          imageDataLength: 9
         };
         
         const fileResponse = await fetch('/.netlify/functions/gasProxy', {
