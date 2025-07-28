@@ -331,8 +331,8 @@ export default function AdminHourManagementScreen({ navigation }) {
         photoDataLength: imageData.length
       };
       
-      // Send to Google Apps Script directly
-      const response = await fetch('https://script.google.com/macros/s/AKfycbzuYk0sxYzYN2WnNAqu51MQkBQCHwRVUowpACsNSwEf8a_JXUYJB88aC4mj7smZIqleJw/exec', {
+      // Send to Google Apps Script via Netlify function proxy
+      const response = await fetch('/.netlify/functions/gasProxy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
