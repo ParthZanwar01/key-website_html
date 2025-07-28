@@ -41,7 +41,6 @@ export default function AdminHourManagementScreen({ navigation }) {
   
   // Track which requests are being processed to prevent double-clicks
   const [processingRequests, setProcessingRequests] = useState(new Set());
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
   // Animation refs
   const headerAnim = useRef(new Animated.Value(-100)).current;
@@ -305,13 +304,6 @@ export default function AdminHourManagementScreen({ navigation }) {
       return match[1];
     }
     
-    // Method 1.5: Look for [PHOTO_DATA:...] pattern with different regex
-    const match2 = description.match(/\[PHOTO_DATA:([^\]]+)\]/);
-    if (match2) {
-      console.log('✅ Photo data found using alternative [PHOTO_DATA:...] pattern, length:', match2[1].length);
-      return match2[1];
-    }
-    
     // Method 2: Look for data:image/...;base64,... pattern
     const base64Match = description.match(/data:image\/[^;]+;base64,([^"]+)/);
     if (base64Match) {
@@ -347,9 +339,6 @@ export default function AdminHourManagementScreen({ navigation }) {
       Alert.alert('Error', 'No photo data available to save');
       return;
     }
-
-    // Set loading state
-    setUploadingPhoto(true);
 
     try {
       console.log('📁 Starting Google Drive upload...');
@@ -400,15 +389,10 @@ export default function AdminHourManagementScreen({ navigation }) {
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Photo saved to Google Drive:', result);
-        
-        if (result.success) {
-          Alert.alert(
-            '✅ Success!', 
-            `Photo saved to Google Drive!\n\n📁 File: ${fileName}\n👤 Student: ${studentName}\n📅 Event: ${eventName}\n\nCheck your Google Drive folder for the new file!`
-          );
-        } else {
-          throw new Error(`Google Apps Script error: ${result.error}`);
-        }
+        Alert.alert(
+          'Success!', 
+          `Photo saved to Google Drive as "${fileName}"\n\nStudent: ${studentName}\nEvent: ${eventName}\n\nCheck your Google Drive folder for the new file!`
+        );
       } else {
         const errorText = await response.text();
         console.error('❌ Response error text:', errorText);
@@ -426,8 +410,6 @@ export default function AdminHourManagementScreen({ navigation }) {
         'Upload Failed', 
         `Failed to save photo to Google Drive: ${error.message}\n\nPlease check the console for more details.`
       );
-    } finally {
-      setUploadingPhoto(false);
     }
   };
 
@@ -506,6 +488,8 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
+<<<<<<< HEAD
+=======
   // Test function to create a fake photo and upload it
   window.testPhotoUpload = async () => {
     console.log('🧪 Testing photo upload with fake data...');
@@ -514,9 +498,6 @@ export default function AdminHourManagementScreen({ navigation }) {
     const testImageData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
     
     try {
-      console.log('🧪 Test image data length:', testImageData.length);
-      console.log('🧪 Test image data preview:', testImageData.substring(0, 50) + '...');
-      
       const result = await savePhotoToDrive(
         'test_photo.jpg',
         testImageData,
@@ -530,67 +511,7 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
-  // Test function to test photo data extraction
-  window.testPhotoExtraction = () => {
-    console.log('🧪 Testing photo data extraction...');
-    
-    // Test with a sample description that has photo data
-    const testDescription = 'This is a test description with [PHOTO_DATA:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==] at the end';
-    
-    console.log('📝 Test description:', testDescription);
-    
-    const photoData = extractPhotoData(testDescription);
-    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
-    
-    if (photoData) {
-      console.log('✅ Photo data extraction works!');
-      Alert.alert('Extraction Test', 'Photo data extraction is working!');
-    } else {
-      console.log('❌ Photo data extraction failed!');
-      Alert.alert('Extraction Test', 'Photo data extraction failed! Check console for details.');
-    }
-  };
-
-  // Test function to check what's in the actual photo data
-  window.debugPhotoData = () => {
-    console.log('🔍 Debugging photo data...');
-    console.log('📊 All requests:', allRequests.length);
-    
-    if (allRequests.length === 0) {
-      console.log('❌ No requests found!');
-      Alert.alert('Debug Info', 'No requests found in the system.');
-      return;
-    }
-    
-    allRequests.forEach((request, index) => {
-      console.log(`📋 Request ${index + 1}:`, {
-        id: request.id,
-        student_name: request.student_name,
-        event_name: request.event_name,
-        description_length: request.description?.length || 0,
-        has_image_name: !!request.image_name
-      });
-      
-      if (request.description && request.description.length > 100) {
-        console.log(`📸 Request ${index + 1} has large description:`, request.description.substring(0, 200) + '...');
-        
-        const photoData = extractPhotoData(request.description);
-        console.log(`📸 Request ${index + 1} photo data:`, photoData ? `Length: ${photoData.length}` : 'null');
-        
-        if (photoData) {
-          console.log(`📸 Request ${index + 1} photo data preview:`, photoData.substring(0, 100) + '...');
-        }
-      }
-    });
-    
-    // Show summary alert
-    const requestsWithPhotos = allRequests.filter(r => r.description && r.description.includes('[PHOTO_DATA:'));
-    Alert.alert(
-      'Debug Summary', 
-      `Total requests: ${allRequests.length}\nRequests with photo data: ${requestsWithPhotos.length}\n\nCheck console for details.`
-    );
-  };
-
+>>>>>>> parent of a3b39a9 (Merge branch 'main' of https://github.com/Nike885/key-website)
   // Test function to check photo data from a specific request
   window.testPhotoData = (requestId) => {
     console.log('🧪 Testing photo data for request:', requestId);
@@ -802,31 +723,11 @@ export default function AdminHourManagementScreen({ navigation }) {
                     const photoData = extractPhotoData(item.description);
                     console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
                     
-                    if (!photoData) {
-                      Alert.alert(
-                        '❌ No Photo Data', 
-                        'No photo data found in this request. The photo might not have been uploaded properly.',
-                        [{ text: 'OK' }]
-                      );
-                      return;
-                    }
-                    
-                    if (photoData.length < 100) {
-                      Alert.alert(
-                        '❌ Invalid Photo Data', 
-                        'The photo data seems too small to be valid. Please try again.',
-                        [{ text: 'OK' }]
-                      );
-                      return;
-                    }
-                    
                     savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
                   }}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-                  <Text style={styles.saveToDriveText}>
-                    {uploadingPhoto ? 'Saving...' : 'Save to Drive'}
-                  </Text>
+                  <Text style={styles.saveToDriveText}>Save to Drive</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -932,27 +833,16 @@ export default function AdminHourManagementScreen({ navigation }) {
           <Ionicons name="bug" size={16} color="#ffd60a" />
           <Text style={styles.testButtonText}>Test Drive</Text>
         </TouchableOpacity>
-                  <TouchableOpacity
-            style={styles.testButton}
-            onPress={window.testPhotoUpload}
-          >
-            <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-            <Text style={styles.testButtonText}>Test Upload</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={window.debugPhotoData}
-          >
-            <Ionicons name="bug" size={16} color="#ffd60a" />
-            <Text style={styles.testButtonText}>Debug Photos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={window.testPhotoExtraction}
-          >
-            <Ionicons name="test-tube" size={16} color="#ffd60a" />
-            <Text style={styles.testButtonText}>Test Extraction</Text>
-          </TouchableOpacity>
+<<<<<<< HEAD
+=======
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={window.testPhotoUpload}
+        >
+          <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
+          <Text style={styles.testButtonText}>Test Upload</Text>
+        </TouchableOpacity>
+>>>>>>> parent of a3b39a9 (Merge branch 'main' of https://github.com/Nike885/key-website)
       </Animated.View>
 
       {/* Filter Tabs */}

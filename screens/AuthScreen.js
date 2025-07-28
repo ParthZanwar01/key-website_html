@@ -173,7 +173,7 @@ export default function AuthScreen({ navigation }) {
               <View style={styles.toggleContainer}>
                 <TouchableOpacity
                   style={[styles.toggleButton, !isSignUpActive && styles.toggleButtonActive]}
-                  onPress={toggleAuthMode}
+                  onPress={() => isSignUpActive && toggleAuthMode()}
                 >
                   <Text style={[styles.toggleButtonText, !isSignUpActive && styles.toggleButtonTextActive]}>
                     Sign In
@@ -181,7 +181,7 @@ export default function AuthScreen({ navigation }) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.toggleButton, isSignUpActive && styles.toggleButtonActive]}
-                  onPress={toggleAuthMode}
+                  onPress={() => !isSignUpActive && toggleAuthMode()}
                 >
                   <Text style={[styles.toggleButtonText, isSignUpActive && styles.toggleButtonTextActive]}>
                     Sign Up
