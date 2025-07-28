@@ -20,6 +20,7 @@ import { useHours } from '../contexts/HourContext';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import GoogleDriveService from '../services/GoogleDriveService';
+import SimpleDriveService from '../services/SimpleDriveService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -41,7 +42,6 @@ export default function AdminHourManagementScreen({ navigation }) {
   
   // Track which requests are being processed to prevent double-clicks
   const [processingRequests, setProcessingRequests] = useState(new Set());
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
   // Animation refs
   const headerAnim = useRef(new Animated.Value(-100)).current;
@@ -56,11 +56,11 @@ export default function AdminHourManagementScreen({ navigation }) {
     notes: ''
   });
   
-        const [photoModal, setPhotoModal] = useState({
-        visible: false,
-        imageName: null,
-        imageData: null
-      });
+  const [photoModal, setPhotoModal] = useState({
+    visible: false,
+    imageName: null,
+    imageData: null
+  });
   
   const [confirmDialog, setConfirmDialog] = useState({
     visible: false,
@@ -99,62 +99,37 @@ export default function AdminHourManagementScreen({ navigation }) {
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.05,
-          duration: 2000,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 2000,
+          duration: 1000,
           useNativeDriver: true,
         })
-      ]).start(pulse);
+      ]).start(() => pulse());
     };
     pulse();
-    
-    // Set up auto-refresh every 10 seconds
-    const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing admin data...');
-      loadData();
-    }, 10000); // Refresh every 10 seconds
-    
-    // Cleanup interval on unmount
-    return () => clearInterval(refreshInterval);
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      if (!loading && !refreshing) {
+        loadData();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
-
-  // Floating sparkles component
-
 
   const loadData = async () => {
     try {
-      console.log('🔄 Loading fresh data from Supabase...');
-      
-      // Import and call SupabaseService directly
-      const SupabaseService = (await import('../services/SupabaseService')).default;
-      const requests = await SupabaseService.getAllHourRequests();
-      
-      console.log('✅ Admin screen loaded requests:', requests.length);
-      
-      // Debug: Check first few requests
-      if (requests.length > 0) {
-        console.log('First request sample:', {
-          id: requests[0].id,
-          studentName: requests[0].student_name,
-          eventName: requests[0].event_name,
-          hasImageName: !!requests[0].image_name,
-          imageName: requests[0].image_name
-        });
-      }
-      
+      setLoading(true);
+      const requests = await getAllRequests();
       setAllRequests(requests);
-      setLastLoadTime(new Date().toISOString());
       applyFilters(requests, filter, searchQuery);
-      console.log('📊 Data loaded successfully:', {
-        totalRequests: requests.length,
-        filteredRequests: requests.filter(r => filter === 'all' || r.status === filter).length,
-        loadTime: new Date().toISOString()
-      });
+      setLastLoadTime(new Date());
     } catch (error) {
-      console.error('❌ Failed to load requests:', error);
+      console.error('Error loading requests:', error);
     } finally {
       setLoading(false);
     }
@@ -162,50 +137,69 @@ export default function AdminHourManagementScreen({ navigation }) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try {
-      console.log('🔄 Manual refresh triggered...');
-      await loadData(); // Load fresh data directly
-    } catch (error) {
-      console.error('❌ Failed to refresh:', error);
-    } finally {
-      setRefreshing(false);
-    }
+    await loadData();
+    setRefreshing(false);
   };
 
   const applyFilters = (requests, filterType, search) => {
-    let filtered = requests;
-    
-    console.log('🔍 Applying filters:', {
-      totalRequests: requests.length,
-      filterType,
-      search: search.trim()
+    let filtered = [...requests];
+
+    // Filter out test data
+    filtered = filtered.filter(request => {
+      const studentName = request.student_name?.toLowerCase() || '';
+      const eventName = request.event_name?.toLowerCase() || '';
+      const description = request.description?.toLowerCase() || '';
+      
+      // Remove test entries - more comprehensive filtering
+      if (studentName.includes('test') || 
+          eventName.includes('test') || 
+          description.includes('test') ||
+          studentName.includes('debug') ||
+          eventName.includes('debug') ||
+          description.includes('debug') ||
+          studentName.includes('upload') ||
+          eventName.includes('upload') ||
+          description.includes('upload') ||
+          studentName.includes('drive') ||
+          eventName.includes('drive') ||
+          description.includes('drive') ||
+          studentName.includes('extraction') ||
+          eventName.includes('extraction') ||
+          description.includes('extraction') ||
+          studentName.includes('photo') ||
+          eventName.includes('photo') ||
+          description.includes('photo') ||
+          // Also filter out entries that look like test data
+          studentName.length < 3 ||
+          eventName.length < 3 ||
+          (description && description.length < 5)) {
+        return false;
+      }
+      
+      return true;
     });
-    
+
     // Apply status filter
     if (filterType !== 'all') {
       filtered = filtered.filter(request => {
-        const status = request.status?.toLowerCase();
-        return status === filterType || 
-               (filterType === 'approved' && (status === 'approve' || status === 'approved')) ||
-               (filterType === 'rejected' && (status === 'reject' || status === 'rejected'));
+        if (filterType === 'pending') return request.status === 'pending';
+        if (filterType === 'approved') return request.status === 'approved';
+        if (filterType === 'rejected') return request.status === 'rejected';
+        return true;
       });
-      console.log('📊 After status filter:', filtered.length, 'requests');
     }
-    
+
     // Apply search filter
     if (search.trim()) {
-      const query = search.toLowerCase();
+      const searchLower = search.toLowerCase();
       filtered = filtered.filter(request => 
-        request.student_name?.toLowerCase().includes(query) ||
-        request.student_s_number?.toLowerCase().includes(query) ||
-        request.event_name?.toLowerCase().includes(query) ||
-        request.description?.toLowerCase().includes(query)
+        request.student_name?.toLowerCase().includes(searchLower) ||
+        request.event_name?.toLowerCase().includes(searchLower) ||
+        request.description?.toLowerCase().includes(searchLower)
       );
-      console.log('📊 After search filter:', filtered.length, 'requests');
     }
-    
+
     setFilteredRequests(filtered);
-    console.log('✅ Filtered requests set:', filtered.length);
   };
 
   const handleFilterChange = (newFilter) => {
@@ -223,123 +217,132 @@ export default function AdminHourManagementScreen({ navigation }) {
   };
 
   const submitReview = async () => {
+    if (!reviewModal.request || !reviewModal.action) return;
+
     const { request, action, notes } = reviewModal;
-    
-    if (!request) return;
-    
+    const requestId = request.id;
+
+    // Prevent double-clicks
+    if (processingRequests.has(requestId)) return;
+    setProcessingRequests(prev => new Set([...prev, requestId]));
+
     try {
-      console.log('🔄 Starting review process:', { requestId: request.id, action, studentSNumber: request.student_s_number, hoursRequested: request.hours_requested });
-      
-      setProcessingRequests(prev => new Set(prev).add(request.id));
-      
-      // Check student hours BEFORE approval
-      const { supabase } = require('../supabase/supabaseClient');
-      const { data: studentBefore, error: beforeError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('s_number', request.student_s_number.toLowerCase())
-        .single();
-      
-      console.log('📊 Student hours BEFORE approval:', studentBefore?.total_hours || 0);
-      
-      // Use the correct action (approve or reject) and pass hours_requested explicitly
-      await updateHourRequestStatus(
-        request.id, 
-        action, // use the actual action from the modal
-        notes, 
-        'Admin',
-        request.hours_requested // pass the hours explicitly
+      const result = await updateHourRequestStatus(
+        requestId,
+        action === 'approve' ? 'approved' : 'rejected',
+        notes,
+        request.student_s_number,
+        request.hours_requested
       );
-      
-      // Check student hours AFTER approval
-      const { data: studentAfter, error: afterError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('s_number', request.student_s_number.toLowerCase())
-        .single();
-      
-      console.log('📊 Student hours AFTER approval:', studentAfter?.total_hours || 0);
-      console.log('📊 Hours change:', (studentAfter?.total_hours || 0) - (studentBefore?.total_hours || 0));
-      
-      // Refresh the data after approval/rejection
-      await loadData();
-      
-      setMessageDialog({
-        visible: true,
-        title: 'Success',
-        message: `Request ${action === 'approved' ? 'approved' : 'rejected'} successfully!${action === 'approved' ? ' Student hours have been updated.' : ''}`,
-        isError: false
-      });
-      
+
+      if (result.success) {
+        setMessageDialog({
+          visible: true,
+          title: 'Success',
+          message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`,
+          isError: false
+        });
+
+        // Refresh data
+        await loadData();
+      } else {
+        setMessageDialog({
+          visible: true,
+          title: 'Error',
+          message: result.error || 'Failed to update request status',
+          isError: true
+        });
+      }
     } catch (error) {
-      console.error('❌ Failed to update request:', error);
       setMessageDialog({
         visible: true,
         title: 'Error',
-        message: `Failed to ${action} request: ${error.message}`,
+        message: 'An error occurred while processing the request',
         isError: true
       });
     } finally {
       setProcessingRequests(prev => {
         const newSet = new Set(prev);
-        newSet.delete(request.id);
+        newSet.delete(requestId);
         return newSet;
       });
       setReviewModal({ visible: false, request: null, action: null, notes: '' });
     }
   };
 
-  // Helper function to extract photo data from description
   const extractPhotoData = (description) => {
-    if (!description) {
-      console.log('❌ No description provided to extractPhotoData');
-      return null;
-    }
-    console.log('🔍 Extracting photo data from description...');
-    console.log('📝 Description preview:', description.substring(0, 200) + '...');
+    // Look for photo data in the description
+    if (!description) return null;
     
-    // Method 1: Look for [PHOTO_DATA:...] pattern
-    const match = description.match(/\[PHOTO_DATA:(.*?)\]/);
-    if (match) {
-      console.log('✅ Photo data found using [PHOTO_DATA:...] pattern, length:', match[1].length);
-      return match[1];
-    }
+    // Try different patterns for photo data
+    const patterns = [
+      /Photo: ([^|]+)/,
+      /\[PHOTO_DATA:(.*?)\]/,
+      /data:image\/[^;]+;base64,[^|]+/
+    ];
     
-    // Method 1.5: Look for [PHOTO_DATA:...] pattern with different regex
-    const match2 = description.match(/\[PHOTO_DATA:([^\]]+)\]/);
-    if (match2) {
-      console.log('✅ Photo data found using alternative [PHOTO_DATA:...] pattern, length:', match2[1].length);
-      return match2[1];
-    }
-    
-    // Method 2: Look for data:image/...;base64,... pattern
-    const base64Match = description.match(/data:image\/[^;]+;base64,([^"]+)/);
-    if (base64Match) {
-      console.log('✅ Photo data found using data:image pattern, length:', base64Match[1].length);
-      return base64Match[1];
+    for (const pattern of patterns) {
+      const match = description.match(pattern);
+      if (match) {
+        const photoData = match[1] || match[0];
+        // If it's a base64 data URL, return it as is
+        if (photoData.startsWith('data:image/')) {
+          return photoData;
+        }
+        // If it's just base64 data, convert to data URL
+        if (photoData && !photoData.startsWith('data:')) {
+          return `data:image/jpeg;base64,${photoData}`;
+        }
+        return photoData;
+      }
     }
     
-    // Method 3: Look for any long base64 string
-    const anyBase64 = description.match(/[A-Za-z0-9+/]{100,}={0,2}/);
-    if (anyBase64) {
-      console.log('✅ Photo data found using base64 pattern, length:', anyBase64[0].length);
-      return anyBase64[0];
-    }
-    
-    // Method 4: Check if the entire description is base64
-    if (description.length > 100 && /^[A-Za-z0-9+/=]+$/.test(description)) {
-      console.log('✅ Description appears to be base64 data directly, length:', description.length);
-      return description;
-    }
-    
-    console.log('❌ No photo data found using any method');
     return null;
   };
 
-  // Helper function to clean description (remove photo data)
   const cleanDescription = (description) => {
     if (!description) return '';
-    return description.replace(/\n\n\[PHOTO_DATA:.*?\]/, '');
+    // Remove photo data patterns from description
+    return description
+      .replace(/Photo: [^|]+/, '')
+      .replace(/\[PHOTO_DATA:.*?\]/, '')
+      .replace(/data:image\/[^;]+;base64,[^|]+/, '')
+      .trim();
+  };
+
+  const testNetlifyConnection = async () => {
+    try {
+      // Use the actual Netlify URL
+      const netlifyFunctionUrl = 'https://crhskeyclubwebsite.netlify.app/.netlify/functions/gasProxy';
+      
+      console.log('🧪 Testing Netlify function connection...');
+      console.log('🌐 URL:', netlifyFunctionUrl);
+      
+      const response = await fetch(netlifyFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestType: 'connectionTest'
+        })
+      });
+      
+      console.log('📨 Test response status:', response.status);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Netlify function connection successful:', result);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Netlify function connection failed:', errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Netlify function connection test failed:', error);
+      return false;
+    }
   };
 
   const savePhotoToDrive = async (imageName, imageData, studentName, eventName) => {
@@ -348,15 +351,19 @@ export default function AdminHourManagementScreen({ navigation }) {
       return;
     }
 
-    // Set loading state
-    setUploadingPhoto(true);
-
     try {
       console.log('📁 Starting Google Drive upload...');
       console.log('📊 Photo data length:', imageData.length);
       console.log('👤 Student name:', studentName);
       console.log('📅 Event name:', eventName);
       
+      // Extract base64 data if it's a data URL
+      let base64Data = imageData;
+      if (imageData.startsWith('data:image/')) {
+        base64Data = imageData.split(',')[1];
+        console.log('📝 Extracted base64 data length:', base64Data.length);
+      }
+
       // Create filename with student and event info
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const cleanEventName = eventName.replace(/[^a-zA-Z0-9]/g, '_');
@@ -365,522 +372,277 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       console.log('📝 Filename:', fileName);
       
-      // Prepare the photo info for Google Apps Script
-      const photoInfo = {
-        requestType: 'savePhotoToDrive',
-        fileName: fileName,
-        studentName: studentName,
-        eventName: eventName,
-        timestamp: timestamp,
-        folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        photoData: imageData // Match the Google Apps Script expectation
-      };
-      
-      console.log('📤 Sending request to Netlify function...');
-      console.log('📋 Request data keys:', Object.keys(photoInfo));
-      console.log('🌐 Request URL:', '/.netlify/functions/gasProxy');
-      
-      // Send to Google Apps Script via Netlify function proxy
-      const response = await fetch('/.netlify/functions/gasProxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(photoInfo)
-      });
-      
-      console.log('📨 Response received!');
-      console.log('📨 Response status:', response.status);
-      console.log('📨 Response status text:', response.statusText);
-      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      console.log('📨 Response status:', response.status);
-      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Photo saved to Google Drive:', result);
+      // Try Netlify function first
+      try {
+        console.log('🔄 Attempting Netlify function upload...');
         
-        if (result.success) {
-          Alert.alert(
-            '✅ Success!', 
-            `Photo saved to Google Drive!\n\n📁 File: ${fileName}\n👤 Student: ${studentName}\n📅 Event: ${eventName}\n\nCheck your Google Drive folder for the new file!`
-          );
-        } else {
-          throw new Error(`Google Apps Script error: ${result.error}`);
-        }
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Response error text:', errorText);
-        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-      }
-      
-    } catch (error) {
-      console.error('❌ Google Drive upload failed:', error);
-      console.error('❌ Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      Alert.alert(
-        'Upload Failed', 
-        `Failed to save photo to Google Drive: ${error.message}\n\nPlease check the console for more details.`
-      );
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  // Make the test function globally available for browser console testing
-  window.testGoogleDriveConnection = async () => {
-    try {
-      console.log('🧪 Testing Google Drive connection...');
-      
-      // Test photo data extraction
-      console.log('🧪 Testing photo data extraction...');
-      const testDescription = 'This is a test description with [PHOTO_DATA:dGVzdCBkYXRh] at the end';
-      const extractedData = extractPhotoData(testDescription);
-      console.log('🧪 Test extraction result:', extractedData ? `Length: ${extractedData.length}` : 'null');
-      
-      // First test: Basic connection test
-      
-      // First test: Basic connection test
-      const testRequest = {
-        requestType: 'connectionTest'
-      };
-      
-      console.log('📤 Sending connection test request...');
-      const response = await fetch('/.netlify/functions/gasProxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testRequest)
-      });
-      
-      console.log('📨 Connection test response status:', response.status);
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Connection test successful:', result);
+        // Use the actual Netlify URL
+        const netlifyFunctionUrl = 'https://crhskeyclubwebsite.netlify.app/.netlify/functions/gasProxy';
         
-        // Second test: Try to save a small test file
-        console.log('🧪 Testing file upload...');
-        const testFileRequest = {
+        // Prepare the photo info for Google Apps Script
+        const photoInfo = {
           requestType: 'savePhotoToDrive',
-          fileName: 'test_file.txt',
-          studentName: 'Test Student',
-          eventName: 'Test Event',
-          timestamp: new Date().toISOString(),
+          fileName: fileName,
+          studentName: studentName,
+          eventName: eventName,
+          timestamp: timestamp,
           folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-          photoData: 'dGVzdCBkYXRh' // base64 encoded "test data"
+          photoData: base64Data
         };
         
-        const fileResponse = await fetch('/.netlify/functions/gasProxy', {
+        console.log('📤 Sending request to Netlify function...');
+        console.log('📋 Request data keys:', Object.keys(photoInfo));
+        console.log('🌐 Netlify function URL:', netlifyFunctionUrl);
+        
+        // Send to Netlify function which will proxy to Google Apps Script
+        const response = await fetch(netlifyFunctionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(testFileRequest)
+          body: JSON.stringify(photoInfo)
         });
         
-        console.log('📨 File upload response status:', fileResponse.status);
+        console.log('📨 Response received!');
+        console.log('📨 Response status:', response.status);
         
-        if (fileResponse.ok) {
-          const fileResult = await fileResponse.json();
-          console.log('✅ File upload test successful:', fileResult);
-          Alert.alert('Connection Test', 'Google Drive connection is working! Both connection and file upload tests passed.');
+        if (response.ok) {
+          const result = await response.json();
+          console.log('📨 Response result:', result);
+          
+          if (result.success) {
+            Alert.alert(
+              'Success', 
+              'Photo saved to Google Drive successfully!'
+            );
+            return;
+          } else {
+            throw new Error(`Netlify function error: ${result.error}`);
+          }
         } else {
-          const errorText = await fileResponse.text();
-          console.error('❌ File upload test failed:', errorText);
-          Alert.alert('Connection Test', 'Basic connection works, but file upload failed. Check the console for details.');
+          const errorText = await response.text();
+          console.error('❌ Netlify function error:', errorText);
+          throw new Error(`Netlify function failed: ${response.status} - ${errorText}`);
         }
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Connection test failed:', errorText);
-        Alert.alert('Connection Test Failed', `Error: ${response.status} - ${errorText}`);
+      } catch (netlifyError) {
+        console.warn('⚠️ Netlify function failed, trying SimpleDriveService fallback...', netlifyError);
+        
+        // Fallback to SimpleDriveService
+        try {
+          console.log('🔄 Attempting SimpleDriveService upload...');
+          
+          // Convert base64 data back to data URL for SimpleDriveService
+          const dataUrl = `data:image/jpeg;base64,${base64Data}`;
+          
+          // Use SimpleDriveService uploadImage method
+          const result = await SimpleDriveService.uploadImage(
+            dataUrl, 
+            studentName, // Using student name as S-Number for now
+            eventName
+          );
+          
+          console.log('📨 SimpleDriveService result:', result);
+          
+          if (result.uploadStatus === 'success' || result.fileId) {
+            Alert.alert(
+              'Success', 
+              'Photo saved to Google Drive successfully!'
+            );
+            return;
+          } else {
+            throw new Error(`SimpleDriveService error: ${result.error || 'Unknown error'}`);
+          }
+        } catch (simpleDriveError) {
+          console.error('❌ SimpleDriveService also failed:', simpleDriveError);
+          throw new Error(`Both upload methods failed. Netlify: ${netlifyError.message}, SimpleDrive: ${simpleDriveError.message}`);
+        }
       }
     } catch (error) {
-      console.error('❌ Connection test error:', error);
-      Alert.alert('Connection Test Error', `Failed to test connection: ${error.message}`);
-    }
-  };
-
-  // Test function to create a fake photo and upload it
-  window.testPhotoUpload = async () => {
-    console.log('🧪 Testing photo upload with fake data...');
-    
-    // Create a simple test image (1x1 pixel red PNG in base64)
-    const testImageData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-    
-    try {
-      console.log('🧪 Test image data length:', testImageData.length);
-      console.log('🧪 Test image data preview:', testImageData.substring(0, 50) + '...');
-      
-      const result = await savePhotoToDrive(
-        'test_photo.jpg',
-        testImageData,
-        'Test Student',
-        'Test Event'
+      console.error('❌ Google Drive upload failed:', error);
+      Alert.alert(
+        'Upload Failed', 
+        `Failed to save photo to Google Drive: ${error.message}`
       );
-      console.log('🧪 Test upload result:', result);
-    } catch (error) {
-      console.error('🧪 Test upload failed:', error);
-      Alert.alert('Test Failed', error.message);
-    }
-  };
-
-  // Test function to test photo data extraction
-  window.testPhotoExtraction = () => {
-    console.log('🧪 Testing photo data extraction...');
-    
-    // Test with a sample description that has photo data
-    const testDescription = 'This is a test description with [PHOTO_DATA:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==] at the end';
-    
-    console.log('📝 Test description:', testDescription);
-    
-    const photoData = extractPhotoData(testDescription);
-    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
-    
-    if (photoData) {
-      console.log('✅ Photo data extraction works!');
-      Alert.alert('Extraction Test', 'Photo data extraction is working!');
-    } else {
-      console.log('❌ Photo data extraction failed!');
-      Alert.alert('Extraction Test', 'Photo data extraction failed! Check console for details.');
-    }
-  };
-
-  // Test function to check what's in the actual photo data
-  window.debugPhotoData = () => {
-    console.log('🔍 Debugging photo data...');
-    console.log('📊 All requests:', allRequests.length);
-    
-    if (allRequests.length === 0) {
-      console.log('❌ No requests found!');
-      Alert.alert('Debug Info', 'No requests found in the system.');
-      return;
-    }
-    
-    allRequests.forEach((request, index) => {
-      console.log(`📋 Request ${index + 1}:`, {
-        id: request.id,
-        student_name: request.student_name,
-        event_name: request.event_name,
-        description_length: request.description?.length || 0,
-        has_image_name: !!request.image_name
-      });
-      
-      if (request.description && request.description.length > 100) {
-        console.log(`📸 Request ${index + 1} has large description:`, request.description.substring(0, 200) + '...');
-        
-        const photoData = extractPhotoData(request.description);
-        console.log(`📸 Request ${index + 1} photo data:`, photoData ? `Length: ${photoData.length}` : 'null');
-        
-        if (photoData) {
-          console.log(`📸 Request ${index + 1} photo data preview:`, photoData.substring(0, 100) + '...');
-        }
-      }
-    });
-    
-    // Show summary alert
-    const requestsWithPhotos = allRequests.filter(r => r.description && r.description.includes('[PHOTO_DATA:'));
-    Alert.alert(
-      'Debug Summary', 
-      `Total requests: ${allRequests.length}\nRequests with photo data: ${requestsWithPhotos.length}\n\nCheck console for details.`
-    );
-  };
-
-  // Test function to check photo data from a specific request
-  window.testPhotoData = (requestId) => {
-    console.log('🧪 Testing photo data for request:', requestId);
-    const request = allRequests.find(r => r.id === requestId);
-    if (request) {
-      console.log('📋 Request found:', {
-        id: request.id,
-        student_name: request.student_name,
-        event_name: request.event_name,
-        description_length: request.description?.length || 0,
-        has_image_name: !!request.image_name
-      });
-      
-      const photoData = extractPhotoData(request.description);
-      console.log('📸 Photo data result:', photoData ? `Length: ${photoData.length}` : 'null');
-      
-      if (photoData) {
-        console.log('✅ Photo data found!');
-        console.log('📸 Photo data preview:', photoData.substring(0, 100) + '...');
-      } else {
-        console.log('❌ No photo data found');
-        console.log('📝 Full description:', request.description);
-        
-        // Try alternative extraction methods
-        console.log('🔍 Trying alternative extraction methods...');
-        
-        // Method 1: Look for base64 data directly
-        const base64Match = request.description.match(/data:image\/[^;]+;base64,([^"]+)/);
-        if (base64Match) {
-          console.log('✅ Found base64 data directly:', base64Match[1].substring(0, 100) + '...');
-        }
-        
-        // Method 2: Look for any base64 pattern
-        const anyBase64 = request.description.match(/[A-Za-z0-9+/]{50,}={0,2}/);
-        if (anyBase64) {
-          console.log('✅ Found potential base64 data:', anyBase64[0].substring(0, 100) + '...');
-        }
-        
-        // Method 3: Check if description is just base64
-        if (request.description && request.description.length > 100 && /^[A-Za-z0-9+/=]+$/.test(request.description)) {
-          console.log('✅ Description appears to be base64 data directly');
-        }
-      }
-    } else {
-      console.log('❌ Request not found with ID:', requestId);
     }
   };
 
   const viewPhoto = (imageName, imageData) => {
-    if (!imageName) return;
-    
     setPhotoModal({
       visible: true,
       imageName,
-      imageData: imageData ? `data:image/jpeg;base64,${imageData}` : null
+      imageData
     });
   };
 
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'approved':
-      case 'approve':
-        return '#4299e1';
-      case 'rejected':
-      case 'reject':
-        return '#e53e3e';
+    switch (status) {
       case 'pending':
-        return '#ff9800';
+        return '#ffd60a';
+      case 'approved':
+        return '#4CAF50';
+      case 'rejected':
+        return '#f44336';
       default:
-        return '#9e9e9e';
+        return '#999';
     }
   };
 
   const getDisplayStatus = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'approved':
-      case 'approve':
-        return 'Approved';
-      case 'rejected':
-      case 'reject':
-        return 'Rejected';
+    switch (status) {
       case 'pending':
         return 'Pending';
+      case 'approved':
+        return 'Approved';
+      case 'rejected':
+        return 'Rejected';
       default:
         return 'Unknown';
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown date';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return 'Invalid date';
-    }
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const isRequestProcessed = (request) => {
-    const status = request.status?.toLowerCase();
-    return status === 'approved' || status === 'rejected' || status === 'approve' || status === 'reject';
+    return request.status === 'approved' || request.status === 'rejected';
   };
 
   const isRequestPending = (request) => {
-    return request.status?.toLowerCase() === 'pending';
+    return request.status === 'pending';
   };
 
   const renderRequestItem = ({ item, index }) => {
-    const isProcessed = isRequestProcessed(item);
-    const isPending = isRequestPending(item);
-    const isBeingProcessed = processingRequests.has(item.id);
-    
-    // Debug: Log photo data for first few items
-    if (index < 3) {
-      console.log(`Request ${index}:`, {
-        id: item.id,
-        studentName: item.student_name,
-        eventName: item.event_name,
-        hasImageName: !!item.image_name,
-        hasPhotoData: !!extractPhotoData(item.description),
-        imageName: item.image_name
-      });
-    }
+    const photoData = extractPhotoData(item.description);
+    const cleanDescriptionText = cleanDescription(item.description);
+    const isProcessing = processingRequests.has(item.id);
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.requestItem,
-          {
+          styles.requestCard,
+          { 
             opacity: listAnim,
-            transform: [
-              { translateY: listAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) },
-              { scale: listAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }
-            ]
+            transform: [{ scale: listAnim }],
+            marginTop: index === 0 ? 10 : 8
           }
         ]}
       >
+        {/* Header */}
         <View style={styles.requestHeader}>
           <View style={styles.studentInfo}>
-            <Text style={styles.studentName}>{item.student_name || 'Unknown Student'}</Text>
-            <Text style={styles.studentId}>{item.student_s_number || 'No ID'}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-            <Text style={styles.statusText}>{getDisplayStatus(item.status)}</Text>
-          </View>
-        </View>
-        
-        <Text style={styles.eventName}>{item.event_name || 'No Event Name'}</Text>
-        
-        <View style={styles.requestDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="calendar-outline" size={16} color="#ffd60a" />
-            <Text style={styles.detailText}>Event: {formatDate(item.event_date)}</Text>
+            <Text style={styles.studentName}>{item.student_name}</Text>
+            <Text style={styles.studentNumber}>#{item.student_s_number}</Text>
           </View>
           
-          <View style={styles.detailRow}>
-            <Ionicons name="time-outline" size={16} color="#ffd60a" />
-            <Text style={styles.detailText}>Hours: {item.hours_requested || '0'}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Ionicons name="paper-plane-outline" size={16} color="#ffd60a" />
-            <Text style={styles.detailText}>Submitted: {formatDate(item.submitted_at)}</Text>
+          <View style={styles.statusContainer}>
+            <View style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(item.status) }
+            ]}>
+              <Text style={styles.statusText}>
+                {getDisplayStatus(item.status)}
+              </Text>
+            </View>
           </View>
         </View>
-        
-        <Text style={styles.description} numberOfLines={3}>
-          {cleanDescription(item.description) || 'No description provided'}
-        </Text>
 
-        {/* Photo section */}
-        {item.image_name && (
+        {/* Event Info */}
+        <View style={styles.eventInfo}>
+          <Text style={styles.eventName}>{item.event_name}</Text>
+          <Text style={styles.hoursText}>{item.hours_requested} hours</Text>
+        </View>
+
+        {/* Description */}
+        {cleanDescriptionText && (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.descriptionText}>{cleanDescriptionText}</Text>
+          </View>
+        )}
+
+        {/* Photo Section */}
+        {photoData && (
           <View style={styles.photoSection}>
             <View style={styles.photoHeader}>
-              <Ionicons name="camera" size={16} color="#ffd60a" />
-              <Text style={styles.photoLabel}>Proof Photo</Text>
+              <Ionicons name="camera" size={16} color="#4299e1" />
+              <Text style={styles.photoTitle}>Proof Photo</Text>
             </View>
             
-            {/* Show photo preview if we have image data in description */}
-            {item.description && item.description.includes('[PHOTO_DATA:') ? (
-              <View style={styles.photoPreview}>
-                <Image 
-                  source={{ uri: `data:image/jpeg;base64,${extractPhotoData(item.description)}` }}
-                  style={styles.photoThumbnail}
-                  resizeMode="cover"
-                />
+            <View style={styles.photoContainer}>
+              <Image 
+                source={{ uri: photoData }}
+                style={styles.photoThumbnail}
+                resizeMode="cover"
+              />
+              
+              <View style={styles.photoActions}>
                 <TouchableOpacity
-                  style={styles.viewPhotoButton}
-                  onPress={() => viewPhoto(item.image_name, extractPhotoData(item.description))}
+                  style={styles.photoButton}
+                  onPress={() => viewPhoto(item.event_name, photoData)}
                 >
-                  <Ionicons name="expand" size={16} color="#ffd60a" />
-                  <Text style={styles.viewPhotoText}>View Full Size</Text>
+                  <Ionicons name="eye" size={16} color="#4299e1" />
+                  <Text style={styles.photoButtonText}>View</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                  style={styles.saveToDriveButton}
-                  onPress={() => {
-                    console.log('🖱️ Save to Drive button clicked');
-                    console.log('📋 Item data:', {
-                      image_name: item.image_name,
-                      student_name: item.student_name,
-                      event_name: item.event_name,
-                      description_length: item.description?.length || 0
-                    });
-                    
-                    const photoData = extractPhotoData(item.description);
-                    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
-                    
-                    if (!photoData) {
-                      Alert.alert(
-                        '❌ No Photo Data', 
-                        'No photo data found in this request. The photo might not have been uploaded properly.',
-                        [{ text: 'OK' }]
-                      );
-                      return;
-                    }
-                    
-                    if (photoData.length < 100) {
-                      Alert.alert(
-                        '❌ Invalid Photo Data', 
-                        'The photo data seems too small to be valid. Please try again.',
-                        [{ text: 'OK' }]
-                      );
-                      return;
-                    }
-                    
-                    savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
-                  }}
+                  style={styles.photoButton}
+                  onPress={() => savePhotoToDrive(item.event_name, photoData, item.student_name, item.event_name)}
                 >
-                  <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-                  <Text style={styles.saveToDriveText}>
-                    {uploadingPhoto ? 'Saving...' : 'Save to Drive'}
-                  </Text>
+                  <Ionicons name="cloud-upload" size={16} color="#4299e1" />
+                  <Text style={styles.photoButtonText}>Save to Drive</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.photoButton, { backgroundColor: 'rgba(255, 193, 7, 0.2)' }]}
+                  onPress={() => testNetlifyConnection().then(available => {
+                    Alert.alert(
+                      'Connection Test', 
+                      available ? 'Netlify function is accessible!' : 'Netlify function is not accessible. Check your deployment.'
+                    );
+                  })}
+                >
+                  <Ionicons name="wifi" size={16} color="#ffc107" />
+                  <Text style={styles.photoButtonText}>Test Connection</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <View style={styles.noPhotoContainer}>
-                <Ionicons name="image-outline" size={24} color="#666" />
-                <Text style={styles.noPhotoText}>Photo not available</Text>
-                <Text style={styles.photoFilename}>Filename: {item.image_name}</Text>
-              </View>
-            )}
+            </View>
           </View>
         )}
-        
-        {isPending && !isBeingProcessed && (
+
+        {/* Date */}
+        <Text style={styles.dateText}>
+          Submitted: {formatDate(item.created_at)}
+        </Text>
+
+        {/* Action Buttons */}
+        {isRequestPending(item) && (
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={[styles.actionButton, styles.approveButton]}
-              onPress={() => {
-                console.log('Approve button pressed for request:', item.id);
-                handleReviewRequest(item, 'approve');
-              }}
+              onPress={() => handleReviewRequest(item, 'approve')}
+              disabled={isProcessing}
             >
-              <Ionicons name="checkmark" size={16} color="white" />
+              <Ionicons name="checkmark" size={16} color="#fff" />
               <Text style={styles.actionButtonText}>Approve</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               style={[styles.actionButton, styles.rejectButton]}
-              onPress={() => {
-                console.log('Reject button pressed for request:', item.id);
-                handleReviewRequest(item, 'reject');
-              }}
+              onPress={() => handleReviewRequest(item, 'reject')}
+              disabled={isProcessing}
             >
-              <Ionicons name="close" size={16} color="white" />
+              <Ionicons name="close" size={16} color="#fff" />
               <Text style={styles.actionButtonText}>Reject</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {isBeingProcessed && (
-          <View style={styles.processingIndicator}>
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <View style={styles.processingContainer}>
             <ActivityIndicator size="small" color="#ffd60a" />
             <Text style={styles.processingText}>Processing...</Text>
-          </View>
-        )}
-        
-        {isProcessed && item.reviewed_at && (
-          <View style={styles.reviewInfo}>
-            <Text style={styles.reviewInfoText}>
-              {getDisplayStatus(item.status)} on {formatDate(item.reviewed_at)}
-              {item.reviewed_by && ` by ${item.reviewed_by}`}
-            </Text>
-            {item.admin_notes && (
-              <Text style={styles.adminNotes}>Notes: {item.admin_notes}</Text>
-            )}
           </View>
         )}
       </Animated.View>
@@ -890,15 +652,9 @@ export default function AdminHourManagementScreen({ navigation }) {
   const getFilterCounts = () => {
     return {
       all: allRequests.length,
-      pending: allRequests.filter(r => isRequestPending(r)).length,
-      approved: allRequests.filter(r => {
-        const status = r.status?.toLowerCase();
-        return status === 'approved' || status === 'approve';
-      }).length,
-      rejected: allRequests.filter(r => {
-        const status = r.status?.toLowerCase();
-        return status === 'rejected' || status === 'reject';
-      }).length
+      pending: allRequests.filter(r => r.status === 'pending').length,
+      approved: allRequests.filter(r => r.status === 'approved').length,
+      rejected: allRequests.filter(r => r.status === 'rejected').length
     };
   };
 
@@ -925,34 +681,6 @@ export default function AdminHourManagementScreen({ navigation }) {
         ]}
       >
         <Text style={styles.headerTitle}>Hour Requests</Text>
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={testGoogleDriveConnection}
-        >
-          <Ionicons name="bug" size={16} color="#ffd60a" />
-          <Text style={styles.testButtonText}>Test Drive</Text>
-        </TouchableOpacity>
-                  <TouchableOpacity
-            style={styles.testButton}
-            onPress={window.testPhotoUpload}
-          >
-            <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-            <Text style={styles.testButtonText}>Test Upload</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={window.debugPhotoData}
-          >
-            <Ionicons name="bug" size={16} color="#ffd60a" />
-            <Text style={styles.testButtonText}>Debug Photos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={window.testPhotoExtraction}
-          >
-            <Ionicons name="test-tube" size={16} color="#ffd60a" />
-            <Text style={styles.testButtonText}>Test Extraction</Text>
-          </TouchableOpacity>
       </Animated.View>
 
       {/* Filter Tabs */}
@@ -1144,145 +872,22 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(66,153,225,0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  requestTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#e2e8f0',
-    marginBottom: 2,
-  },
-  requestSNumber: {
-    fontSize: 13,
-    color: '#cbd5e0',
-    marginBottom: 6,
-  },
-  requestStatus: {
-    backgroundColor: '#4299e1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  requestStatusText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  requestDetails: {
-    color: '#e2e8f0',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  requestMeta: {
-    color: '#cbd5e0',
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  proofPhotoLabel: {
-    color: '#4299e1',
-    fontWeight: 'bold',
-    fontSize: 15,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  proofPhotoBox: {
-    backgroundColor: 'rgba(66,153,225,0.08)',
-    borderRadius: 8,
-    padding: 8,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  viewFullSizeButton: {
-    backgroundColor: '#4299e1',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 6,
-    alignSelf: 'center',
-  },
-  viewFullSizeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Lighter background
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Lighter background
-  },
-  activeFilterTab: {
-    backgroundColor: '#ffd700', // Bright yellow
-  },
-  filterTabText: {
-    fontSize: 12,
-    color: '#ffffff', // White for contrast against ocean blue
-    fontWeight: '600',
-  },
-  activeFilterTabText: {
-    color: '#000080', // Navy blue for contrast against yellow
-    fontWeight: 'bold',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Lighter background
-    marginHorizontal: 16,
-    marginVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ffd700', // Bright yellow
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#000080', // Navy blue for contrast
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  requestItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
-    shadowColor: '#ffd60a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: 'rgba(255,255,255,0.20)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   requestHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   studentInfo: {
     flex: 1,
@@ -1290,13 +895,15 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffd60a',
+    color: '#4299e1',
     marginBottom: 2,
   },
-  studentId: {
+  studentNumber: {
     fontSize: 14,
-    color: '#fff',
-    opacity: 0.8,
+    color: '#ccc',
+  },
+  statusContainer: {
+    alignItems: 'flex-end',
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -1306,339 +913,265 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusText: {
-    color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
+    color: '#fff',
+  },
+  eventInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   eventName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 8,
+    flex: 1,
   },
-  requestDetails: {
-    marginBottom: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  detailText: {
+  hoursText: {
     fontSize: 14,
-    color: '#fff',
-    marginLeft: 8,
+    color: '#ffd60a',
+    fontWeight: 'bold',
   },
-  description: {
+  descriptionContainer: {
+    marginBottom: 12,
+  },
+  descriptionText: {
     fontSize: 14,
-    color: '#fff',
-    opacity: 0.9,
-    marginBottom: 8,
+    color: '#ccc',
+    lineHeight: 20,
   },
   photoSection: {
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 214, 10, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.2)',
+    marginBottom: 12,
   },
   photoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  photoLabel: {
+  photoTitle: {
     fontSize: 14,
-    color: '#ffd60a',
+    fontWeight: '600',
+    color: '#4299e1',
     marginLeft: 6,
-    fontWeight: 'bold',
+  },
+  photoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  photoThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  photoActions: {
+    flex: 1,
   },
   photoButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+    backgroundColor: 'rgba(66, 153, 225, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 6,
+    marginBottom: 6,
   },
-  photoText: {
-    fontSize: 14,
-    color: '#ffd60a',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  photoPreview: {
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  photoThumbnail: {
-    width: 150,
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#ffd60a',
-    shadowColor: '#ffd60a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  viewPhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 6,
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    borderRadius: 6,
-  },
-  viewPhotoText: {
+  photoButtonText: {
     fontSize: 12,
-    color: '#ffd60a',
+    color: '#4299e1',
     marginLeft: 4,
     fontWeight: '500',
   },
-  saveToDriveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    padding: 6,
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ffd60a',
-  },
-  saveToDriveText: {
-    fontSize: 12,
-    color: '#ffd60a',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  noPhotoContainer: {
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 6,
-  },
-  noPhotoText: {
+  dateText: {
     fontSize: 12,
     color: '#999',
-    marginTop: 4,
-  },
-  photoFilename: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 2,
-    fontStyle: 'italic',
+    marginBottom: 12,
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    gap: 12,
   },
   actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    flex: 1,
-    marginHorizontal: 4,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
   },
   approveButton: {
-    backgroundColor: '#4299e1',
+    backgroundColor: '#4CAF50',
   },
   rejectButton: {
-    backgroundColor: '#e53e3e',
+    backgroundColor: '#f44336',
   },
   actionButtonText: {
-    color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
-    marginLeft: 4,
+    color: '#fff',
   },
-  processingIndicator: {
+  processingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-  },
-  processingText: {
-    color: '#ffd60a',
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  reviewInfo: {
     marginTop: 8,
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 214, 10, 0.1)',
     borderRadius: 6,
   },
-  reviewInfoText: {
-    fontSize: 12,
-    color: '#fff',
-    opacity: 0.8,
-  },
-  adminNotes: {
+  processingText: {
     fontSize: 12,
     color: '#ffd60a',
-    marginTop: 4,
-    fontStyle: 'italic',
+    marginLeft: 6,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 8,
+    padding: 4,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  activeFilterTab: {
+    backgroundColor: '#4299e1',
+  },
+  filterTabText: {
+    fontSize: 12,
+    color: '#ccc',
+    fontWeight: '500',
+  },
+  activeFilterTabText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    color: '#fff',
+    fontSize: 14,
+  },
+  listContainer: {
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0d1b2a',
+    backgroundColor: '#1a365d',
   },
   loadingText: {
     color: '#ffd60a',
     fontSize: 16,
-    marginTop: 16,
+    marginTop: 12,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#1a365d',
-    borderRadius: 18,
-    padding: 28,
+    backgroundColor: '#2d3748',
+    borderRadius: 12,
+    padding: 20,
     width: '90%',
     maxWidth: 400,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(66,153,225,0.18)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#4299e1',
-    marginBottom: 8,
+    color: '#fff',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#fff',
+    color: '#ccc',
     marginBottom: 4,
   },
   notesInput: {
-    borderWidth: 1,
-    borderColor: '#ffd60a',
-    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 8,
     padding: 12,
+    color: '#fff',
+    fontSize: 14,
     marginTop: 12,
     marginBottom: 16,
-    fontSize: 14,
-    color: '#fff',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    textAlignVertical: 'top',
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 10,
+    gap: 12,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 4,
   },
   cancelButton: {
-    backgroundColor: '#718096',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    marginRight: 10,
+    backgroundColor: '#666',
   },
   cancelButtonText: {
     color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 15,
-  },
-  saveButton: {
-    backgroundColor: '#4299e1',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   photoModalContainer: {
-    backgroundColor: '#1a365d',
-    borderRadius: 18,
-    padding: 28,
+    backgroundColor: '#2d3748',
+    borderRadius: 12,
+    padding: 20,
     width: '90%',
     maxWidth: 400,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(66,153,225,0.18)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
+    maxHeight: '80%',
   },
   photoModalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffd60a',
+    color: '#fff',
     marginBottom: 12,
+    textAlign: 'center',
   },
   photoModalText: {
     fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  closeButton: {
-    backgroundColor: '#ffd60a',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    marginTop: 12,
-  },
-  closeButtonText: {
-    color: '#0d1b2a',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: '#ccc',
+    marginBottom: 16,
   },
   fullPhotoContainer: {
-    marginVertical: 12,
     alignItems: 'center',
+    marginBottom: 16,
   },
   fullPhoto: {
-    width: 250,
+    width: '100%',
     height: 200,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ffd60a',
   },
-  testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 214, 10, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  closeButton: {
+    backgroundColor: '#4299e1',
+    paddingVertical: 10,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 214, 10, 0.3)',
+    alignItems: 'center',
   },
-  testButtonText: {
-    color: '#ffd60a',
-    fontSize: 12,
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
-    marginLeft: 4,
   },
 });
