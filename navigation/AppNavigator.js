@@ -85,7 +85,7 @@ function CalendarStack() {
       <Stack.Screen 
         name="HourRequest" 
         component={HourRequestScreen} 
-        options={{ title: "Request Hours" }} 
+        options={{ headerShown: false }} 
       />
       <Stack.Screen 
         name="HourRequests" 
