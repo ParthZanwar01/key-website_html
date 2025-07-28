@@ -20,7 +20,7 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 export default function ContactScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
   
-  // FAQ dropdown states
+  // FAQ dropdown states - start with all collapsed
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [animatedValues] = useState({});
   
@@ -519,8 +519,8 @@ export default function ContactScreen({ navigation }) {
           </Animated.View>
         </TouchableOpacity>
         
-        <Animated.View style={[styles.faqAnswer, { maxHeight }]}>
-          <Text style={styles.faqAnswerText} numberOfLines={isExpanded ? undefined : 0}>
+        <Animated.View style={[styles.faqAnswer, { maxHeight, overflow: 'hidden' }]}>
+          <Text style={styles.faqAnswerText}>
             {item.answer}
           </Text>
         </Animated.View>
@@ -1107,6 +1107,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(66, 153, 225, 0.1)',
+    overflow: 'hidden',
   },
   faqAnswerText: {
     fontSize: 14,
