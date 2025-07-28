@@ -398,6 +398,14 @@ export default function AdminHourManagementScreen({ navigation }) {
     try {
       console.log('🧪 Testing Google Drive connection...');
       
+      // Test photo data extraction
+      console.log('🧪 Testing photo data extraction...');
+      const testDescription = 'This is a test description with [PHOTO_DATA:dGVzdCBkYXRh] at the end';
+      const extractedData = extractPhotoData(testDescription);
+      console.log('🧪 Test extraction result:', extractedData ? `Length: ${extractedData.length}` : 'null');
+      
+      // First test: Basic connection test
+      
       // First test: Basic connection test
       const testRequest = {
         requestType: 'connectionTest'
@@ -457,6 +465,33 @@ export default function AdminHourManagementScreen({ navigation }) {
     } catch (error) {
       console.error('❌ Connection test error:', error);
       Alert.alert('Connection Test Error', `Failed to test connection: ${error.message}`);
+    }
+  };
+
+  // Test function to check photo data from a specific request
+  window.testPhotoData = (requestId) => {
+    console.log('🧪 Testing photo data for request:', requestId);
+    const request = allRequests.find(r => r.id === requestId);
+    if (request) {
+      console.log('📋 Request found:', {
+        id: request.id,
+        student_name: request.student_name,
+        event_name: request.event_name,
+        description_length: request.description?.length || 0,
+        has_image_name: !!request.image_name
+      });
+      
+      const photoData = extractPhotoData(request.description);
+      console.log('📸 Photo data result:', photoData ? `Length: ${photoData.length}` : 'null');
+      
+      if (photoData) {
+        console.log('✅ Photo data found!');
+      } else {
+        console.log('❌ No photo data found in description');
+        console.log('📝 Description preview:', request.description?.substring(0, 500) + '...');
+      }
+    } else {
+      console.log('❌ Request not found with ID:', requestId);
     }
   };
 
