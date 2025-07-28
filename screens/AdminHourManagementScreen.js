@@ -297,30 +297,6 @@ export default function AdminHourManagementScreen({ navigation }) {
       }
     }
     
-<<<<<<< HEAD
-    // Method 2: Look for data:image/...;base64,... pattern
-    const base64Match = description.match(/data:image\/[^;]+;base64,([^"]+)/);
-    if (base64Match) {
-      console.log('✅ Photo data found using data:image pattern, length:', base64Match[1].length);
-      return base64Match[1];
-    }
-    
-    // Method 3: Look for any long base64 string
-    const anyBase64 = description.match(/[A-Za-z0-9+/]{100,}={0,2}/);
-    if (anyBase64) {
-      console.log('✅ Photo data found using base64 pattern, length:', anyBase64[0].length);
-      return anyBase64[0];
-    }
-    
-    // Method 4: Check if the entire description is base64
-    if (description.length > 100 && /^[A-Za-z0-9+/=]+$/.test(description)) {
-      console.log('✅ Description appears to be base64 data directly, length:', description.length);
-      return description;
-    }
-    
-    console.log('❌ No photo data found using any method');
-=======
->>>>>>> eeb1328f539f6c3ae62c32a3c056aa7d5684361d
     return null;
   };
 
@@ -396,106 +372,12 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       console.log('📝 Filename:', fileName);
       
-<<<<<<< HEAD
-      // Prepare the photo info for Google Apps Script
-      const photoInfo = {
-        requestType: 'savePhotoToDrive',
-        fileName: fileName,
-        studentName: studentName,
-        eventName: eventName,
-        timestamp: timestamp,
-        folderId: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
-        photoData: imageData // Match the Google Apps Script expectation
-      };
-      
-      console.log('📤 Sending request to Netlify function...');
-      console.log('📋 Request data keys:', Object.keys(photoInfo));
-      console.log('🌐 Request URL:', '/.netlify/functions/gasProxy');
-      
-      // Send to Google Apps Script via Netlify function proxy
-      const response = await fetch('/.netlify/functions/gasProxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(photoInfo)
-      });
-      
-      console.log('📨 Response received!');
-      console.log('📨 Response status:', response.status);
-      console.log('📨 Response status text:', response.statusText);
-      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      console.log('📨 Response status:', response.status);
-      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Photo saved to Google Drive:', result);
-        Alert.alert(
-          'Success!', 
-          `Photo saved to Google Drive as "${fileName}"\n\nStudent: ${studentName}\nEvent: ${eventName}\n\nCheck your Google Drive folder for the new file!`
-        );
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Response error text:', errorText);
-        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-      }
-      
-    } catch (error) {
-      console.error('❌ Google Drive upload failed:', error);
-      console.error('❌ Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      Alert.alert(
-        'Upload Failed', 
-        `Failed to save photo to Google Drive: ${error.message}\n\nPlease check the console for more details.`
-      );
-    }
-  };
-
-  // Make the test function globally available for browser console testing
-  window.testGoogleDriveConnection = async () => {
-    try {
-      console.log('🧪 Testing Google Drive connection...');
-      
-      // Test photo data extraction
-      console.log('🧪 Testing photo data extraction...');
-      const testDescription = 'This is a test description with [PHOTO_DATA:dGVzdCBkYXRh] at the end';
-      const extractedData = extractPhotoData(testDescription);
-      console.log('🧪 Test extraction result:', extractedData ? `Length: ${extractedData.length}` : 'null');
-      
-      // First test: Basic connection test
-      
-      // First test: Basic connection test
-      const testRequest = {
-        requestType: 'connectionTest'
-      };
-      
-      console.log('📤 Sending connection test request...');
-      const response = await fetch('/.netlify/functions/gasProxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testRequest)
-      });
-      
-      console.log('📨 Connection test response status:', response.status);
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Connection test successful:', result);
-=======
       // Try Netlify function first
       try {
         console.log('🔄 Attempting Netlify function upload...');
         
         // Use the actual Netlify URL
         const netlifyFunctionUrl = 'https://crhskeyclubwebsite.netlify.app/.netlify/functions/gasProxy';
->>>>>>> eeb1328f539f6c3ae62c32a3c056aa7d5684361d
         
         // Prepare the photo info for Google Apps Script
         const photoInfo = {
@@ -576,84 +458,11 @@ export default function AdminHourManagementScreen({ navigation }) {
         }
       }
     } catch (error) {
-<<<<<<< HEAD
-      console.error('❌ Connection test error:', error);
-      Alert.alert('Connection Test Error', `Failed to test connection: ${error.message}`);
-    }
-  };
-
-  // Test function to create a fake photo and upload it
-  window.testPhotoUpload = async () => {
-    console.log('🧪 Testing photo upload with fake data...');
-    
-    // Create a simple test image (1x1 pixel red PNG in base64)
-    const testImageData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-    
-    try {
-      const result = await savePhotoToDrive(
-        'test_photo.jpg',
-        testImageData,
-        'Test Student',
-        'Test Event'
-      );
-      console.log('🧪 Test upload result:', result);
-    } catch (error) {
-      console.error('🧪 Test upload failed:', error);
-      Alert.alert('Test Failed', error.message);
-    }
-  };
-  // Test function to check photo data from a specific request
-  window.testPhotoData = (requestId) => {
-    console.log('🧪 Testing photo data for request:', requestId);
-    const request = allRequests.find(r => r.id === requestId);
-    if (request) {
-      console.log('📋 Request found:', {
-        id: request.id,
-        student_name: request.student_name,
-        event_name: request.event_name,
-        description_length: request.description?.length || 0,
-        has_image_name: !!request.image_name
-      });
-      
-      const photoData = extractPhotoData(request.description);
-      console.log('📸 Photo data result:', photoData ? `Length: ${photoData.length}` : 'null');
-      
-      if (photoData) {
-        console.log('✅ Photo data found!');
-        console.log('📸 Photo data preview:', photoData.substring(0, 100) + '...');
-      } else {
-        console.log('❌ No photo data found');
-        console.log('📝 Full description:', request.description);
-        
-        // Try alternative extraction methods
-        console.log('🔍 Trying alternative extraction methods...');
-        
-        // Method 1: Look for base64 data directly
-        const base64Match = request.description.match(/data:image\/[^;]+;base64,([^"]+)/);
-        if (base64Match) {
-          console.log('✅ Found base64 data directly:', base64Match[1].substring(0, 100) + '...');
-        }
-        
-        // Method 2: Look for any base64 pattern
-        const anyBase64 = request.description.match(/[A-Za-z0-9+/]{50,}={0,2}/);
-        if (anyBase64) {
-          console.log('✅ Found potential base64 data:', anyBase64[0].substring(0, 100) + '...');
-        }
-        
-        // Method 3: Check if description is just base64
-        if (request.description && request.description.length > 100 && /^[A-Za-z0-9+/=]+$/.test(request.description)) {
-          console.log('✅ Description appears to be base64 data directly');
-        }
-      }
-    } else {
-      console.log('❌ Request not found with ID:', requestId);
-=======
       console.error('❌ Google Drive upload failed:', error);
       Alert.alert(
         'Upload Failed', 
         `Failed to save photo to Google Drive: ${error.message}`
       );
->>>>>>> eeb1328f539f6c3ae62c32a3c056aa7d5684361d
     }
   };
 
@@ -777,26 +586,6 @@ export default function AdminHourManagementScreen({ navigation }) {
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-<<<<<<< HEAD
-                  style={styles.saveToDriveButton}
-                  onPress={() => {
-                    console.log('🖱️ Save to Drive button clicked');
-                    console.log('📋 Item data:', {
-                      image_name: item.image_name,
-                      student_name: item.student_name,
-                      event_name: item.event_name,
-                      description_length: item.description?.length || 0
-                    });
-                    
-                    const photoData = extractPhotoData(item.description);
-                    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
-                    
-                    savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
-                  }}
-                >
-                  <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-                  <Text style={styles.saveToDriveText}>Save to Drive</Text>
-=======
                   style={styles.photoButton}
                   onPress={() => savePhotoToDrive(item.event_name, photoData, item.student_name, item.event_name)}
                 >
@@ -815,7 +604,6 @@ export default function AdminHourManagementScreen({ navigation }) {
                 >
                   <Ionicons name="wifi" size={16} color="#ffc107" />
                   <Text style={styles.photoButtonText}>Test Connection</Text>
->>>>>>> eeb1328f539f6c3ae62c32a3c056aa7d5684361d
                 </TouchableOpacity>
               </View>
             </View>
@@ -893,23 +681,6 @@ export default function AdminHourManagementScreen({ navigation }) {
         ]}
       >
         <Text style={styles.headerTitle}>Hour Requests</Text>
-<<<<<<< HEAD
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={testGoogleDriveConnection}
-        >
-          <Ionicons name="bug" size={16} color="#ffd60a" />
-          <Text style={styles.testButtonText}>Test Drive</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={window.testPhotoUpload}
-        >
-          <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
-          <Text style={styles.testButtonText}>Test Upload</Text>
-        </TouchableOpacity>
-=======
->>>>>>> eeb1328f539f6c3ae62c32a3c056aa7d5684361d
       </Animated.View>
 
       {/* Filter Tabs */}
