@@ -335,6 +335,7 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       console.log('📤 Sending request to Netlify function...');
       console.log('📋 Request data keys:', Object.keys(photoInfo));
+      console.log('🌐 Request URL:', '/.netlify/functions/gasProxy');
       
       // Send to Google Apps Script via Netlify function proxy
       const response = await fetch('/.netlify/functions/gasProxy', {
@@ -344,6 +345,11 @@ export default function AdminHourManagementScreen({ navigation }) {
         },
         body: JSON.stringify(photoInfo)
       });
+      
+      console.log('📨 Response received!');
+      console.log('📨 Response status:', response.status);
+      console.log('📨 Response status text:', response.statusText);
+      console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
       
       console.log('📨 Response status:', response.status);
       console.log('📨 Response headers:', Object.fromEntries(response.headers.entries()));
@@ -375,7 +381,8 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
-  const testGoogleDriveConnection = async () => {
+  // Make the test function globally available for browser console testing
+  window.testGoogleDriveConnection = async () => {
     try {
       console.log('🧪 Testing Google Drive connection...');
       
