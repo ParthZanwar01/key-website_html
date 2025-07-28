@@ -290,9 +290,22 @@ export default function AdminHourManagementScreen({ navigation }) {
 
   // Helper function to extract photo data from description
   const extractPhotoData = (description) => {
-    if (!description) return null;
+    if (!description) {
+      console.log('❌ No description provided to extractPhotoData');
+      return null;
+    }
+    console.log('🔍 Extracting photo data from description...');
+    console.log('📝 Description preview:', description.substring(0, 200) + '...');
+    
     const match = description.match(/\[PHOTO_DATA:(.*?)\]/);
-    return match ? match[1] : null;
+    if (match) {
+      console.log('✅ Photo data found, length:', match[1].length);
+      return match[1];
+    } else {
+      console.log('❌ No photo data found in description');
+      console.log('🔍 Looking for pattern: [PHOTO_DATA:...]');
+      return null;
+    }
   };
 
   // Helper function to clean description (remove photo data)
@@ -598,7 +611,20 @@ export default function AdminHourManagementScreen({ navigation }) {
                 
                 <TouchableOpacity
                   style={styles.saveToDriveButton}
-                  onPress={() => savePhotoToDrive(item.image_name, extractPhotoData(item.description), item.student_name, item.event_name)}
+                  onPress={() => {
+                    console.log('🖱️ Save to Drive button clicked');
+                    console.log('📋 Item data:', {
+                      image_name: item.image_name,
+                      student_name: item.student_name,
+                      event_name: item.event_name,
+                      description_length: item.description?.length || 0
+                    });
+                    
+                    const photoData = extractPhotoData(item.description);
+                    console.log('📸 Extracted photo data:', photoData ? `Length: ${photoData.length}` : 'null');
+                    
+                    savePhotoToDrive(item.image_name, photoData, item.student_name, item.event_name);
+                  }}
                 >
                   <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
                   <Text style={styles.saveToDriveText}>Save to Drive</Text>
@@ -700,6 +726,13 @@ export default function AdminHourManagementScreen({ navigation }) {
         ]}
       >
         <Text style={styles.headerTitle}>Hour Requests</Text>
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={testGoogleDriveConnection}
+        >
+          <Ionicons name="bug" size={16} color="#ffd60a" />
+          <Text style={styles.testButtonText}>Test Drive</Text>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Filter Tabs */}
@@ -1371,5 +1404,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ffd60a',
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 10, 0.3)',
+  },
+  testButtonText: {
+    color: '#ffd60a',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
 });
