@@ -488,8 +488,6 @@ export default function AdminHourManagementScreen({ navigation }) {
     }
   };
 
-<<<<<<< HEAD
-=======
   // Test function to create a fake photo and upload it
   window.testPhotoUpload = async () => {
     console.log('🧪 Testing photo upload with fake data...');
@@ -510,8 +508,6 @@ export default function AdminHourManagementScreen({ navigation }) {
       Alert.alert('Test Failed', error.message);
     }
   };
-
->>>>>>> parent of a3b39a9 (Merge branch 'main' of https://github.com/Nike885/key-website)
   // Test function to check photo data from a specific request
   window.testPhotoData = (requestId) => {
     console.log('🧪 Testing photo data for request:', requestId);
@@ -833,8 +829,6 @@ export default function AdminHourManagementScreen({ navigation }) {
           <Ionicons name="bug" size={16} color="#ffd60a" />
           <Text style={styles.testButtonText}>Test Drive</Text>
         </TouchableOpacity>
-<<<<<<< HEAD
-=======
         <TouchableOpacity
           style={styles.testButton}
           onPress={window.testPhotoUpload}
@@ -842,7 +836,6 @@ export default function AdminHourManagementScreen({ navigation }) {
           <Ionicons name="cloud-upload" size={16} color="#ffd60a" />
           <Text style={styles.testButtonText}>Test Upload</Text>
         </TouchableOpacity>
->>>>>>> parent of a3b39a9 (Merge branch 'main' of https://github.com/Nike885/key-website)
       </Animated.View>
 
       {/* Filter Tabs */}
