@@ -22,8 +22,13 @@
         localStorage.setItem('oauth_code', code);
         localStorage.setItem('oauth_timestamp', Date.now().toString());
         
-        // Close the popup window
-        window.close();
+        // Show success message briefly
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px;"><h2>✅ Authentication Complete!</h2><p>You can close this window now.</p></div>';
+        
+        // Close the popup window after a short delay
+        setTimeout(() => {
+            window.close();
+        }, 2000);
             } else {
                 console.error('No OAuth code received');
                 window.close();

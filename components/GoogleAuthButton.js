@@ -44,21 +44,24 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       );
       
       // Check for completion
-      const checkWindow = setInterval(() => {
+      const checkWindow = setInterval(async () => {
         try {
           if (authWindow.closed) {
             clearInterval(checkWindow);
             setIsAuthenticating(false);
             
-            // Check if authentication was successful
-            checkAuthStatus().then((authenticated) => {
-              if (authenticated) {
-                Alert.alert('Success', 'Google Drive authentication successful!');
-                if (onAuthSuccess) {
-                  onAuthSuccess();
-                }
+            // Handle the OAuth callback
+            const callbackResult = await GoogleOAuthService.handleCallback();
+            
+            if (callbackResult.success) {
+              setIsAuthenticated(true);
+              Alert.alert('Success', 'Google Drive authentication successful!');
+              if (onAuthSuccess) {
+                onAuthSuccess(callbackResult);
               }
-            });
+            } else {
+              console.log('Authentication failed:', callbackResult.error);
+            }
           }
         } catch (e) {
           // Window might be blocked
@@ -67,6 +70,16 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
           Alert.alert('Error', 'Please allow popups for this site to authenticate with Google');
         }
       }, 1000);
+      
+      // Add timeout to prevent hanging
+      setTimeout(() => {
+        clearInterval(checkWindow);
+        if (!authWindow.closed) {
+          authWindow.close();
+        }
+        setIsAuthenticating(false);
+        Alert.alert('Timeout', 'Authentication timed out. Please try again.');
+      }, 300000); // 5 minutes timeout
       
     } catch (error) {
       console.error('❌ Authentication error:', error);
