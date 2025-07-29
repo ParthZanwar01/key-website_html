@@ -125,6 +125,15 @@ export default function AdminHourManagementScreen({ navigation }) {
     try {
       setLoading(true);
       const requests = await getAllRequests();
+      console.log('🔍 DEBUG: Loaded requests from database:', requests.length);
+      console.log('🔍 DEBUG: Sample requests:', requests.slice(0, 3).map(r => ({
+        id: r.id,
+        student: r.student_name,
+        event: r.event_name,
+        status: r.status,
+        description: r.description?.substring(0, 50) + '...'
+      })));
+      
       setAllRequests(requests);
       applyFilters(requests, filter, searchQuery);
       setLastLoadTime(new Date());
@@ -144,7 +153,9 @@ export default function AdminHourManagementScreen({ navigation }) {
   const applyFilters = (requests, filterType, search) => {
     let filtered = [...requests];
 
-    // Filter out test data
+    // TEMPORARILY DISABLED: Filter out test data
+    // This was filtering out legitimate requests - temporarily disabled for debugging
+    /*
     filtered = filtered.filter(request => {
       const studentName = request.student_name?.toLowerCase() || '';
       const eventName = request.event_name?.toLowerCase() || '';
@@ -178,6 +189,7 @@ export default function AdminHourManagementScreen({ navigation }) {
       
       return true;
     });
+    */
 
     // Apply status filter
     if (filterType !== 'all') {
@@ -199,6 +211,13 @@ export default function AdminHourManagementScreen({ navigation }) {
       );
     }
 
+    console.log('🔍 DEBUG: After filtering:', filtered.length, 'requests');
+    console.log('🔍 DEBUG: Filtered requests:', filtered.slice(0, 3).map(r => ({
+      id: r.id,
+      student: r.student_name,
+      event: r.event_name,
+      status: r.status
+    })));
     setFilteredRequests(filtered);
   };
 
