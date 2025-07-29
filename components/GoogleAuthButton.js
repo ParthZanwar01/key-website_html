@@ -31,6 +31,11 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
         revocationEndpoint: GoogleOAuthService.REVOKE_ENDPOINT,
       };
       
+      // Store the code verifier for PKCE
+      if (request.codeVerifier) {
+        localStorage.setItem('oauth_code_verifier', request.codeVerifier);
+      }
+      
       // Create the authorization URL
       const authUrl = await request.makeAuthUrlAsync(discovery);
       

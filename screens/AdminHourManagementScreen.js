@@ -397,7 +397,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         console.log('🔄 Attempting Netlify function upload...');
         
         // Use the actual Netlify URL
-        const netlifyFunctionUrl = 'https://crhskeyclubwebsite.netlify.app/.netlify/functions/gasProxy';
+        const netlifyFunctionUrl = 'https://crhskeyclub.netlify.app/.netlify/functions/gasProxy';
         
         // Prepare the photo info for Google Apps Script
         const photoInfo = {

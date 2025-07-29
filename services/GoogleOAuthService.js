@@ -69,6 +69,7 @@ class GoogleOAuthService {
       scopes: this.SCOPES,
       responseType: AuthSession.ResponseType.Code,
       redirectUri: redirectUri,
+      codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,
       additionalParameters: {
         access_type: 'offline', // Get refresh token
         prompt: 'consent', // Force consent screen
@@ -167,12 +168,20 @@ class GoogleOAuthService {
     try {
       console.log('🔄 Exchanging code for tokens...');
       
+      // Get the code verifier from storage (set during auth request)
+      const codeVerifier = localStorage.getItem('oauth_code_verifier');
+      
+      if (!codeVerifier) {
+        throw new Error('No code verifier found. Please try authenticating again.');
+      }
+      
       const body = new URLSearchParams({
         client_id: this.CLIENT_ID,
         client_secret: this.CLIENT_SECRET || '', // Empty for mobile
         code: code,
         grant_type: 'authorization_code',
         redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
       });
       
       const response = await fetch(this.TOKEN_ENDPOINT, {
@@ -196,6 +205,9 @@ class GoogleOAuthService {
       
       // Calculate expiry time
       const expiryTime = Date.now() + (tokens.expires_in * 1000);
+      
+      // Clear the code verifier after successful exchange
+      localStorage.removeItem('oauth_code_verifier');
       
       console.log('✅ Token exchange successful');
       
