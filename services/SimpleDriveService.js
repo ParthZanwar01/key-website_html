@@ -1,7 +1,8 @@
 // services/SimpleDriveService.js
-// Enhanced Google Drive upload service with better error handling and configuration
+// Enhanced Google Drive upload service with OAuth2 authentication
 
 import { Platform } from 'react-native-web';
+import GoogleOAuthService from './GoogleOAuthService';
 
 // Conditionally import expo-file-system only on native platforms
 let FileSystem = null;
@@ -16,7 +17,6 @@ if (Platform.OS !== 'web') {
 class SimpleDriveService {
   // Configuration from environment variables
   static FOLDER_ID = process.env.EXPO_PUBLIC_GOOGLE_DRIVE_FOLDER_ID || '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l';
-  static API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY;
   
   // Upload configuration
   static MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
@@ -28,10 +28,6 @@ class SimpleDriveService {
    */
   static validateConfig() {
     const issues = [];
-    
-    if (!this.API_KEY) {
-      issues.push('EXPO_PUBLIC_GOOGLE_API_KEY environment variable is missing');
-    }
     
     if (!this.FOLDER_ID) {
       issues.push('EXPO_PUBLIC_GOOGLE_DRIVE_FOLDER_ID environment variable is missing');
@@ -156,16 +152,30 @@ class SimpleDriveService {
   }
 
   /**
-   * Upload to Google Drive with improved error handling
+   * Upload to Google Drive with OAuth2 authentication
    */
-  static async uploadWithApiKey(imageUri, fileName, studentSNumber) {
+  static async uploadWithOAuth(imageUri, fileName, studentSNumber) {
     try {
-      console.log('📤 Starting Google Drive upload...');
+      console.log('📤 Starting Google Drive upload with OAuth2...');
       console.log('Platform:', Platform.OS);
       console.log('Image URI:', imageUri.substring(0, 50) + '...');
       
       // Validate configuration
       this.validateConfig();
+      
+      // Check if user is authenticated
+      const isAuthenticated = await GoogleOAuthService.isAuthenticated();
+      if (!isAuthenticated) {
+        console.log('🔐 User not authenticated, starting OAuth flow...');
+        const authResult = await GoogleOAuthService.authenticate();
+        if (!authResult.success) {
+          throw new Error(`Authentication failed: ${authResult.error}`);
+        }
+      }
+      
+      // Get valid access token
+      const accessToken = await GoogleOAuthService.getValidAccessToken();
+      console.log('✅ Got valid access token');
       
       // Validate file
       const fileInfo = await this.validateFile(imageUri);
@@ -202,14 +212,15 @@ class SimpleDriveService {
         base64Data +
         close_delim;
       
-      console.log('🌐 Uploading to Google Drive...');
+      console.log('🌐 Uploading to Google Drive with OAuth2...');
       
       // Create upload promise with timeout
       const uploadPromise = fetch(
-        `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${this.API_KEY}`,
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
         {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': `multipart/related; boundary="${boundary}"`,
           },
           body: multipartRequestBody,
@@ -233,7 +244,7 @@ class SimpleDriveService {
       
       // Make file publicly viewable (optional)
       try {
-        await this.makeFilePublic(result.id);
+        await this.makeFilePublic(result.id, accessToken);
       } catch (permissionError) {
         console.warn('Could not make file public:', permissionError);
         // Continue anyway, file is still uploaded
@@ -260,13 +271,14 @@ class SimpleDriveService {
   /**
    * Make uploaded file publicly viewable
    */
-  static async makeFilePublic(fileId) {
+  static async makeFilePublic(fileId, accessToken) {
     try {
       const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?key=${this.API_KEY}`,
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
         {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -310,7 +322,7 @@ class SimpleDriveService {
       }
       
       // Try main upload method
-      return await this.uploadWithApiKey(imageUri, eventName, studentSNumber);
+      return await this.uploadWithOAuth(imageUri, eventName, studentSNumber);
       
     } catch (error) {
       console.error('Google Drive upload failed, using fallback:', error);
@@ -353,15 +365,28 @@ class SimpleDriveService {
         };
       }
       
-      console.log('API Key available:', !!this.API_KEY);
       console.log('Folder ID:', this.FOLDER_ID);
+      
+      // Check if user is authenticated
+      const isAuthenticated = await GoogleOAuthService.isAuthenticated();
+      if (!isAuthenticated) {
+        return { 
+          success: false, 
+          error: 'User not authenticated. Please complete OAuth flow first.',
+          diagnostic: 'authentication_required'
+        };
+      }
+      
+      // Get valid access token
+      const accessToken = await GoogleOAuthService.getValidAccessToken();
       
       // Test API access by getting folder info
       const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${this.FOLDER_ID}?key=${this.API_KEY}`,
+        `https://www.googleapis.com/drive/v3/files/${this.FOLDER_ID}`,
         {
           method: 'GET',
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Accept': 'application/json',
           },
         }
@@ -376,7 +401,7 @@ class SimpleDriveService {
           folderName: folderInfo.name,
           folderId: folderInfo.id,
           platform: Platform.OS,
-          apiKeyValid: true,
+          oauthAuthenticated: true,
           folderAccessible: true
         };
       } else {
@@ -384,8 +409,10 @@ class SimpleDriveService {
         console.error('❌ Google Drive connection failed:', errorText);
         
         let diagnostic = 'unknown_error';
-        if (response.status === 403) {
-          diagnostic = 'api_key_invalid_or_restricted';
+        if (response.status === 401) {
+          diagnostic = 'oauth_token_invalid_or_expired';
+        } else if (response.status === 403) {
+          diagnostic = 'insufficient_permissions';
         } else if (response.status === 404) {
           diagnostic = 'folder_not_found_or_no_access';
         }
