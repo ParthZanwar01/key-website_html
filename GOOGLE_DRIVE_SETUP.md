@@ -34,7 +34,7 @@ To enable the "Save to Drive" functionality in the admin hour management screen,
    - Set application type to "Web application"
    - Add authorized redirect URIs:
      - `https://your-app-domain.netlify.app/auth/callback`
-     - `http://localhost:19006` (for development)
+     - `http://localhost:19006/auth/callback` (for development)
    - Copy the Client ID and Client Secret
 
 2. **Create a `.env` file** in your project root with the OAuth2 credentials:

@@ -169,7 +169,12 @@ class SimpleDriveService {
         console.log('🔐 User not authenticated, starting OAuth flow...');
         const authResult = await GoogleOAuthService.authenticate();
         if (!authResult.success) {
-          throw new Error(`Authentication failed: ${authResult.error}`);
+          if (authResult.requiresRedirect) {
+            // User needs to complete OAuth in a new window/tab
+            throw new Error('Please complete Google authentication in the popup window, then try uploading again.');
+          } else {
+            throw new Error(`Authentication failed: ${authResult.error}`);
+          }
         }
       }
       

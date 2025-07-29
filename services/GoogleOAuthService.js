@@ -50,9 +50,17 @@ class GoogleOAuthService {
   static createAuthRequest() {
     this.validateConfig();
     
-    const redirectUri = AuthSession.makeRedirectUri({
-      useProxy: true, // Use Expo's auth proxy for development
-    });
+    // For web platform, use a proper redirect URI
+    let redirectUri;
+    if (Platform.OS === 'web') {
+      // Use the current domain with a callback path
+      const currentOrigin = window.location.origin;
+      redirectUri = `${currentOrigin}/auth/callback`;
+    } else {
+      redirectUri = AuthSession.makeRedirectUri({
+        useProxy: true, // Use Expo's auth proxy for development
+      });
+    }
     
     console.log('OAuth redirect URI:', redirectUri);
     
@@ -85,36 +93,60 @@ class GoogleOAuthService {
         revocationEndpoint: this.REVOKE_ENDPOINT,
       };
       
-      // Prompt for authentication
-      const result = await request.promptAsync(discovery);
-      
-      if (result.type === 'success') {
-        console.log('✅ OAuth2 authorization successful');
+            // For web platform, use direct redirect to avoid popup blocking
+      if (Platform.OS === 'web') {
+        console.log('🌐 Using direct redirect for web OAuth...');
         
-        // Exchange authorization code for tokens
-        const tokens = await this.exchangeCodeForTokens(result.params.code, redirectUri);
+        // Create the authorization URL
+        const authUrl = request.makeAuthUrlAsync(discovery);
         
-        // Store tokens securely
-        await this.storeTokens(tokens);
+        // Store the current state to handle the callback
+        localStorage.setItem('oauth_state', JSON.stringify({
+          timestamp: Date.now(),
+          returnUrl: window.location.href
+        }));
         
-        // Get user info
-        const userInfo = await this.getUserInfo(tokens.access_token);
-        await this.storeUserInfo(userInfo);
+        // Redirect to Google OAuth
+        window.location.href = authUrl;
         
-        console.log('✅ Authentication complete for user:', userInfo.email);
-        
-        return {
-          success: true,
-          user: userInfo,
-          tokens: tokens
-        };
-      } else {
-        console.log('❌ OAuth2 authorization failed:', result);
         return {
           success: false,
-          error: result.type === 'cancel' ? 'User cancelled' : 'Authorization failed',
-          details: result
+          error: 'Redirecting to Google for authentication...',
+          redirectUrl: authUrl,
+          requiresRedirect: true
         };
+      } else {
+        // Mobile platform - use standard approach
+        const result = await request.promptAsync(discovery);
+        
+        if (result.type === 'success') {
+          console.log('✅ OAuth2 authorization successful');
+          
+          // Exchange authorization code for tokens
+          const tokens = await this.exchangeCodeForTokens(result.params.code, redirectUri);
+          
+          // Store tokens securely
+          await this.storeTokens(tokens);
+          
+          // Get user info
+          const userInfo = await this.getUserInfo(tokens.access_token);
+          await this.storeUserInfo(userInfo);
+          
+          console.log('✅ Authentication complete for user:', userInfo.email);
+          
+          return {
+            success: true,
+            user: userInfo,
+            tokens: tokens
+          };
+        } else {
+          console.log('❌ OAuth2 authorization failed:', result);
+          return {
+            success: false,
+            error: result.type === 'cancel' ? 'User cancelled' : 'Authorization failed',
+            details: result
+          };
+        }
       }
     } catch (error) {
       console.error('❌ OAuth2 authentication error:', error);
