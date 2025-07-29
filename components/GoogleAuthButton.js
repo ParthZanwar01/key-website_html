@@ -36,74 +36,31 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       
       console.log('🔗 Opening OAuth URL:', authUrl);
       
-      // Open OAuth in a new window/tab with specific features
-      const authWindow = window.open(
-        authUrl,
-        'google-oauth',
-        'width=500,height=600,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
-      );
+      // Store current page state
+      localStorage.setItem('oauth_return_url', window.location.href);
+      localStorage.setItem('oauth_start_time', Date.now().toString());
       
-      // Check if popup was blocked
-      if (!authWindow || authWindow.closed || typeof authWindow.closed === 'undefined') {
-        setIsAuthenticating(false);
-        Alert.alert(
-          'Popup Blocked', 
-          'Please allow popups for this site, or try clicking the button again.',
-          [
-            { text: 'OK' },
-            { 
-              text: 'Open in New Tab', 
-              onPress: () => {
-                // Fallback: open in new tab
-                window.open(authUrl, '_blank');
-                Alert.alert(
-                  'Authentication Started',
-                  'Please complete authentication in the new tab, then return here and click "Connect Google Drive" again.'
-                );
-              }
+      // Use a simple redirect approach
+      Alert.alert(
+        'Google Authentication',
+        'You will be redirected to Google to complete authentication. After completing authentication, you will be redirected back to this page.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setIsAuthenticating(false);
             }
-          ]
-        );
-        return;
-      }
-      
-      // Check for completion
-      const checkWindow = setInterval(async () => {
-        try {
-          if (authWindow.closed) {
-            clearInterval(checkWindow);
-            setIsAuthenticating(false);
-            
-            // Handle the OAuth callback
-            const callbackResult = await GoogleOAuthService.handleCallback();
-            
-            if (callbackResult.success) {
-              setIsAuthenticated(true);
-              Alert.alert('Success', 'Google Drive authentication successful!');
-              if (onAuthSuccess) {
-                onAuthSuccess(callbackResult);
-              }
-            } else {
-              console.log('Authentication failed:', callbackResult.error);
+          },
+          {
+            text: 'Continue',
+            onPress: () => {
+              // Redirect to Google OAuth
+              window.location.href = authUrl;
             }
           }
-        } catch (e) {
-          // Window might be blocked
-          clearInterval(checkWindow);
-          setIsAuthenticating(false);
-          Alert.alert('Error', 'Please allow popups for this site to authenticate with Google');
-        }
-      }, 1000);
-      
-      // Add timeout to prevent hanging
-      setTimeout(() => {
-        clearInterval(checkWindow);
-        if (!authWindow.closed) {
-          authWindow.close();
-        }
-        setIsAuthenticating(false);
-        Alert.alert('Timeout', 'Authentication timed out. Please try again.');
-      }, 300000); // 5 minutes timeout
+        ]
+      );
       
     } catch (error) {
       console.error('❌ Authentication error:', error);
@@ -112,9 +69,38 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
     }
   };
 
-  // Check auth status on component mount
+  // Check auth status on component mount and handle OAuth callback
   useEffect(() => {
-    checkAuthStatus();
+    const handleOAuthCallback = async () => {
+      // Check if we're returning from OAuth
+      const oauthCode = localStorage.getItem('oauth_code');
+      const oauthStartTime = localStorage.getItem('oauth_start_time');
+      
+      if (oauthCode && oauthStartTime) {
+        // Clear the stored data
+        localStorage.removeItem('oauth_code');
+        localStorage.removeItem('oauth_start_time');
+        
+        // Handle the callback
+        const callbackResult = await GoogleOAuthService.handleCallback();
+        
+        if (callbackResult.success) {
+          setIsAuthenticated(true);
+          Alert.alert('Success', 'Google Drive authentication successful!');
+          if (onAuthSuccess) {
+            onAuthSuccess(callbackResult);
+          }
+        } else {
+          console.log('Authentication failed:', callbackResult.error);
+          Alert.alert('Authentication Failed', callbackResult.error || 'Failed to complete authentication');
+        }
+      } else {
+        // Just check current auth status
+        checkAuthStatus();
+      }
+    };
+    
+    handleOAuthCallback();
   }, []);
 
   if (isAuthenticated) {
