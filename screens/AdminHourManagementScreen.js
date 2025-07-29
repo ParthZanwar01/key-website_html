@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import GoogleDriveService from '../services/GoogleDriveService';
 import SimpleDriveService from '../services/SimpleDriveService';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -743,6 +744,14 @@ export default function AdminHourManagementScreen({ navigation }) {
         />
       </View>
 
+      {/* Google Drive Authentication */}
+      <GoogleAuthButton 
+        onAuthSuccess={() => {
+          console.log('✅ Google Drive authentication successful');
+        }}
+        style={styles.googleAuthContainer}
+      />
+
       {/* Requests List */}
       <FlatList
         data={filteredRequests}
@@ -1187,6 +1196,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  googleAuthContainer: {
+    marginHorizontal: 16,
+    marginVertical: 8,
   },
   closeButtonText: {
     color: '#fff',

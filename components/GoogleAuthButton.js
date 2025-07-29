@@ -77,7 +77,9 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       const oauthStartTime = localStorage.getItem('oauth_start_time');
       
       if (oauthCode && oauthStartTime) {
-        // Clear the stored data
+        console.log('🔄 Handling OAuth callback...');
+        
+        // Clear the stored data immediately to prevent loops
         localStorage.removeItem('oauth_code');
         localStorage.removeItem('oauth_start_time');
         
@@ -86,17 +88,15 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
         
         if (callbackResult.success) {
           setIsAuthenticated(true);
-          Alert.alert('Success', 'Google Drive authentication successful!');
-          if (onAuthSuccess) {
-            onAuthSuccess(callbackResult);
-          }
+          console.log('✅ OAuth callback successful');
+          // Don't show alert here to avoid interrupting the flow
         } else {
-          console.log('Authentication failed:', callbackResult.error);
+          console.log('❌ Authentication failed:', callbackResult.error);
           Alert.alert('Authentication Failed', callbackResult.error || 'Failed to complete authentication');
         }
       } else {
         // Just check current auth status
-        checkAuthStatus();
+        await checkAuthStatus();
       }
     };
     

@@ -166,16 +166,8 @@ class SimpleDriveService {
       // Check if user is authenticated
       const isAuthenticated = await GoogleOAuthService.isAuthenticated();
       if (!isAuthenticated) {
-        console.log('🔐 User not authenticated, starting OAuth flow...');
-        const authResult = await GoogleOAuthService.authenticate();
-        if (!authResult.success) {
-          if (authResult.requiresRedirect) {
-            // User needs to complete OAuth in a new window/tab
-            throw new Error('Please complete Google authentication in the popup window, then try uploading again.');
-          } else {
-            throw new Error(`Authentication failed: ${authResult.error}`);
-          }
-        }
+        console.log('🔐 User not authenticated');
+        throw new Error('Google Drive authentication required. Please click "Connect Google Drive" first to authenticate.');
       }
       
       // Get valid access token
