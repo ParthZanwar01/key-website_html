@@ -97,14 +97,16 @@ class GoogleOAuthService {
       if (Platform.OS === 'web') {
         console.log('🌐 Using direct redirect for web OAuth...');
         
-        // Create the authorization URL
-        const authUrl = request.makeAuthUrlAsync(discovery);
+        // Create the authorization URL - handle the Promise properly
+        const authUrl = await request.makeAuthUrlAsync(discovery);
         
         // Store the current state to handle the callback
         localStorage.setItem('oauth_state', JSON.stringify({
           timestamp: Date.now(),
           returnUrl: window.location.href
         }));
+        
+        console.log('🔗 Redirecting to:', authUrl);
         
         // Redirect to Google OAuth
         window.location.href = authUrl;
@@ -461,6 +463,55 @@ class GoogleOAuthService {
         success: false,
         error: error.message,
         requiresAuth: error.message.includes('No access token') || error.message.includes('401')
+      };
+    }
+  }
+
+  /**
+   * Handle OAuth callback from popup
+   */
+  static async handleCallback() {
+    try {
+      const code = localStorage.getItem('oauth_code');
+      const timestamp = localStorage.getItem('oauth_timestamp');
+      
+      if (!code) {
+        return { success: false, error: 'No OAuth code found' };
+      }
+      
+      // Clear the stored code
+      localStorage.removeItem('oauth_code');
+      localStorage.removeItem('oauth_timestamp');
+      
+      // Check if code is recent (within 10 minutes)
+      const codeAge = Date.now() - parseInt(timestamp);
+      if (codeAge > 10 * 60 * 1000) {
+        return { success: false, error: 'OAuth code expired' };
+      }
+      
+      // Exchange code for tokens
+      const { request, redirectUri } = this.createAuthRequest();
+      const tokens = await this.exchangeCodeForTokens(code, redirectUri);
+      
+      // Store tokens securely
+      await this.storeTokens(tokens);
+      
+      // Get user info
+      const userInfo = await this.getUserInfo(tokens.access_token);
+      await this.storeUserInfo(userInfo);
+      
+      console.log('✅ OAuth callback handled successfully for user:', userInfo.email);
+      
+      return {
+        success: true,
+        user: userInfo,
+        tokens: tokens
+      };
+    } catch (error) {
+      console.error('❌ OAuth callback handling failed:', error);
+      return {
+        success: false,
+        error: error.message
       };
     }
   }

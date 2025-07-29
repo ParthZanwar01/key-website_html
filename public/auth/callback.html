@@ -18,18 +18,12 @@
             if (code) {
                 console.log('OAuth code received:', code);
                 
-                // Store the code in localStorage for the main app to pick up
-                localStorage.setItem('oauth_code', code);
-                localStorage.setItem('oauth_timestamp', Date.now().toString());
-                
-                // Try to close the popup or redirect back
-                try {
-                    window.close();
-                } catch (e) {
-                    // If we can't close, redirect back to the main app
-                    const returnUrl = localStorage.getItem('oauth_return_url') || '/';
-                    window.location.href = returnUrl;
-                }
+                        // Store the code in localStorage for the main app to pick up
+        localStorage.setItem('oauth_code', code);
+        localStorage.setItem('oauth_timestamp', Date.now().toString());
+        
+        // Close the popup window
+        window.close();
             } else {
                 console.error('No OAuth code received');
                 window.close();
