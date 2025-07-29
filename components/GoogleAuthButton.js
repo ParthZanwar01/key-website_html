@@ -36,12 +36,36 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       
       console.log('🔗 Opening OAuth URL:', authUrl);
       
-      // Open OAuth in a new window/tab
+      // Open OAuth in a new window/tab with specific features
       const authWindow = window.open(
         authUrl,
         'google-oauth',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
+        'width=500,height=600,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
       );
+      
+      // Check if popup was blocked
+      if (!authWindow || authWindow.closed || typeof authWindow.closed === 'undefined') {
+        setIsAuthenticating(false);
+        Alert.alert(
+          'Popup Blocked', 
+          'Please allow popups for this site, or try clicking the button again.',
+          [
+            { text: 'OK' },
+            { 
+              text: 'Open in New Tab', 
+              onPress: () => {
+                // Fallback: open in new tab
+                window.open(authUrl, '_blank');
+                Alert.alert(
+                  'Authentication Started',
+                  'Please complete authentication in the new tab, then return here and click "Connect Google Drive" again.'
+                );
+              }
+            }
+          ]
+        );
+        return;
+      }
       
       // Check for completion
       const checkWindow = setInterval(async () => {
@@ -97,6 +121,12 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
     return (
       <View style={[styles.container, style]}>
         <Text style={styles.authenticatedText}>✅ Connected to Google Drive</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={checkAuthStatus}
+        >
+          <Text style={styles.refreshButtonText}>🔄 Refresh Status</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -148,6 +178,18 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     textAlign: 'center',
+  },
+  refreshButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  refreshButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
