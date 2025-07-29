@@ -22,15 +22,12 @@
         localStorage.setItem('oauth_code', code);
         localStorage.setItem('oauth_timestamp', Date.now().toString());
         
-        // Show success message and redirect back
-        document.body.innerHTML = '<div style="text-align: center; padding: 50px;"><h2>✅ Authentication Complete!</h2><p>Redirecting you back to the application...</p></div>';
+        // Show success message
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px;"><h2>✅ Authentication Complete!</h2><p>Closing this window...</p></div>';
         
-        // Get the return URL
-        const returnUrl = localStorage.getItem('oauth_return_url') || '/';
-        
-        // Redirect back to the main app after a short delay
+        // Close the popup window after a short delay
         setTimeout(() => {
-            window.location.href = returnUrl;
+            window.close();
         }, 2000);
             } else {
                 console.error('No OAuth code received');

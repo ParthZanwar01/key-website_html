@@ -40,27 +40,58 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       localStorage.setItem('oauth_return_url', window.location.href);
       localStorage.setItem('oauth_start_time', Date.now().toString());
       
-      // Use a simple redirect approach
-      Alert.alert(
-        'Google Authentication',
-        'You will be redirected to Google to complete authentication. After completing authentication, you will be redirected back to this page.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => {
-              setIsAuthenticating(false);
-            }
-          },
-          {
-            text: 'Continue',
-            onPress: () => {
-              // Redirect to Google OAuth
-              window.location.href = authUrl;
+      // Open OAuth in a new window
+      const authWindow = window.open(
+        authUrl,
+        'google-oauth',
+        'width=500,height=600,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
+      );
+      
+      // Check if popup was blocked
+      if (!authWindow || authWindow.closed || typeof authWindow.closed === 'undefined') {
+        setIsAuthenticating(false);
+        Alert.alert(
+          'Popup Blocked', 
+          'Please allow popups for this site, or try clicking the button again.'
+        );
+        return;
+      }
+      
+      // Check for completion
+      const checkWindow = setInterval(async () => {
+        try {
+          if (authWindow.closed) {
+            clearInterval(checkWindow);
+            setIsAuthenticating(false);
+            
+            // Handle the OAuth callback
+            const callbackResult = await GoogleOAuthService.handleCallback();
+            
+            if (callbackResult.success) {
+              setIsAuthenticated(true);
+              console.log('✅ OAuth callback successful');
+            } else {
+              console.log('❌ Authentication failed:', callbackResult.error);
+              Alert.alert('Authentication Failed', callbackResult.error || 'Failed to complete authentication');
             }
           }
-        ]
-      );
+        } catch (e) {
+          // Window might be blocked
+          clearInterval(checkWindow);
+          setIsAuthenticating(false);
+          console.error('Error checking popup:', e);
+        }
+      }, 1000);
+      
+      // Add timeout to prevent hanging
+      setTimeout(() => {
+        clearInterval(checkWindow);
+        if (authWindow && !authWindow.closed) {
+          authWindow.close();
+        }
+        setIsAuthenticating(false);
+        Alert.alert('Timeout', 'Authentication timed out. Please try again.');
+      }, 300000); // 5 minutes timeout
       
     } catch (error) {
       console.error('❌ Authentication error:', error);
@@ -131,6 +162,17 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       <Text style={styles.helpText}>
         Connect your Google account to save photos to Google Drive
       </Text>
+      {isAuthenticating && (
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => {
+            setIsAuthenticating(false);
+            Alert.alert('Cancelled', 'Authentication cancelled. You can try again.');
+          }}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -173,6 +215,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   refreshButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  cancelButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
