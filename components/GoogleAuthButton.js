@@ -34,6 +34,14 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       // Create the authorization URL
       const authUrl = await request.makeAuthUrlAsync(discovery);
       
+      // Store the code verifier for PKCE
+      if (request.codeVerifier) {
+        localStorage.setItem('oauth_code_verifier', request.codeVerifier);
+        console.log('🔐 Stored code verifier for PKCE');
+      } else {
+        console.warn('⚠️ No code verifier available');
+      }
+      
       console.log('🔗 Opening OAuth URL:', authUrl);
       
       // Store current page state
