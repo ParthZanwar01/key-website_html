@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
@@ -23,14 +24,16 @@ function AuthenticatedApp() {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <AuthProvider>
-        <EventsProvider>
-          <HourProvider>
-            <AuthenticatedApp />
-          </HourProvider>
-        </EventsProvider>
-      </AuthProvider>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <AuthProvider>
+          <EventsProvider>
+            <HourProvider>
+              <AuthenticatedApp />
+            </HourProvider>
+          </EventsProvider>
+        </AuthProvider>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }

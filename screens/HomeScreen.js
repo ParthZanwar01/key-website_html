@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, Modal, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, Modal, Alert, Platform, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useHours } from '../contexts/HourContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -15,8 +16,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a365d',
+  },
+  scrollContainer: {
+    flexGrow: 1,
     padding: 20,
-    justifyContent: 'center',
     paddingTop: 100,
   },
   welcome: {
@@ -535,7 +538,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Hamburger Button */}
       <LinearGradient
         colors={['#4299e1', '#3182ce']}
@@ -546,15 +549,20 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <Animated.View
-        style={{
-          opacity: fadeAnim,
-          transform: [
-            { translateY: slideAnim },
-            { scale: scaleAnim }
-          ]
-        }}
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
       >
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim }
+            ]
+          }}
+        >
         <Text style={styles.welcome}>
           Welcome, {user?.name || user?.sNumber || 'Member'}
         </Text>
@@ -701,7 +709,8 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
-      </Animated.View>
+        </Animated.View>
+      </ScrollView>
 
       {/* Hamburger Menu Modal */}
       <Modal
@@ -788,6 +797,6 @@ export default function HomeScreen() {
           </Animated.View>
         </Animated.View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
