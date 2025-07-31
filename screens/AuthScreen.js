@@ -159,7 +159,8 @@ export default function AuthScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContainer, { justifyContent: 'flex-start' }] : styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>

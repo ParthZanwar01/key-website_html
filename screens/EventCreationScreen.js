@@ -587,7 +587,11 @@ export default function EventCreationScreen({ route, navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Enhanced Header */}
           <Animated.View 
             style={[

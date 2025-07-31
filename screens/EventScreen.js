@@ -209,7 +209,10 @@ export default function EventScreen({ route, navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <ScrollView>
+        <ScrollView
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
+        >
           <View style={styles.eventDetails}>
             {isAdmin && (
               <View style={styles.adminControls}>

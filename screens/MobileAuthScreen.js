@@ -193,7 +193,8 @@ export default function MobileAuthScreen({ navigation }) {
   const renderSignIn = () => (
     <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
       <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+        style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+        contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -289,7 +290,8 @@ export default function MobileAuthScreen({ navigation }) {
   const renderSignUp = () => (
     <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
       <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+        style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+        contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

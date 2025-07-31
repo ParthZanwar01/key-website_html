@@ -168,7 +168,10 @@ export default function AdminLoginScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
+        >
           <View style={styles.loginCard}>
             <View style={styles.headerContainer}>
               <Ionicons name="shield-checkmark" size={80} color="#4299e1" />

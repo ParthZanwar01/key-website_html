@@ -652,7 +652,11 @@ export default function ContactScreen({ navigation }) {
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={Platform.OS === 'web' ? [styles.scrollView, { overflowY: 'auto' }] : styles.scrollView} 
+        contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* Admin Section - Support Questions Management */}
         {isAdmin && (
@@ -751,7 +755,8 @@ export default function ContactScreen({ navigation }) {
                     </TouchableOpacity>
                     
                     <ScrollView 
-                      style={styles.questionsScrollView}
+                      style={Platform.OS === 'web' ? [styles.questionsScrollView, { overflowY: 'auto' }] : styles.questionsScrollView}
+                      contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
                       nestedScrollEnabled={true}
                       showsVerticalScrollIndicator={false}
                     >

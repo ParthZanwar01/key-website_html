@@ -538,7 +538,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
       {/* Hamburger Button */}
       <LinearGradient
         colors={['#4299e1', '#3182ce']}
@@ -550,8 +550,8 @@ export default function HomeScreen() {
       </LinearGradient>
 
       <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContainer}
+        style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : { flex: 1 }}
+        contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContainer, { justifyContent: 'flex-start' }] : styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View

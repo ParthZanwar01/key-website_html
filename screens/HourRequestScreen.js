@@ -950,7 +950,10 @@ export default function HourRequestScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <ScrollView>
+        <ScrollView
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
+        >
           {/* Animated Header */}
           <Animated.View
             style={[
