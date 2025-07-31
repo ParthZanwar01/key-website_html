@@ -92,25 +92,25 @@ const FloatingParticle = ({ delay = 0, duration = 3000, color = '#ffca3b' }) => 
         Animated.timing(translateY, {
           toValue: -100,
           duration: duration,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.sequence([
           Animated.timing(opacity, {
             toValue: 1,
             duration: 500,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.delay(duration - 1000),
           Animated.timing(opacity, {
             toValue: 0,
             duration: 500,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]),
         Animated.timing(scale, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start(() => {
         // Reset and restart
@@ -163,7 +163,7 @@ const SplashAnimationScreen = ({ onAnimationComplete }) => {
       Animated.timing(backgroundRotation, {
         toValue: 1,
         duration: 20000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ).start();
 
@@ -175,17 +175,17 @@ const SplashAnimationScreen = ({ onAnimationComplete }) => {
           toValue: 1,
           tension: 50,
           friction: 5,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(logoOpacity, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(logoRotation, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]),
     ]).start();
@@ -196,12 +196,12 @@ const SplashAnimationScreen = ({ onAnimationComplete }) => {
         Animated.timing(pulseScale, {
           toValue: 1.1,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseScale, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ])
     ).start();
@@ -211,7 +211,7 @@ const SplashAnimationScreen = ({ onAnimationComplete }) => {
       Animated.timing(shape1Rotation, {
         toValue: 1,
         duration: 8000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ).start();
 
@@ -220,12 +220,12 @@ const SplashAnimationScreen = ({ onAnimationComplete }) => {
         Animated.timing(shape2Scale, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(shape2Scale, {
           toValue: 0,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ])
     ).start();
@@ -235,12 +235,12 @@ const SplashAnimationScreen = ({ onAnimationComplete }) => {
         Animated.timing(shape3Translation, {
           toValue: 1,
           duration: 3000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(shape3Translation, {
           toValue: -1,
           duration: 3000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ])
     ).start();

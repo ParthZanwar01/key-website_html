@@ -53,17 +53,17 @@ export default function AdminLoginScreen({ navigation }) {
           Animated.timing(keyAnim, {
             toValue: 1,
             duration: 800,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(lockAnim, {
             toValue: 1,
             duration: 600,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(successAnim, {
             toValue: 1,
             duration: 400,
-            useNativeDriver: true,
+            useNativeDriver: false,
           })
         ]).start(() => {
           // Navigation handled by AuthContext

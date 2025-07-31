@@ -93,14 +93,14 @@ export default function EventCreationScreen({ route, navigation }) {
           toValue: 0,
           duration: 600,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.parallel([
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 800,
             easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.stagger(100, formItemAnimations.map((anim, index) =>
             Animated.timing(anim, {
@@ -108,7 +108,7 @@ export default function EventCreationScreen({ route, navigation }) {
               duration: 600,
               delay: index * 50,
               easing: Easing.out(Easing.back(1.1)),
-              useNativeDriver: true,
+              useNativeDriver: false,
             })
           )),
         ]),
@@ -126,7 +126,7 @@ export default function EventCreationScreen({ route, navigation }) {
           toValue: 1,
           duration: 1000,
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ).start();
     } else {
@@ -203,22 +203,22 @@ export default function EventCreationScreen({ route, navigation }) {
         Animated.timing(buttonScaleAnim, {
           toValue: 1.05,
           duration: 50,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(buttonScaleAnim, {
           toValue: 0.95,
           duration: 50,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(buttonScaleAnim, {
           toValue: 1.05,
           duration: 50,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(buttonScaleAnim, {
           toValue: 1,
           duration: 100,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
 
@@ -237,12 +237,12 @@ export default function EventCreationScreen({ route, navigation }) {
         toValue: 1,
         duration: 300,
         easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(buttonScaleAnim, {
         toValue: 0.95,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -317,13 +317,13 @@ export default function EventCreationScreen({ route, navigation }) {
         Animated.timing(buttonScaleAnim, {
           toValue: 1.1,
           duration: 100,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(buttonScaleAnim, {
           toValue: 1,
           duration: 200,
           easing: Easing.out(Easing.back(1.2)),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
       
@@ -337,12 +337,12 @@ export default function EventCreationScreen({ route, navigation }) {
         Animated.timing(submitAnimationAnim, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(buttonScaleAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     }
@@ -356,13 +356,13 @@ export default function EventCreationScreen({ route, navigation }) {
           toValue: 1,
           duration: 400,
           easing: Easing.out(Easing.back(1.2)),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(successAnim, {
           toValue: 0,
           duration: 200,
           delay: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start(() => resolve());
     });
@@ -374,13 +374,13 @@ export default function EventCreationScreen({ route, navigation }) {
       Animated.timing(colorSelectorAnim, {
         toValue: 1.1,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(colorSelectorAnim, {
         toValue: 1,
         duration: 200,
         easing: Easing.out(Easing.back(1.2)),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
     

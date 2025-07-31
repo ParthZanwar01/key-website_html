@@ -24,13 +24,13 @@ export default function CreateAnnouncementScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
         tension: 50,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   }, []);
@@ -41,7 +41,7 @@ export default function CreateAnnouncementScreen() {
       Animated.timing(spinValue, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ).start();
   };
@@ -56,12 +56,12 @@ export default function CreateAnnouncementScreen() {
         toValue: 1,
         tension: 50,
         friction: 6,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(successOpacity, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       // Hide success animation after 1.5 seconds
@@ -71,12 +71,12 @@ export default function CreateAnnouncementScreen() {
             toValue: 0,
             tension: 50,
             friction: 6,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(successOpacity, {
             toValue: 0,
             duration: 300,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start();
       }, 1500);
@@ -96,12 +96,12 @@ export default function CreateAnnouncementScreen() {
       Animated.timing(buttonScale, {
         toValue: 0.95,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(buttonScale, {
         toValue: 1,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 

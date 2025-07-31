@@ -17,6 +17,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a365d',
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContainer: {
     flexGrow: 1,
     padding: 20,
@@ -409,17 +412,17 @@ export default function HomeScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   }, []);
@@ -432,12 +435,12 @@ export default function HomeScreen() {
       Animated.timing(menuSlideAnim, {
         toValue: toValue === 1 ? 0 : -screenWidth * 0.8,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(menuFadeAnim, {
         toValue: toValue,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   };
@@ -549,11 +552,11 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView 
-        style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : { flex: 1 }}
-        contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContainer, { justifyContent: 'flex-start' }] : styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
+              <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
         <Animated.View
           style={{
             opacity: fadeAnim,

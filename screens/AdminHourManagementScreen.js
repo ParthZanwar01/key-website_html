@@ -87,12 +87,12 @@ export default function AdminHourManagementScreen({ navigation }) {
       Animated.timing(headerAnim, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(listAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
 
@@ -102,12 +102,12 @@ export default function AdminHourManagementScreen({ navigation }) {
         Animated.timing(pulseAnim, {
           toValue: 1.05,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(() => pulse());
     };

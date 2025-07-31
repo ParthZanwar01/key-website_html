@@ -83,13 +83,13 @@ export default function CalendarScreen({ navigation, route }) {
             toValue: 0,
             duration: 600,
             easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 800,
             easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]),
         Animated.parallel([
@@ -97,20 +97,20 @@ export default function CalendarScreen({ navigation, route }) {
             toValue: 0,
             duration: 700,
             easing: Easing.out(Easing.back(1.2)),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(calendarScaleAnim, {
             toValue: 1,
             duration: 800,
             easing: Easing.out(Easing.back(1.1)),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]),
         Animated.spring(fabScaleAnim, {
           toValue: 1,
           tension: 100,
           friction: 8,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     };
@@ -127,13 +127,13 @@ export default function CalendarScreen({ navigation, route }) {
           toValue: 1.05,
           duration: 2000,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 2000,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ])
     ).start();
@@ -157,17 +157,17 @@ export default function CalendarScreen({ navigation, route }) {
       Animated.timing(calendarScaleAnim, {
         toValue: 0.98,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(calendarScaleAnim, {
         toValue: 1.02,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(calendarScaleAnim, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -242,13 +242,13 @@ export default function CalendarScreen({ navigation, route }) {
       Animated.timing(monthTransitionAnim, {
         toValue: 0.8,
         duration: 150,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(monthTransitionAnim, {
         toValue: 1,
         duration: 200,
         easing: Easing.out(Easing.back(1.1)),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -260,13 +260,13 @@ export default function CalendarScreen({ navigation, route }) {
       Animated.timing(monthTransitionAnim, {
         toValue: 0.8,
         duration: 150,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(monthTransitionAnim, {
         toValue: 1,
         duration: 200,
         easing: Easing.out(Easing.back(1.1)),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -299,13 +299,13 @@ export default function CalendarScreen({ navigation, route }) {
       Animated.timing(eventItemAnimations[animationId], {
         toValue: 0.95,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(eventItemAnimations[animationId], {
         toValue: 1,
         duration: 150,
         easing: Easing.out(Easing.back(1.2)),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -327,22 +327,22 @@ export default function CalendarScreen({ navigation, route }) {
         Animated.timing(eventItemAnimations[animationId], {
           toValue: 1.05,
           duration: 50,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(eventItemAnimations[animationId], {
           toValue: 0.98,
           duration: 50,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(eventItemAnimations[animationId], {
           toValue: 1.02,
           duration: 50,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(eventItemAnimations[animationId], {
           toValue: 1,
           duration: 100,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
 
@@ -400,7 +400,7 @@ export default function CalendarScreen({ navigation, route }) {
           toValue: 1.1,
           duration: 200,
           easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]),
       Animated.parallel([
@@ -408,7 +408,7 @@ export default function CalendarScreen({ navigation, route }) {
           toValue: 0,
           duration: 400,
           easing: Easing.in(Easing.back(1.5)),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]),
     ]).start();
@@ -440,7 +440,7 @@ export default function CalendarScreen({ navigation, route }) {
       Animated.timing(eventItemAnimations[animationId], {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
       
       setMessageDialog({
@@ -458,13 +458,13 @@ export default function CalendarScreen({ navigation, route }) {
       Animated.timing(fabScaleAnim, {
         toValue: 0.9,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(fabScaleAnim, {
         toValue: 1,
         tension: 150,
         friction: 6,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -568,12 +568,12 @@ export default function CalendarScreen({ navigation, route }) {
             Animated.timing(sparkleAnim, {
               toValue: 1,
               duration: 5000 + Math.random() * 3000,
-              useNativeDriver: true,
+              useNativeDriver: false,
             }),
             Animated.timing(sparkleAnim, {
               toValue: 0,
               duration: 5000 + Math.random() * 3000,
-              useNativeDriver: true,
+              useNativeDriver: false,
             })
           ])
         ).start();

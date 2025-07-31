@@ -35,25 +35,25 @@ export default function AnnouncementsScreen() {
       Animated.timing(headerAnim, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
           tension: 50,
           friction: 8,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(fabAnim, {
           toValue: 1,
           friction: 6,
           tension: 100,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ])
     ]).start();
@@ -64,12 +64,12 @@ export default function AnnouncementsScreen() {
         Animated.timing(pulseAnim, {
           toValue: 1.1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(pulseAnimation);
     };
@@ -143,19 +143,19 @@ export default function AnnouncementsScreen() {
           Animated.timing(cardFade, {
             toValue: 1,
             duration: 600,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.spring(cardSlide, {
             toValue: 0,
             tension: 50,
             friction: 8,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.spring(scaleAnim, {
             toValue: 1,
             tension: 100,
             friction: 8,
-            useNativeDriver: true,
+            useNativeDriver: false,
           })
         ])
       ]).start();

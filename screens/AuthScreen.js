@@ -159,8 +159,8 @@ export default function AuthScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
-          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContainer, { justifyContent: 'flex-start' }] : styles.scrollContainer}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
@@ -359,6 +359,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a365d', // Deep navy blue background
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,

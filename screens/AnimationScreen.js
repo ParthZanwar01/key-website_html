@@ -28,38 +28,38 @@ export default function AnimationScreen() {
         Animated.timing(fadeInAnim, {
           toValue: 1,
           duration: 500,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           tension: 50,
           friction: 7,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start(() => {
         // Key slides into lock (moves to keyhole position)
         Animated.timing(keySlideAnim, {
           toValue: 0, // Position key tip at the keyhole
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start(() => {
           // Key rotates to unlock
           Animated.timing(keyRotateAnim, {
             toValue: 90,
             duration: 800,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }).start(() => {
             // Lock opens and sparkles appear
             Animated.parallel([
               Animated.timing(lockOpenAnim, {
                 toValue: 1,
                 duration: 600,
-                useNativeDriver: true,
+                useNativeDriver: false,
               }),
               Animated.timing(sparkleAnim, {
                 toValue: 1,
                 duration: 600,
-                useNativeDriver: true,
+                useNativeDriver: false,
               }),
             ]).start(() => {
               // Wait a moment then transition

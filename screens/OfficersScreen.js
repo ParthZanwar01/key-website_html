@@ -28,12 +28,12 @@ const FloatingSparkles = () => {
           Animated.timing(sparkleAnim, {
             toValue: 1,
             duration: 5000 + Math.random() * 3000,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(sparkleAnim, {
             toValue: 0,
             duration: 5000 + Math.random() * 3000,
-            useNativeDriver: true,
+            useNativeDriver: false,
           })
         ])
       ).start();
@@ -90,12 +90,12 @@ const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, i
         Animated.timing(pulseAnim, {
           toValue: 1.02,
           duration: 3000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 3000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(pulseAnimation);
     };
@@ -119,27 +119,27 @@ const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, i
         toValue: 1,
         duration: 600,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(slideAnim, {
         toValue: 0,
         delay,
         tension: 80,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         delay,
         tension: 80,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(rotateAnim, {
         toValue: 1,
         duration: 800,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   };
@@ -150,13 +150,13 @@ const AnimatedOfficerCard = ({ item, index, cardWidth, cardHeight, numColumns, i
       Animated.timing(scaleAnim, {
         toValue: 0.95,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 300,
         friction: 6,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   };
@@ -311,14 +311,14 @@ const AnimatedPositionBanner = ({ position, isWeb, isMobile, delay }) => {
         toValue: 1,
         duration: 500,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(slideUpAnim, {
         toValue: 0,
         delay,
         tension: 80,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -378,13 +378,13 @@ export default function OfficersScreen({ navigation }) {
       Animated.timing(headerFadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(headerSlideAnim, {
         toValue: 0,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -393,12 +393,12 @@ export default function OfficersScreen({ navigation }) {
       Animated.timing(headerAnim, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(titleAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
     
