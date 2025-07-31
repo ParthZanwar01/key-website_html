@@ -107,9 +107,33 @@ export default function App() {
           z-index: 999 !important;
         }
         
+        /* Fix for React Native Modal on web */
+        [data-testid="modal"] {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 999 !important;
+        }
+        
         /* Fix for sidebar clipping issues */
         [data-testid="modal"] {
           overflow: visible !important;
+        }
+        
+        /* Specific fix for menu modal */
+        .menu-modal {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 999 !important;
         }
         
         /* Ensure absolute positioned elements can extend beyond container */

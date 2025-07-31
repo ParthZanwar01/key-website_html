@@ -221,13 +221,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 999,
+    width: '100%',
+    height: '100%',
   },
   menuContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: Platform.OS === 'web' ? Math.min(screenWidth * 0.8, 400) : screenWidth * 0.8,
-    height: '100vh',
+    height: Platform.OS === 'web' ? '100vh' : screenHeight,
     backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 10, height: 0 },
@@ -352,7 +354,7 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const menuSlideAnim = useRef(new Animated.Value(-screenWidth * 0.8)).current;
+  const menuSlideAnim = useRef(new Animated.Value(Platform.OS === 'web' ? -400 : -screenWidth * 0.8)).current;
   const menuFadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
@@ -441,7 +443,7 @@ export default function HomeScreen() {
     
     Animated.parallel([
       Animated.timing(menuSlideAnim, {
-        toValue: toValue === 1 ? 0 : -screenWidth * 0.8,
+        toValue: toValue === 1 ? 0 : (Platform.OS === 'web' ? -400 : -screenWidth * 0.8),
         duration: 300,
         useNativeDriver: false,
       }),
@@ -739,6 +741,7 @@ export default function HomeScreen() {
               opacity: menuFadeAnim,
             }
           ]}
+          className={Platform.OS === 'web' ? 'menu-modal' : undefined}
         >
           <TouchableOpacity
             style={{ flex: 1 }}
