@@ -281,7 +281,7 @@ export default function AnnouncementsScreen() {
               </View>
             )}
             keyExtractor={(item) => item.id.toString()}
-            showsVerticalScrollIndicator={true}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
           />
         )}

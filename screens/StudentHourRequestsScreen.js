@@ -214,7 +214,7 @@ export default function StudentHourRequestsScreen({ navigation }) {
               colors={['#59a2f0']}
             />
           }
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>

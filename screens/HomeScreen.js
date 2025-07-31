@@ -552,7 +552,7 @@ export default function HomeScreen() {
       <ScrollView 
         style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : { flex: 1 }}
         contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContainer, { justifyContent: 'flex-start' }] : styles.scrollContainer}
-        showsVerticalScrollIndicator={true}
+        showsVerticalScrollIndicator={false}
       >
         <Animated.View
           style={{

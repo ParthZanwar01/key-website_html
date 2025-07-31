@@ -161,7 +161,7 @@ export default function AuthScreen({ navigation }) {
         <ScrollView 
           style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContainer, { justifyContent: 'flex-start' }] : styles.scrollContainer}
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
             <View style={styles.header}>

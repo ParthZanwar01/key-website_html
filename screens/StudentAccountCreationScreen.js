@@ -116,7 +116,7 @@ export default function StudentAccountCreationScreen(props) {
         <ScrollView 
           style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
             <Text style={styles.title}>Create Your Account</Text>

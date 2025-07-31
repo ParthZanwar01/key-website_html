@@ -828,7 +828,7 @@ export default function AdminHourManagementScreen({ navigation }) {
               tintColor="#ffd60a"
             />
           }
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
         />
       )}
 

@@ -680,7 +680,7 @@ export default function CalendarScreen({ navigation, route }) {
           numColumns={7}
           scrollEnabled={false}
           key={refreshKey}
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.calendarGrid}
         />
       </Animated.View>

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   ScrollView
 } from 'react-native';
@@ -38,14 +37,12 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
-      >
+      <View style={styles.keyboardAvoid}>
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
-          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
-          showsVerticalScrollIndicator={true}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <View style={styles.loginCard}>
             <Text style={styles.title}>Admin Login</Text>
@@ -96,26 +93,24 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1e90ff', // Ocean blue background
+    backgroundColor: '#1e90ff',
   },
   keyboardAvoid: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center', // center card on mobile
+    alignItems: 'center',
     padding: 18,
   },
   loginCard: {
-    backgroundColor: '#fffbe6', // subtle warm background
+    backgroundColor: '#fffbe6',
     borderRadius: 18,
     padding: 28,
-    shadowColor: '#ffd60a',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 10,
     borderWidth: 2,
     borderColor: '#ffd60a',
     width: '100%',
@@ -124,7 +119,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000080', // Navy blue for contrast
+    color: '#000080',
     marginBottom: 18,
     textAlign: 'center',
   },
@@ -133,43 +128,38 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    color: '#000080', // Navy blue for contrast
+    color: '#000080',
     marginBottom: 6,
     fontWeight: '700',
   },
   input: {
     borderWidth: 2,
-    borderColor: '#f4d03f', // Softer yellow
+    borderColor: '#f4d03f',
     borderRadius: 10,
     padding: 13,
     fontSize: 16,
     backgroundColor: '#fff',
-    color: '#2c3e50', // Dark blue-gray for contrast
+    color: '#2c3e50',
   },
   loginButton: {
-    backgroundColor: '#f4d03f', // Softer yellow
+    backgroundColor: '#f4d03f',
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#f4d03f',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
   },
   loginButtonText: {
-    color: '#2c3e50', // Dark blue-gray for contrast
+    color: '#2c3e50',
     fontSize: 17,
     fontWeight: 'bold',
   },
   hint: {
     marginTop: 20,
     textAlign: 'center',
-    color: '#ffffff', // White for contrast against ocean blue
+    color: '#ffffff',
     fontSize: 13,
     fontWeight: '500',
   },

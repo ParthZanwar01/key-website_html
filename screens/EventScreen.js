@@ -212,7 +212,7 @@ export default function EventScreen({ route, navigation }) {
         <ScrollView
           style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.eventDetails}>
             {isAdmin && (
