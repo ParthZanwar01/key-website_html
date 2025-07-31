@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    width: Platform.OS === 'web' ? Math.min(screenWidth * 0.8, 400) : screenWidth * 0.8,
+    width: 300,
     height: Platform.OS === 'web' ? '100vh' : screenHeight,
     backgroundColor: '#ffffff',
     shadowColor: '#000',
@@ -354,7 +354,7 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const menuSlideAnim = useRef(new Animated.Value(Platform.OS === 'web' ? -400 : -screenWidth * 0.8)).current;
+  const menuSlideAnim = useRef(new Animated.Value(-300)).current;
   const menuFadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
@@ -443,7 +443,7 @@ export default function HomeScreen() {
     
     Animated.parallel([
       Animated.timing(menuSlideAnim, {
-        toValue: toValue === 1 ? 0 : (Platform.OS === 'web' ? -400 : -screenWidth * 0.8),
+        toValue: toValue === 1 ? 0 : -300,
         duration: 300,
         useNativeDriver: false,
       }),
@@ -734,15 +734,7 @@ export default function HomeScreen() {
         accessibilityViewIsModal={true}
         accessibilityLabel="Navigation Menu"
       >
-        <Animated.View
-          style={[
-            styles.menuModal,
-            {
-              opacity: menuFadeAnim,
-            }
-          ]}
-          className={Platform.OS === 'web' ? 'menu-modal' : undefined}
-        >
+        <View style={styles.menuModal}>
           <TouchableOpacity
             style={{ flex: 1 }}
             onPress={toggleMenu}
