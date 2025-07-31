@@ -445,12 +445,10 @@ export default function HomeScreen() {
   }, []);
 
   const toggleMenu = () => {
-    console.log('Toggle menu called, current menuVisible:', menuVisible);
     const toValue = menuVisible ? 0 : 1;
     setMenuVisible(!menuVisible);
     
     const slideToValue = menuVisible ? -300 : 0;
-    console.log('Sliding menu to:', slideToValue);
     
     Animated.parallel([
       Animated.timing(menuSlideAnim, {
@@ -739,25 +737,31 @@ export default function HomeScreen() {
       </SafeAreaView>
 
       {/* Hamburger Menu Overlay */}
-      {menuVisible && (
-        <View style={styles.menuModal}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={toggleMenu}
-            activeOpacity={1}
-          />
-          
-          <Animated.View
-            style={[
-              styles.menuContainer,
-              {
-                transform: [{ translateX: menuSlideAnim }]
-              }
-            ]}
-            pointerEvents="box-none"
-          >
-            {/* Debug: Show menu position */}
-            <View style={{ position: 'absolute', top: 0, left: 0, backgroundColor: 'red', width: 10, height: 10, zIndex: 10001 }} />
+      <Animated.View
+        style={[
+          styles.menuModal,
+          {
+            opacity: menuFadeAnim,
+            display: menuVisible ? 'flex' : 'none'
+          }
+        ]}
+        pointerEvents={menuVisible ? 'auto' : 'none'}
+      >
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          onPress={toggleMenu}
+          activeOpacity={1}
+        />
+        
+        <Animated.View
+          style={[
+            styles.menuContainer,
+            {
+              transform: [{ translateX: menuSlideAnim }]
+            }
+          ]}
+          pointerEvents="box-none"
+        >
             <View style={styles.menuHeader}>
               <View style={styles.menuUserInfo}>
                 <LinearGradient
@@ -816,8 +820,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </Animated.View>
-        </View>
-      )}
-    </View>
-  );
+        </Animated.View>
+      </View>
+    );
 }
