@@ -96,6 +96,26 @@ export default function App() {
             backface-visibility: hidden;
           }
         }
+        
+        /* Ensure modals and overlays can extend beyond viewport */
+        .modal-overlay {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          z-index: 999 !important;
+        }
+        
+        /* Fix for sidebar clipping issues */
+        [data-testid="modal"] {
+          overflow: visible !important;
+        }
+        
+        /* Ensure absolute positioned elements can extend beyond container */
+        .absolute-container {
+          overflow: visible !important;
+        }
       `;
       document.head.appendChild(style);
       

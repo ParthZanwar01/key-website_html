@@ -214,15 +214,20 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   menuModal: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999,
   },
   menuContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: screenWidth * 0.8,
-    height: screenHeight,
+    width: Platform.OS === 'web' ? Math.min(screenWidth * 0.8, 400) : screenWidth * 0.8,
+    height: '100vh',
     backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 10, height: 0 },
@@ -231,6 +236,8 @@ const styles = StyleSheet.create({
     elevation: 20,
     flexDirection: 'column', // Make sidebar a column
     flex: 1, // Fill available space
+    zIndex: 1000,
+    overflow: 'hidden',
   },
   menuHeader: {
     paddingTop: Platform.OS === 'web' ? 20 : 60,
@@ -267,6 +274,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 20,
     marginTop: Platform.OS === 'web' ? 20 : 0, // Move menu items down a bit on web only
+    overflow: 'auto',
   },
   menuItem: {
     flexDirection: 'row',
