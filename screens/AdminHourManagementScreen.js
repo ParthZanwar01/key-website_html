@@ -22,6 +22,7 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 import GoogleDriveService from '../services/GoogleDriveService';
 import SimpleDriveService from '../services/SimpleDriveService';
 import GoogleAuthButton from '../components/GoogleAuthButton';
+import SupabaseService from '../services/SupabaseService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -125,21 +126,38 @@ export default function AdminHourManagementScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const requests = await getAllRequests();
+      console.log('🔄 Loading hour requests from database...');
+      
+      // Get fresh data directly from Supabase
+      const requests = await SupabaseService.getAllHourRequests();
+      
       console.log('🔍 DEBUG: Loaded requests from database:', requests.length);
-      console.log('🔍 DEBUG: Sample requests:', requests.slice(0, 3).map(r => ({
-        id: r.id,
-        student: r.student_name,
-        event: r.event_name,
-        status: r.status,
-        description: r.description?.substring(0, 50) + '...'
-      })));
+      if (requests.length > 0) {
+        console.log('🔍 DEBUG: Sample requests:', requests.slice(0, 3).map(r => ({
+          id: r.id,
+          student: r.student_name,
+          event: r.event_name,
+          status: r.status,
+          description: r.description?.substring(0, 50) + '...'
+        })));
+      } else {
+        console.log('⚠️ No hour requests found in database');
+      }
       
       setAllRequests(requests);
       applyFilters(requests, filter, searchQuery);
       setLastLoadTime(new Date());
+      
+      console.log('✅ Data loading completed successfully');
     } catch (error) {
-      console.error('Error loading requests:', error);
+      console.error('❌ Error loading requests:', error);
+      // Show error message to user
+      setMessageDialog({
+        visible: true,
+        title: 'Error',
+        message: `Failed to load hour requests: ${error.message}`,
+        isError: true
+      });
     } finally {
       setLoading(false);
     }
@@ -247,15 +265,15 @@ export default function AdminHourManagementScreen({ navigation }) {
     setProcessingRequests(prev => new Set([...prev, requestId]));
 
     try {
-      const result = await updateHourRequestStatus(
+      const result = await SupabaseService.updateHourRequestStatus(
         requestId,
         action === 'approve' ? 'approved' : 'rejected',
         notes,
-        request.student_s_number,
+        'Admin',
         request.hours_requested
       );
 
-      if (result.success) {
+      if (result) {
         setMessageDialog({
           visible: true,
           title: 'Success',
@@ -269,7 +287,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         setMessageDialog({
           visible: true,
           title: 'Error',
-          message: result.error || 'Failed to update request status',
+          message: 'Failed to update request status',
           isError: true
         });
       }
@@ -700,7 +718,20 @@ export default function AdminHourManagementScreen({ navigation }) {
           { transform: [{ translateY: headerAnim }] }
         ]}
       >
-        <Text style={styles.headerTitle}>Hour Requests</Text>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>Hour Requests</Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={handleRefresh}
+            disabled={refreshing}
+          >
+            <Ionicons 
+              name="refresh" 
+              size={24} 
+              color={refreshing ? "#666" : "#ffd60a"} 
+            />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {/* Filter Tabs */}
@@ -744,6 +775,18 @@ export default function AdminHourManagementScreen({ navigation }) {
         />
       </View>
 
+      {/* Last Updated Info */}
+      {lastLoadTime && (
+        <View style={styles.lastUpdatedContainer}>
+          <Text style={styles.lastUpdatedText}>
+            Last updated: {lastLoadTime.toLocaleTimeString()}
+          </Text>
+          <Text style={styles.lastUpdatedText}>
+            Total requests: {allRequests.length} | Filtered: {filteredRequests.length}
+          </Text>
+        </View>
+      )}
+
       {/* Google Drive Authentication */}
       <GoogleAuthButton 
         onAuthSuccess={() => {
@@ -753,21 +796,41 @@ export default function AdminHourManagementScreen({ navigation }) {
       />
 
       {/* Requests List */}
-      <FlatList
-        data={filteredRequests}
-        renderItem={renderRequestItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#ffd60a']}
-            tintColor="#ffd60a"
-          />
-        }
-                  showsVerticalScrollIndicator={true}
-      />
+      {filteredRequests.length === 0 && !loading ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="document-text-outline" size={64} color="#666" />
+          <Text style={styles.emptyTitle}>No Hour Requests Found</Text>
+          <Text style={styles.emptySubtitle}>
+            {allRequests.length === 0 
+              ? "No hour requests have been submitted yet."
+              : "No requests match your current filter."
+            }
+          </Text>
+          <TouchableOpacity
+            style={styles.refreshDataButton}
+            onPress={handleRefresh}
+          >
+            <Ionicons name="refresh" size={16} color="#ffd60a" />
+            <Text style={styles.refreshDataButtonText}>Refresh Data</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredRequests}
+          renderItem={renderRequestItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#ffd60a']}
+              tintColor="#ffd60a"
+            />
+          }
+          showsVerticalScrollIndicator={true}
+        />
+      )}
 
       {/* Review Modal */}
       <Modal
@@ -891,12 +954,35 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   header: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#4299e1',
+    flex: 1,
     textAlign: 'center',
-    marginBottom: 10,
-    marginTop: 10,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 214, 10, 0.1)',
+  },
+  lastUpdatedContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  lastUpdatedText: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
   },
   requestCard: {
     backgroundColor: 'rgba(255,255,255,0.10)',
@@ -1205,5 +1291,40 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#ccc',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  refreshDataButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 214, 10, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffd60a',
+  },
+  refreshDataButtonText: {
+    fontSize: 14,
+    color: '#ffd60a',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
