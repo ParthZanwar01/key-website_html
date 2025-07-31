@@ -147,8 +147,8 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(true);
         setIsAdmin(true);
         
-        // Trigger animation after successful login
-        triggerAnimation();
+        // Animation disabled to prevent shaking
+        // triggerAnimation();
         
         console.log("Admin login successful");
         return true;
@@ -188,8 +188,8 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(true);
         setIsAdmin(false);
         
-        // Trigger animation after successful login
-        triggerAnimation();
+        // Animation disabled to prevent shaking
+        // triggerAnimation();
         
         console.log("Student login successful");
         return true;

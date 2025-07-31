@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
 import AppNavigator from './navigation/AppNavigator';
+import { preventFocusOnHidden } from './utils/AccessibilityHelper';
 
 function AuthenticatedApp() {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -24,7 +25,7 @@ function AuthenticatedApp() {
 }
 
 export default function App() {
-  // Add web-specific styles to override body overflow
+  // Add web-specific styles to override body overflow and fix accessibility
   useEffect(() => {
     if (Platform.OS === 'web') {
       // Override the default Expo web styles that disable body scrolling
@@ -39,8 +40,43 @@ export default function App() {
         #root {
           overflow: auto !important;
         }
+        /* Fix ARIA accessibility issues */
+        [aria-hidden="true"] {
+          pointer-events: none !important;
+        }
+        [aria-hidden="true"] * {
+          pointer-events: none !important;
+        }
+        /* Ensure focused elements are not hidden */
+        [aria-hidden="true"]:focus,
+        [aria-hidden="true"] *:focus {
+          outline: none !important;
+        }
+        /* Prevent focus on hidden elements */
+        [aria-hidden="true"] {
+          tabindex: -1 !important;
+        }
       `;
       document.head.appendChild(style);
+      
+      // Apply focus management
+      preventFocusOnHidden();
+      
+      // Set up a mutation observer to handle dynamically added elements
+      const observer = new MutationObserver(() => {
+        preventFocusOnHidden();
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['aria-hidden']
+      });
+      
+      return () => {
+        observer.disconnect();
+      };
     }
   }, []);
 

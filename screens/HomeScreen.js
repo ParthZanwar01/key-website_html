@@ -721,6 +721,8 @@ export default function HomeScreen() {
         transparent={true}
         animationType="none"
         onRequestClose={toggleMenu}
+        accessibilityViewIsModal={true}
+        accessibilityLabel="Navigation Menu"
       >
         <Animated.View
           style={[
@@ -772,6 +774,8 @@ export default function HomeScreen() {
                     setTimeout(() => navigateTo(item.id), 150);
                   }}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Navigate to ${item.title}`}
                 >
                   <LinearGradient
                     colors={item.gradient}
@@ -790,6 +794,8 @@ export default function HomeScreen() {
                 style={styles.logoutButton}
                 onPress={() => navigateTo('Logout')}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Logout"
               >
                 <View style={styles.logoutIcon}>
                   <Ionicons name="log-out" size={20} color="#ffffff" />

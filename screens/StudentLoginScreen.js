@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   ScrollView
 } from 'react-native';
@@ -58,15 +57,13 @@ export default function StudentLoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}> 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.keyboardAvoid, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}
-      >
+    <SafeAreaView style={styles.container}> 
+      <View style={styles.keyboardAvoid}>
         <ScrollView
-          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <View style={styles.loginCard}>
             <View style={styles.headerContainer}>
@@ -178,9 +175,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#add8e6',
-    minHeight: Platform.OS === 'web' ? '100vh' : undefined, // Allow scrolling on web
   },
   keyboardAvoid: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
@@ -192,11 +191,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
   headerContainer: {
     alignItems: 'center',

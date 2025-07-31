@@ -48,11 +48,14 @@ export default function ConfirmationDialog({
       visible={visible}
       animationType="fade"
       onRequestClose={onCancel}
+      accessibilityViewIsModal={true}
+      accessibilityLabel="Confirmation Dialog"
     >
-      <TouchableWithoutFeedback onPress={onCancel}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.dialogContainer}>
+      <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={onCancel}>
+          <View style={styles.overlayTouchable}>
+            <TouchableWithoutFeedback>
+              <View style={styles.dialogContainer}>
               <View style={styles.iconContainer}>
                 <Ionicons name={icon} size={40} color={finalIconColor} />
               </View>
@@ -64,6 +67,8 @@ export default function ConfirmationDialog({
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={onCancel}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Cancel ${title}`}
                 >
                   <Text style={styles.cancelButtonText}>{cancelText}</Text>
                 </TouchableOpacity>
@@ -71,16 +76,18 @@ export default function ConfirmationDialog({
                 <TouchableOpacity
                   style={[styles.confirmButton, { backgroundColor: finalConfirmColor }]}
                   onPress={onConfirm}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Confirm ${title}`}
                 >
                   <Text style={[styles.confirmButtonText, { color: confirmTextColor }]}>
                     {confirmText}
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 }
@@ -89,6 +96,11 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayTouchable: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
