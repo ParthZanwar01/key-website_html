@@ -84,8 +84,8 @@ export default function StudentVerificationScreen({ navigation }) {
         style={styles.keyboardAvoid}
       >
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, // overflowY: 'auto' } : undefined}
-          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
@@ -154,6 +154,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#add8e6',
   },
   keyboardAvoid: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
