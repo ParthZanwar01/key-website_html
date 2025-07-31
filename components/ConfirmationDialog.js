@@ -84,10 +84,11 @@ export default function ConfirmationDialog({
                   </Text>
                 </TouchableOpacity>
               </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </View>
     </Modal>
   );
 }
