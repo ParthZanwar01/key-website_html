@@ -618,7 +618,7 @@ export default function OfficersScreen({ navigation }) {
   // Use ScrollView with flexWrap for web, FlatList for mobile
   if (isWeb) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
         <StatusBar barStyle="light-content" backgroundColor="#0d1b2a" />
         
         {/* Floating Sparkles Background */}
@@ -663,7 +663,8 @@ export default function OfficersScreen({ navigation }) {
         </Animated.View>
 
         <ScrollView 
-          contentContainerStyle={[styles.webContainer, { padding: 20 }]}
+          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          contentContainerStyle={Platform.OS === 'web' ? [styles.webContainer, { padding: 20, justifyContent: 'flex-start' }] : [styles.webContainer, { padding: 20 }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={[styles.webGrid, { maxWidth: 1400, alignSelf: 'center' }]}>
@@ -688,7 +689,7 @@ export default function OfficersScreen({ navigation }) {
 
   // Mobile/Tablet layout with FlatList
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#0d1b2a" />
       
       {/* Header */}
@@ -798,6 +799,7 @@ const styles = StyleSheet.create({
   },
   webContainer: {
     flexGrow: 1,
+    minHeight: screenHeight + 100,
   },
   webGrid: {
     flexDirection: 'row',
@@ -811,7 +813,7 @@ const styles = StyleSheet.create({
   officerCard: {
     margin: 8,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: 'visible',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
@@ -839,7 +841,7 @@ const styles = StyleSheet.create({
   photoContainer: {
     marginBottom: 15,
     borderRadius: 15,
-    overflow: 'hidden',
+    overflow: 'visible',
     borderWidth: 4,
     borderColor: '#fff',
   },
@@ -906,7 +908,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: 'visible',
     textAlign: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

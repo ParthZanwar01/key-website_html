@@ -523,7 +523,7 @@ export default function ContactScreen({ navigation }) {
           styles.faqAnswer, 
           { 
             maxHeight, 
-            overflow: 'hidden',
+            overflow: 'visible',
             opacity: animatedValue.interpolate({
               inputRange: [0, 0.1, 1],
               outputRange: [0, 1, 1],
@@ -1081,7 +1081,7 @@ const styles = StyleSheet.create({
   faqContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   faqItem: {
     backgroundColor: 'transparent',
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   faqHeader: {
     flexDirection: 'row',
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     borderTopWidth: 0,
     borderTopColor: 'transparent',
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   faqAnswerText: {
     fontSize: 14,

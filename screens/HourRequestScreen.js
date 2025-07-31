@@ -1187,7 +1187,7 @@ const animationStyles = StyleSheet.create({
     height: 4,
     backgroundColor: '#e0e0e0',
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   progressFill: {
     height: '100%',
@@ -1381,7 +1381,7 @@ const styles = StyleSheet.create({
   },
   photoPreviewContainer: {
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: 'visible',
     backgroundColor: '#f8f9fa',
   },
   photoPreview: {
