@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 999,
+    zIndex: 9999,
     width: '100%',
     height: '100%',
   },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     elevation: 20,
     flexDirection: 'column', // Make sidebar a column
     flex: 1, // Fill available space
-    zIndex: 1000,
+    zIndex: 10000,
     overflow: 'hidden',
   },
   menuHeader: {

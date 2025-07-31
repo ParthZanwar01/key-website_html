@@ -133,12 +133,22 @@ export default function App() {
           bottom: 0 !important;
           width: 100vw !important;
           height: 100vh !important;
-          z-index: 999 !important;
+          z-index: 9999 !important;
         }
         
         /* Ensure absolute positioned elements can extend beyond container */
         .absolute-container {
           overflow: visible !important;
+        }
+        
+        /* Force menu modal to be on top */
+        [data-testid="modal"] {
+          z-index: 9999 !important;
+        }
+        
+        /* Ensure React Native Modal appears above everything */
+        .react-native-modal {
+          z-index: 9999 !important;
         }
       `;
       document.head.appendChild(style);
