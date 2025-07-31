@@ -231,15 +231,13 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: 300,
-    height: Platform.OS === 'web' ? '100vh' : screenHeight,
+    height: '100%',
     backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 10, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 20,
-    flexDirection: 'column', // Make sidebar a column
-    flex: 1, // Fill available space
     zIndex: 10000,
     overflow: 'hidden',
   },
@@ -250,6 +248,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
     backgroundColor: '#1a365d',
+    width: '100%',
   },
   menuUserInfo: {
     alignItems: 'center',
@@ -277,8 +276,7 @@ const styles = StyleSheet.create({
   menuItems: {
     flex: 1,
     paddingTop: 20,
-    marginTop: Platform.OS === 'web' ? 20 : 0, // Move menu items down a bit on web only
-    overflow: 'auto',
+    width: '100%',
   },
   menuItem: {
     flexDirection: 'row',
@@ -309,6 +307,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
+    width: '100%',
+    backgroundColor: '#ffffff',
   },
   logoutButton: {
     flexDirection: 'row',
@@ -553,18 +553,19 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
-      {/* Hamburger Button */}
-      <LinearGradient
-        colors={['#4299e1', '#3182ce']}
-        style={styles.hamburgerButton}
-      >
-        <TouchableOpacity onPress={toggleMenu} activeOpacity={0.8}>
-          <Ionicons name="menu" size={24} color="#ffffff" />
-        </TouchableOpacity>
-      </LinearGradient>
+    <View style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
+      <SafeAreaView style={{ flex: 1 }}>
+        {/* Hamburger Button */}
+        <LinearGradient
+          colors={['#4299e1', '#3182ce']}
+          style={styles.hamburgerButton}
+        >
+          <TouchableOpacity onPress={toggleMenu} activeOpacity={0.8}>
+            <Ionicons name="menu" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        </LinearGradient>
 
-              <ScrollView
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -726,6 +727,7 @@ export default function HomeScreen() {
         )}
         </Animated.View>
       </ScrollView>
+      </SafeAreaView>
 
       {/* Hamburger Menu Modal */}
       <Modal
@@ -735,6 +737,7 @@ export default function HomeScreen() {
         onRequestClose={toggleMenu}
         accessibilityViewIsModal={true}
         accessibilityLabel="Navigation Menu"
+        statusBarTranslucent={true}
       >
         <View style={styles.menuModal}>
           <TouchableOpacity
@@ -811,6 +814,6 @@ export default function HomeScreen() {
           </Animated.View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
