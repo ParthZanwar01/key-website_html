@@ -166,7 +166,7 @@ export default function StudentLoginScreen({ navigation }) {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
