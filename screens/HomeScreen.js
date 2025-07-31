@@ -19,9 +19,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    ...(Platform.OS === 'web' && { minHeight: '100vh' }),
   },
   scrollContainer: {
     flexGrow: 1,
+    minHeight: screenHeight,
     padding: 20,
     paddingTop: 100,
   },
@@ -199,7 +201,7 @@ const styles = StyleSheet.create({
   // Hamburger Menu Styles
   hamburgerButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'web' ? 20 : 50,
     left: 20,
     width: 50,
     height: 50,
