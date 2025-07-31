@@ -27,29 +27,29 @@ export default function LandingScreen({ navigation }) {
       Animated.timing(logoAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(titleAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(subtitleAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(buttonAnim, {
         toValue: 1,
         friction: 6,
         tension: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(adminButtonAnim, {
         toValue: 1,
         friction: 6,
         tension: 100,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
 
@@ -59,12 +59,12 @@ export default function LandingScreen({ navigation }) {
         Animated.timing(pulseAnim, {
           toValue: 1.05,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(pulseAnimation);
     };

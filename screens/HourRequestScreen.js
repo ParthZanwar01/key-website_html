@@ -348,12 +348,12 @@ const SubmittingAnimation = ({ visible, stage, hasImage }) => {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 4,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
 
@@ -363,7 +363,7 @@ const SubmittingAnimation = ({ visible, stage, hasImage }) => {
           toValue: 1,
           duration: 2000,
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       );
       rotateAnimation.start();
@@ -549,17 +549,17 @@ export default function HourRequestScreen({ navigation }) {
       Animated.timing(headerAnim, {
         toValue: 0,
         duration: 700,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(hoursCardAnim, {
         toValue: 1,
         duration: 700,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(formAnim, {
         toValue: 1,
         duration: 700,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
 
@@ -569,12 +569,12 @@ export default function HourRequestScreen({ navigation }) {
         Animated.timing(submitAnim, {
           toValue: 1.05,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(submitAnim, {
           toValue: 1,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(pulse);
     };
@@ -586,12 +586,12 @@ export default function HourRequestScreen({ navigation }) {
         Animated.timing(sparkPulseAnim, {
           toValue: 1.2,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(sparkPulseAnim, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ]).start(sparkPulse);
     };

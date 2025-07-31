@@ -45,13 +45,13 @@ export default function MobileAuthScreen({ navigation }) {
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 150,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(() => {
       setActiveTab(tab);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 150,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     });
   };
