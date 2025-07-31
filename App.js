@@ -33,15 +33,15 @@ export default function App() {
       const style = document.createElement('style');
       style.textContent = `
         body {
-          overflow: hidden !important;
+          overflow: auto !important;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
         html {
-          overflow: hidden !important;
+          overflow: auto !important;
         }
         #root {
-          overflow: hidden !important;
+          overflow: auto !important;
         }
         /* Fix ARIA accessibility issues */
         [aria-hidden="true"] {
@@ -68,6 +68,27 @@ export default function App() {
         .scroll-view {
           will-change: auto !important;
         }
+        /* Hide scrollbars while keeping scroll functionality */
+        ::-webkit-scrollbar {
+          width: 0px;
+          height: 0px;
+          background: transparent;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: transparent;
+        }
+        
+        /* Firefox scrollbar hiding */
+        * {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        
         /* Fix for HP Envy Chrome compatibility */
         @media screen and (-webkit-min-device-pixel-ratio: 0) {
           * {
