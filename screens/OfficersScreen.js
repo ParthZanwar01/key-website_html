@@ -663,7 +663,7 @@ export default function OfficersScreen({ navigation }) {
         </Animated.View>
 
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, // overflowY: 'auto' } : undefined}
+          style={Platform.OS === 'web' ? { flex: 1 } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? [styles.webContainer, { padding: 20, justifyContent: 'flex-start' }] : [styles.webContainer, { padding: 20 }]}
           showsVerticalScrollIndicator={false}
         >

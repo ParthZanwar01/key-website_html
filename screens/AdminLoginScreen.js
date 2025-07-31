@@ -169,8 +169,8 @@ export default function AdminLoginScreen({ navigation }) {
         style={styles.keyboardAvoid}
       >
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, // overflowY: 'auto' } : undefined}
-          contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.loginCard}>
             <View style={styles.headerContainer}>
@@ -254,6 +254,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a365d', // Deep navy blue background
   },
   keyboardAvoid: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
