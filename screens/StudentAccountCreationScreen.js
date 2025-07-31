@@ -114,7 +114,7 @@ export default function StudentAccountCreationScreen(props) {
         style={styles.keyboardAvoid}
       >
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          style={Platform.OS === 'web' ? { flex: 1, // overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >

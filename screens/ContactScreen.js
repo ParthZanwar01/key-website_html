@@ -653,7 +653,7 @@ export default function ContactScreen({ navigation }) {
       </View>
 
       <ScrollView 
-        style={Platform.OS === 'web' ? [styles.scrollView, { overflowY: 'auto' }] : styles.scrollView} 
+        style={Platform.OS === 'web' ? [styles.scrollView, { // overflowY: 'auto' }] : styles.scrollView} 
         contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
         showsVerticalScrollIndicator={false}
       >
@@ -755,7 +755,7 @@ export default function ContactScreen({ navigation }) {
                     </TouchableOpacity>
                     
                     <ScrollView 
-                      style={Platform.OS === 'web' ? [styles.questionsScrollView, { overflowY: 'auto' }] : styles.questionsScrollView}
+                      style={Platform.OS === 'web' ? [styles.questionsScrollView, { // overflowY: 'auto' }] : styles.questionsScrollView}
                       contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
                       nestedScrollEnabled={true}
                       showsVerticalScrollIndicator={false}

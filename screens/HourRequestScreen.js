@@ -951,8 +951,8 @@ export default function HourRequestScreen({ navigation }) {
         style={styles.keyboardAvoid}
       >
         <ScrollView
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
-          contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Animated Header */}
@@ -1218,6 +1218,12 @@ const styles = StyleSheet.create({
   },
   keyboardAvoid: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',

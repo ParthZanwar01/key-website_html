@@ -588,7 +588,7 @@ export default function EventCreationScreen({ route, navigation }) {
         style={styles.keyboardAvoid}
       >
         <ScrollView 
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          style={Platform.OS === 'web' ? { flex: 1, // overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
           showsVerticalScrollIndicator={false}
         >

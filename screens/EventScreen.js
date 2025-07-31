@@ -210,8 +210,8 @@ export default function EventScreen({ route, navigation }) {
         style={styles.keyboardAvoid}
       >
         <ScrollView
-          style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
-          contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.eventDetails}>
@@ -434,6 +434,12 @@ const styles = StyleSheet.create({
   },
   keyboardAvoid: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   loadingContainer: {
     flex: 1,

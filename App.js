@@ -8,6 +8,7 @@ import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
 import AppNavigator from './navigation/AppNavigator';
 import { preventFocusOnHidden } from './utils/AccessibilityHelper';
+import { applyChromeOptimizations } from './utils/ChromeCompatibilityHelper';
 
 function AuthenticatedApp() {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -33,6 +34,8 @@ export default function App() {
       style.textContent = `
         body {
           overflow: auto !important;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         html {
           overflow: auto !important;
@@ -56,22 +59,42 @@ export default function App() {
         [aria-hidden="true"] {
           tabindex: -1 !important;
         }
+        /* Fix Chrome-specific rendering issues */
+        * {
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+        }
+        /* Prevent layout shifts */
+        .scroll-view {
+          will-change: auto !important;
+        }
+        /* Fix for HP Envy Chrome compatibility */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+          * {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+          }
+        }
       `;
       document.head.appendChild(style);
       
       // Apply focus management
       preventFocusOnHidden();
       
+      // Apply Chrome-specific optimizations for HP Envy and similar devices
+      applyChromeOptimizations();
+      
       // Set up a mutation observer to handle dynamically added elements
       const observer = new MutationObserver(() => {
         preventFocusOnHidden();
+        applyChromeOptimizations();
       });
       
       observer.observe(document.body, {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['aria-hidden']
+        attributeFilter: ['aria-hidden', 'style']
       });
       
       return () => {
