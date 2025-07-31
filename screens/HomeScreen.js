@@ -1,16 +1,19 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Modal, Alert, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, Modal, Alert, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useHours } from '../contexts/HourContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop, RadialGradient } from 'react-native-svg';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+const GLOW_ANIMATION_DURATION = 1200;
+
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#1a365d',
   },
@@ -19,58 +22,180 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' && { minHeight: '100vh' }),
   },
   scrollContainer: {
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: 'center',
+    flexGrow: 1,
     minHeight: screenHeight,
+    padding: 20,
+    paddingTop: 100,
+  },
+  welcome: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#e2e8f0',
+    textAlign: 'center',
+    marginBottom: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 40,
+    color: '#ffffff',
     textAlign: 'center',
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: 'white',
-    marginTop: 10,
+    color: '#cbd5e0',
     textAlign: 'center',
+    marginBottom: 30,
+    opacity: 0.9,
   },
-  buttonContainer: {
-    width: '100%',
-    marginTop: 30,
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
-  button: {
-    width: '100%',
-    backgroundColor: '#4a90e2',
-    marginBottom: 12,
-    paddingVertical: 15,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  profileCard: {
-    backgroundColor: '#102644',
+  hoursCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
     padding: 20,
-    marginTop: 40,
-    width: '100%',
-    borderRadius: 10,
-    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  profileName: {
-    color: 'white',
+  hoursHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  hoursInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  hoursCardLabel: {
+    color: '#e2e8f0',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  hoursCardValue: {
     fontWeight: 'bold',
+    color: '#4299e1',
+    fontSize: 24,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  progressRing: {
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  progressTextContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  progressText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4299e1',
+    textAlign: 'center',
+  },
+  progressSubtext: {
+    fontSize: 12,
+    color: '#cbd5e0',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  requestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4299e1',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  requestButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  debugButton: {
+    backgroundColor: '#e53e3e',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 10,
+    alignSelf: 'center',
+  },
+  debugButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  adminCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  adminTitle: {
+    fontWeight: 'bold',
+    color: '#4299e1',
+    marginBottom: 15,
     fontSize: 18,
   },
-  profileRole: {
-    color: 'lightgray',
-    fontSize: 12,
-    marginTop: 5,
+  adminButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  adminButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4299e1',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 16,
+    flex: 0.48,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  adminButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 14,
   },
   
   // Hamburger Menu Styles
@@ -113,8 +238,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 20,
-    flexDirection: 'column',
-    flex: 1,
+    flexDirection: 'column', // Make sidebar a column
+    flex: 1, // Fill available space
     zIndex: 10000,
     overflow: 'hidden',
   },
@@ -152,7 +277,7 @@ const styles = StyleSheet.create({
   menuItems: {
     flex: 1,
     paddingTop: 20,
-    marginTop: Platform.OS === 'web' ? 20 : 0,
+    marginTop: Platform.OS === 'web' ? 20 : 0, // Move menu items down a bit on web only
     overflow: 'auto',
   },
   menuItem: {
@@ -204,7 +329,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#e53e3e',
   },
+  glowCircle: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 100,
+    height: 100,
+    zIndex: 1,
+  },
 });
+
+// Helper for Animated SVG Circle
+import { Animated as RNAnimated } from 'react-native';
+const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
 
 export default function HomeScreen() {
   const { user, isAdmin, logout } = useAuth();
@@ -216,7 +353,13 @@ export default function HomeScreen() {
   const [previousHours, setPreviousHours] = useState(0);
   
   // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const menuSlideAnim = useRef(new Animated.Value(-300)).current;
+  const menuFadeAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   // Load current hours when component mounts
   useEffect(() => {
@@ -224,21 +367,107 @@ export default function HomeScreen() {
       if (user?.sNumber && !isAdmin) {
         const hours = await getStudentHours(user.sNumber);
         setCurrentHours(hours);
+        const progressPercentage = Math.min(hours / 25, 1);
+        progressAnim.setValue(progressPercentage);
       }
       setLoading(false);
     };
     loadCurrentHours();
-  }, [user, getStudentHours, isAdmin]);
+  }, [user, getStudentHours, isAdmin, progressAnim]);
+
+  // Animate progress and glow when hours increase
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshHours = async () => {
+        if (user?.sNumber && !isAdmin) {
+          const hours = await getStudentHours(user.sNumber);
+          if (hours > previousHours && previousHours > 0) {
+            setPreviousHours(currentHours);
+            setCurrentHours(hours);
+            // Animate progress and glow
+            const oldProgress = Math.min(currentHours / 25, 1);
+            const newProgress = Math.min(hours / 25, 1);
+            progressAnim.setValue(oldProgress);
+            Animated.parallel([
+              Animated.timing(progressAnim, {
+                toValue: newProgress,
+                duration: GLOW_ANIMATION_DURATION,
+                useNativeDriver: false,
+              }),
+              Animated.sequence([
+                Animated.timing(glowAnim, {
+                  toValue: 1,
+                  duration: GLOW_ANIMATION_DURATION / 2,
+                  useNativeDriver: false,
+                }),
+                Animated.timing(glowAnim, {
+                  toValue: 0,
+                  duration: GLOW_ANIMATION_DURATION / 2,
+                  useNativeDriver: false,
+                })
+              ])
+            ]).start();
+          } else {
+            setPreviousHours(currentHours);
+            setCurrentHours(hours);
+            progressAnim.setValue(Math.min(hours / 25, 1));
+          }
+        }
+      };
+      refreshHours();
+    }, [user, getStudentHours, isAdmin, progressAnim, currentHours, previousHours])
+  );
+
+  // Simple entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: false,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: false,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, []);
 
   const toggleMenu = () => {
     const toValue = menuVisible ? 0 : 1;
     setMenuVisible(!menuVisible);
     
-    Animated.timing(menuSlideAnim, {
-      toValue: toValue === 1 ? 0 : -300,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    Animated.parallel([
+      Animated.timing(menuSlideAnim, {
+        toValue: toValue === 1 ? 0 : -300,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(menuFadeAnim, {
+        toValue: toValue,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  };
+
+  const sidebarScreenMap = {
+    home: 'Home',
+    events: 'Calendar',
+    reviewHours: 'AdminHourManagement',
+    studentManagement: 'AdminStudentManagement',
+    hourRequest: 'HourRequest',
+    announcements: 'Announcements',
+    officers: 'Officers',
+    help: 'Contact',
+    contact: 'Contact',
+    logout: 'Logout',
   };
 
   const navigateTo = (screen) => {
@@ -324,7 +553,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.safeArea, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
+    <SafeAreaView style={[styles.container, Platform.OS === 'web' && { flex: 1, minHeight: '100vh' }]}>
       {/* Hamburger Button */}
       <LinearGradient
         colors={['#4299e1', '#3182ce']}
@@ -335,61 +564,167 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
+              <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim }
+            ]
+          }}
+        >
+        <Text style={styles.welcome}>
+          Welcome, {user?.name || user?.sNumber || 'Member'}
+        </Text>
+        
+        <Image 
+          source={require('../assets/images/keyclublogo-modified.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        
         <Text style={styles.title}>Key Club</Text>
         <Text style={styles.subtitle}>
           {isAdmin ? 'Manage events and oversee club activities' : 'Track events, hours, and stay connected'}
         </Text>
-
-        <View style={styles.buttonContainer}>
-          {isAdmin ? (
-            <>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('studentManagement')}>
-                <Text style={styles.buttonText}>View Registered Users</Text>
+        
+        {!isAdmin ? (
+          <View style={styles.hoursCard}>
+            <View style={styles.hoursHeader}>
+              <Ionicons name="trophy" size={24} color="#4299e1" />
+              <View style={styles.hoursInfo}>
+                <Text style={styles.hoursCardLabel}>Your Progress</Text>
+                <Text style={styles.hoursCardValue}>
+                  {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.progressContainer}>
+              <View style={styles.progressRing}>
+                {/* Animated Glow Effect */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[styles.glowCircle, {
+                    opacity: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 0.7]
+                    })
+                  }]}
+                >
+                  <Svg width="100" height="100">
+                    <Defs>
+                      <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+                        <Stop offset="0%" stopColor="#4299e1" stopOpacity="0.7" />
+                        <Stop offset="100%" stopColor="#4299e1" stopOpacity="0" />
+                      </RadialGradient>
+                    </Defs>
+                    <Circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="url(#glow)"
+                    />
+                  </Svg>
+                </Animated.View>
+                <Svg width="100" height="100">
+                  <Defs>
+                    <SvgLinearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <Stop offset="0%" stopColor="#4299e1" />
+                      <Stop offset="100%" stopColor="#3182ce" />
+                    </SvgLinearGradient>
+                  </Defs>
+                  {/* Background circle */}
+                  <Circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    stroke="rgba(66, 153, 225, 0.2)"
+                    strokeWidth="10"
+                    fill="transparent"
+                  />
+                  {/* Progress circle */}
+                  <AnimatedCircle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    stroke="url(#grad)"
+                    strokeWidth="10"
+                    strokeDasharray={`${Math.PI * 90} ${Math.PI * 90}`}
+                    strokeDashoffset={progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [Math.PI * 90, 0]
+                    })}
+                    strokeLinecap="round"
+                    fill="transparent"
+                    opacity={progressAnim.interpolate({
+                      inputRange: [0, 0.8, 1],
+                      outputRange: [0.7, 0.9, 1]
+                    })}
+                  />
+                </Svg>
+                <View style={styles.progressTextContainer}>
+                  <Animated.Text 
+                    style={[
+                      styles.progressText,
+                      {
+                        transform: [{
+                          scale: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 1]
+                          })
+                        }]
+                      }
+                    ]}
+                  >
+                    {loading ? '...' : `${Math.round((currentHours / 25) * 100)}%`}
+                  </Animated.Text>
+                  <Text style={styles.progressSubtext}>
+                    {loading ? '...' : `${currentHours.toFixed(1)} / 25 hours`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.requestButton}
+              onPress={() => navigateTo('hours')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
+              <Text style={styles.requestButtonText}>Request Hours</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.adminCard}>
+            <Text style={styles.adminTitle}>Admin Dashboard</Text>
+            <View style={styles.adminButtons}>
+              <TouchableOpacity
+                style={styles.adminButton}
+                onPress={() => navigateTo('calendar')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="calendar" size={18} color="#ffffff" />
+                <Text style={styles.adminButtonText}>Create Event</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('calendar')}>
-                <Text style={styles.buttonText}>Check In Members</Text>
+              
+              <TouchableOpacity
+                style={styles.adminButton}
+                onPress={() => navigateTo('hours')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="time" size={18} color="#ffffff" />
+                <Text style={styles.adminButtonText}>Review Hours</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('announcements')}>
-                <Text style={styles.buttonText}>Send Announcements</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('calendar')}>
-                <Text style={styles.buttonText}>Manage Events</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('hours')}>
-                <Text style={styles.buttonText}>Review Volunteer Logs</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('calendar')}>
-                <Text style={styles.buttonText}>View Events</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('hours')}>
-                <Text style={styles.buttonText}>Request Hours</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('announcements')}>
-                <Text style={styles.buttonText}>View Announcements</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.button} onPress={() => navigateTo('officers')}>
-                <Text style={styles.buttonText}>Meet Officers</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        <View style={styles.profileCard}>
-          <Text style={styles.profileName}>
-            {user?.name || user?.sNumber || 'Member'}
-          </Text>
-          <Text style={styles.profileRole}>
-            {isAdmin ? 'Administrator' : 'Student'}
-          </Text>
-        </View>
+            </View>
+          </View>
+        )}
+        </Animated.View>
       </ScrollView>
 
       {/* Hamburger Menu Modal */}
