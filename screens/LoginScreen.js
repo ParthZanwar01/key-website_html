@@ -45,6 +45,7 @@ export default function LoginScreen() {
         <ScrollView 
           style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
+          showsVerticalScrollIndicator={true}
         >
           <View style={styles.loginCard}>
             <Text style={styles.title}>Admin Login</Text>

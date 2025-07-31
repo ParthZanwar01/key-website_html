@@ -665,7 +665,7 @@ export default function OfficersScreen({ navigation }) {
         <ScrollView 
           style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
           contentContainerStyle={Platform.OS === 'web' ? [styles.webContainer, { padding: 20, justifyContent: 'flex-start' }] : [styles.webContainer, { padding: 20 }]}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
         >
           <View style={[styles.webGrid, { maxWidth: 1400, alignSelf: 'center' }]}>
             {officers.map((item, index) => 
@@ -737,7 +737,7 @@ export default function OfficersScreen({ navigation }) {
         contentContainerStyle={styles.listContainer}
         numColumns={numColumns}
         key={numColumns} // Force re-render when columns change
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
       />
     </SafeAreaView>
   );

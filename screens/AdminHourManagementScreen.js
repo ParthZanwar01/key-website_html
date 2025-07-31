@@ -766,7 +766,7 @@ export default function AdminHourManagementScreen({ navigation }) {
             tintColor="#ffd60a"
           />
         }
-        showsVerticalScrollIndicator={false}
+                  showsVerticalScrollIndicator={true}
       />
 
       {/* Review Modal */}

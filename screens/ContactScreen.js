@@ -655,7 +655,7 @@ export default function ContactScreen({ navigation }) {
       <ScrollView 
         style={Platform.OS === 'web' ? [styles.scrollView, { overflowY: 'auto' }] : styles.scrollView} 
         contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
       >
 
         {/* Admin Section - Support Questions Management */}
@@ -758,7 +758,7 @@ export default function ContactScreen({ navigation }) {
                       style={Platform.OS === 'web' ? [styles.questionsScrollView, { overflowY: 'auto' }] : styles.questionsScrollView}
                       contentContainerStyle={Platform.OS === 'web' ? { flexGrow: 1 } : undefined}
                       nestedScrollEnabled={true}
-                      showsVerticalScrollIndicator={false}
+                      showsVerticalScrollIndicator={true}
                     >
                       {getSortedQuestions().slice(0, 10).map(renderSupportQuestion)}
                       {supportQuestions.length > 10 && (

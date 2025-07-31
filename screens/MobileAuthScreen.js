@@ -195,7 +195,7 @@ export default function MobileAuthScreen({ navigation }) {
       <ScrollView 
         style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
         contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.socialButtonsContainer}>
@@ -292,7 +292,7 @@ export default function MobileAuthScreen({ navigation }) {
       <ScrollView 
         style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
         contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.socialButtonsContainer}>

@@ -66,6 +66,7 @@ export default function StudentLoginScreen({ navigation }) {
         <ScrollView
           contentContainerStyle={Platform.OS === 'web' ? [styles.scrollContent, { justifyContent: 'flex-start' }] : styles.scrollContent}
           style={Platform.OS === 'web' ? { flex: 1, overflowY: 'auto' } : undefined}
+          showsVerticalScrollIndicator={true}
         >
           <View style={styles.loginCard}>
             <View style={styles.headerContainer}>
