@@ -807,7 +807,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </Animated.View>
-        </Animated.View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
