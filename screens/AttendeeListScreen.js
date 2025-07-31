@@ -102,6 +102,7 @@ export default function AttendeeListScreen({ route, navigation }) {
           keyExtractor={(_, index) => index.toString()}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>

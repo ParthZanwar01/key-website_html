@@ -33,15 +33,15 @@ export default function App() {
       const style = document.createElement('style');
       style.textContent = `
         body {
-          overflow: auto !important;
+          overflow: hidden !important;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
         html {
-          overflow: auto !important;
+          overflow: hidden !important;
         }
         #root {
-          overflow: auto !important;
+          overflow: hidden !important;
         }
         /* Fix ARIA accessibility issues */
         [aria-hidden="true"] {

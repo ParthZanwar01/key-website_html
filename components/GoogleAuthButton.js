@@ -52,7 +52,7 @@ const GoogleAuthButton = ({ onAuthSuccess, style }) => {
       const authWindow = window.open(
         authUrl,
         'google-oauth',
-        'width=500,height=600,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
+        'width=500,height=600,scrollbars=no,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
       );
       
       // Check if popup was blocked

@@ -89,6 +89,7 @@ export default function AdminStudentManagementScreen({ navigation }) {
             </TouchableOpacity>
           )}
           contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
         />
       )}
       <Modal

@@ -215,6 +215,7 @@ export default function EventDeletionScreen({ navigation }) {
           </View>
         )}
         keyExtractor={(_, index) => index.toString()}
+        showsVerticalScrollIndicator={false}
       />
 
       <ConfirmationDialog

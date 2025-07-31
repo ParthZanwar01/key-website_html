@@ -35,9 +35,9 @@ export const fixChromeLayout = () => {
         flex-direction: column !important;
       }
       
-      /* Prevent Chrome from creating extra scrollbars */
+      /* Disabled scrollbar prevention */
       .scroll-container {
-        overflow: hidden !important;
+        /* overflow: hidden !important; */
       }
       
       /* Fix for Chrome's transform rendering */
