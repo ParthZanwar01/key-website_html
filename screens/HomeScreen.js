@@ -497,6 +497,12 @@ export default function HomeScreen() {
         navigation.navigate('Contact');
       } else if (screen === 'studentManagement') {
         navigation.navigate('AdminStudentManagement');
+      } else if (screen === 'meetingAttendance') {
+        if (isAdmin) {
+          navigation.navigate('AdminMeetingManagement');
+        } else {
+          navigation.navigate('StudentMeetingAttendance');
+        }
       } else if (screen === 'AdminMeetingManagement') {
         navigation.navigate('AdminMeetingManagement');
       } else if (screen === 'StudentMeetingAttendance') {
@@ -722,25 +728,33 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.adminCard}>
             <Text style={styles.adminTitle}>Admin Dashboard</Text>
-            <View style={styles.adminButtons}>
-              <TouchableOpacity
-                style={styles.adminButton}
-                onPress={() => navigateTo('calendar')}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="calendar" size={18} color="#ffffff" />
-                <Text style={styles.adminButtonText}>Create Event</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.adminButton}
-                onPress={() => navigateTo('hours')}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="time" size={18} color="#ffffff" />
-                <Text style={styles.adminButtonText}>Review Hours</Text>
-              </TouchableOpacity>
-            </View>
+            
+            <TouchableOpacity
+              style={styles.adminButtonFull}
+              onPress={() => navigateTo('calendar')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="calendar" size={20} color="#ffffff" />
+              <Text style={styles.adminButtonFullText}>Create Event</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.adminButtonFull}
+              onPress={() => navigateTo('hours')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="time" size={20} color="#ffffff" />
+              <Text style={styles.adminButtonFullText}>Review Hours</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.adminButtonFull}
+              onPress={() => navigateTo('meetingAttendance')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="people" size={20} color="#ffffff" />
+              <Text style={styles.adminButtonFullText}>Meeting Management</Text>
+            </TouchableOpacity>
           </View>
         )}
         </Animated.View>
