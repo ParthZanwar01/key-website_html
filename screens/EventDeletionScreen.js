@@ -10,29 +10,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 import { Ionicons } from '@expo/vector-icons';
-import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function EventDeletionScreen({ navigation }) {
   const { events, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
+  const { showModal } = useModal();
   const [loading, setLoading] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState({});
-
-  const [confirmDialog, setConfirmDialog] = useState({
-    visible: false,
-    type: 'single',
-    eventId: null,
-    eventTitle: '',
-    count: 0
-  });
-
-  const [messageDialog, setMessageDialog] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    isError: false
-  });
 
   useEffect(() => {
     if (!isAdmin) {
@@ -65,13 +51,17 @@ export default function EventDeletionScreen({ navigation }) {
     setSelectedEvents({});
     await refreshEvents();
 
-    setMessageDialog({
-      visible: true,
+    showModal({
       title: errorCount ? 'Partial Success' : 'Success',
       message: errorCount
         ? `Deleted ${successCount}, failed ${errorCount}`
         : `Deleted ${successCount} successfully`,
-      isError: !!errorCount
+      onCancel: () => {},
+      onConfirm: () => {},
+      cancelText: '',
+      confirmText: 'OK',
+      icon: errorCount ? 'alert-circle' : 'checkmark-circle',
+      iconColor: errorCount ? '#ff4d4d' : '#4CAF50'
     });
 
     if (!errorCount) {
@@ -100,48 +90,67 @@ export default function EventDeletionScreen({ navigation }) {
 
   const handleSingleDelete = id => {
     const evt = events.find(e => e.id === id);
-    setConfirmDialog({
-      visible: true,
-      type: 'single',
-      eventId: id,
-      eventTitle: evt?.title || 'this event',
-      count: 1
+    showModal({
+      title: 'Confirm Deletion',
+      message: `Delete ${evt?.title || 'this event'}?`,
+      onCancel: () => {},
+      onConfirm: () => confirmSingleDeletion(id),
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      icon: 'alert-circle',
+      iconColor: '#ff4d4d'
     });
   };
 
   const handleMultipleDelete = () => {
     const count = Object.values(selectedEvents).filter(Boolean).length;
-    setConfirmDialog({ visible: true, type: 'multiple', count });
+    showModal({
+      title: 'Confirm Deletion',
+      message: `Delete ${count} selected events?`,
+      onCancel: () => {},
+      onConfirm: confirmMultipleDeletion,
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      icon: 'alert-circle',
+      iconColor: '#ff4d4d'
+    });
   };
 
-  const confirmDeletion = async () => {
-    setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 });
+  const confirmSingleDeletion = async (eventId) => {
     setLoading(true);
     try {
-      if (confirmDialog.type === 'single') {
-        await deleteEvent(confirmDialog.eventId);
-        await refreshEvents();
-        setMessageDialog({
-          visible: true,
-          title: 'Success',
-          message: 'Event deleted successfully',
-          isError: false
-        });
-        setTimeout(() => navigation.navigate('CalendarMain'), 1500);
-      } else {
-        await deleteSelectedEvents();
-      }
+      await deleteEvent(eventId);
+      await refreshEvents();
+      showModal({
+        title: 'Success',
+        message: 'Event deleted successfully',
+        onCancel: () => { navigation.navigate('CalendarMain'); },
+        onConfirm: () => { navigation.navigate('CalendarMain'); },
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
+      });
+      setTimeout(() => navigation.navigate('CalendarMain'), 1500);
     } catch (e) {
       console.error(e);
-      setMessageDialog({
-        visible: true,
+      showModal({
         title: 'Error',
-        message: 'Failed to delete event(s)',
-        isError: true
+        message: 'Failed to delete event',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmMultipleDeletion = async () => {
+    await deleteSelectedEvents();
   };
 
   const renderEventItem = ({ item }) => (
@@ -218,31 +227,7 @@ export default function EventDeletionScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       />
 
-      <ConfirmationDialog
-        visible={confirmDialog.visible}
-        title="Confirm Deletion"
-        message={confirmDialog.type === 'single'
-          ? `Delete ${confirmDialog.eventTitle}?`
-          : `Delete ${confirmDialog.count} selected events?`}
-        onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
-        onConfirm={confirmDeletion}
-        cancelText="Cancel"
-        confirmText="Delete"
-        icon="alert-circle"
-        iconColor="#ff4d4d"
-      />
 
-      <ConfirmationDialog
-        visible={messageDialog.visible}
-        title={messageDialog.title}
-        message={messageDialog.message}
-        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        cancelText=""
-        confirmText="OK"
-        icon={messageDialog.isError ? 'alert-circle' : 'checkmark-circle'}
-        iconColor={messageDialog.isError ? '#ff4d4d' : '#4CAF50'}
-      />
     </SafeAreaView>
   );
 }

@@ -23,9 +23,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHours } from '../contexts/HourContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
-import ConfirmationDialog from '../components/ConfirmationDialog';
 import * as ImagePicker from 'expo-image-picker';
 // Remove Google Drive dependency - we'll use local storage instead
 
@@ -509,6 +509,7 @@ const SubmittingAnimation = ({ visible, stage, hasImage }) => {
 export default function HourRequestScreen({ navigation }) {
   const { getStudentHours } = useHours();
   const { user } = useAuth();
+  const { showModal } = useModal();
   
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState(new Date());
@@ -526,16 +527,7 @@ export default function HourRequestScreen({ navigation }) {
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
   
-  // Dialog states
-  const [successDialog, setSuccessDialog] = useState({
-    visible: false,
-    message: ''
-  });
-  
-  const [errorDialog, setErrorDialog] = useState({
-    visible: false,
-    message: ''
-  });
+
 
   const headerAnim = useRef(new Animated.Value(-100)).current;
   const hoursCardAnim = useRef(new Animated.Value(0)).current;
@@ -712,9 +704,15 @@ export default function HourRequestScreen({ navigation }) {
     const hours = parseFloat(hoursRequested);
     if (isNaN(hours) || hours <= 0 || hours > 24) {
       console.log('❌ Validation failed: invalid hours value:', hoursRequested);
-      setErrorDialog({
-        visible: true,
-        message: 'Please enter a valid number of hours (0.1 - 24.0)'
+      showModal({
+        title: 'Error',
+        message: 'Please enter a valid number of hours (0.1 - 24.0)',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
@@ -779,9 +777,15 @@ export default function HourRequestScreen({ navigation }) {
           }
         }
         
-        setSuccessDialog({
-          visible: true,
-          message: successMessage
+        showModal({
+          title: 'Success',
+          message: successMessage,
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50'
         });
         
         // Clear form
@@ -801,17 +805,29 @@ export default function HourRequestScreen({ navigation }) {
       } else {
         console.error('❌ Service returned failure:', result);
         
-        setErrorDialog({
-          visible: true,
-          message: (result && result.error) || 'Unknown error occurred'
+        showModal({
+          title: 'Error',
+          message: (result && result.error) || 'Unknown error occurred',
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'alert-circle',
+          iconColor: '#ff4d4d'
         });
       }
       
     } catch (error) {
       console.error('💥 handleSubmitRequest caught error:', error);
-      setErrorDialog({
-        visible: true,
-        message: `Unexpected error: ${error.message}`
+      showModal({
+        title: 'Error',
+        message: `Unexpected error: ${error.message}`,
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setLoading(false);
@@ -1105,31 +1121,7 @@ export default function HourRequestScreen({ navigation }) {
         hasImage={!!image}
       />
 
-      {/* Success Dialog */}
-      <ConfirmationDialog
-        visible={successDialog.visible}
-        title="Request Submitted!"
-        message={successDialog.message}
-        onCancel={() => setSuccessDialog({ visible: false, message: '' })}
-        onConfirm={() => setSuccessDialog({ visible: false, message: '' })}
-        cancelText=""
-        confirmText="OK"
-        icon="checkmark-circle"
-        iconColor="#4CAF50"
-      />
 
-      {/* Error Dialog */}
-      <ConfirmationDialog
-        visible={errorDialog.visible}
-        title="Error"
-        message={errorDialog.message}
-        onCancel={() => setErrorDialog({ visible: false, message: '' })}
-        onConfirm={() => setErrorDialog({ visible: false, message: '' })}
-        cancelText=""
-        confirmText="OK"
-        icon="alert-circle"
-        iconColor="#ff4d4d"
-      />
     </SafeAreaView>
   );
 }

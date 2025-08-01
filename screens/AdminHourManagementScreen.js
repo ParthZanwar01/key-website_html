@@ -17,8 +17,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHours } from '../contexts/HourContext';
+import { useModal } from '../contexts/ModalContext';
 import { Ionicons } from '@expo/vector-icons';
-import ConfirmationDialog from '../components/ConfirmationDialog';
 import GoogleDriveService from '../services/GoogleDriveService';
 import SimpleDriveService from '../services/SimpleDriveService';
 import GoogleAuthButton from '../components/GoogleAuthButton';
@@ -33,6 +33,7 @@ export default function AdminHourManagementScreen({ navigation }) {
     updateHourRequestStatus, 
     refreshHourRequests 
   } = useHours();
+  const { showModal } = useModal();
   
   const [allRequests, setAllRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
@@ -64,19 +65,7 @@ export default function AdminHourManagementScreen({ navigation }) {
     imageData: null
   });
   
-  const [confirmDialog, setConfirmDialog] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    onConfirm: null
-  });
-  
-  const [messageDialog, setMessageDialog] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    isError: false
-  });
+
 
   useEffect(() => {
     // Load data first
@@ -152,11 +141,15 @@ export default function AdminHourManagementScreen({ navigation }) {
     } catch (error) {
       console.error('❌ Error loading requests:', error);
       // Show error message to user
-      setMessageDialog({
-        visible: true,
+      showModal({
         title: 'Error',
         message: `Failed to load hour requests: ${error.message}`,
-        isError: true
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setLoading(false);
@@ -274,29 +267,41 @@ export default function AdminHourManagementScreen({ navigation }) {
       );
 
       if (result) {
-        setMessageDialog({
-          visible: true,
+        showModal({
           title: 'Success',
           message: `Request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`,
-          isError: false
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50'
         });
 
         // Refresh data
         await loadData();
       } else {
-        setMessageDialog({
-          visible: true,
+        showModal({
           title: 'Error',
           message: 'Failed to update request status',
-          isError: true
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'alert-circle',
+          iconColor: '#ff4d4d'
         });
       }
     } catch (error) {
-      setMessageDialog({
-        visible: true,
+      showModal({
         title: 'Error',
         message: 'An error occurred while processing the request',
-        isError: true
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setProcessingRequests(prev => {
@@ -921,27 +926,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* Confirmation Dialog */}
-      <ConfirmationDialog
-        visible={confirmDialog.visible}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        onCancel={() => setConfirmDialog({ visible: false, title: '', message: '', onConfirm: null })}
-        onConfirm={confirmDialog.onConfirm}
-      />
 
-      {/* Message Dialog */}
-      <ConfirmationDialog
-        visible={messageDialog.visible}
-        title={messageDialog.title}
-        message={messageDialog.message}
-        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        cancelText=""
-        confirmText="OK"
-        icon={messageDialog.isError ? "alert-circle" : "checkmark-circle"}
-        iconColor={messageDialog.isError ? "#ff4d4d" : "#4CAF50"}
-      />
     </SafeAreaView>
   );
 }

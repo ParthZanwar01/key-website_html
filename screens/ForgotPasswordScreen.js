@@ -13,9 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import SupabaseService from '../services/SupabaseService';
-import ConfirmationDialog from '../components/ConfirmationDialog';
+import { useModal } from '../contexts/ModalContext';
 
 export default function ForgotPasswordScreen({ navigation }) {
+  const { showModal } = useModal();
   const [sNumber, setSNumber] = useState('');
   const [name, setName] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,33 +25,33 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [step, setStep] = useState('verify'); // 'verify', 'reset'
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  // Dialog states
-  const [successDialog, setSuccessDialog] = useState({
-    visible: false,
-    title: '',
-    message: ''
-  });
-  
-  const [errorDialog, setErrorDialog] = useState({
-    visible: false,
-    message: ''
-  });
 
   // Step 1: Verify S-Number and Name
   const handleVerifyCredentials = async () => {
     if (!sNumber.trim() || !name.trim()) {
-      setErrorDialog({
-        visible: true,
-        message: 'Please enter both your S-Number and name.'
+      showModal({
+        title: 'Error',
+        message: 'Please enter both your S-Number and name.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
 
     if (!sNumber.toLowerCase().startsWith('s')) {
-      setErrorDialog({
-        visible: true,
-        message: 'Please enter a valid S-Number starting with "s" (e.g., s150712).'
+      showModal({
+        title: 'Error',
+        message: 'Please enter a valid S-Number starting with "s" (e.g., s150712).',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
@@ -62,9 +63,15 @@ export default function ForgotPasswordScreen({ navigation }) {
       // Check if student exists and verify name
       const student = await SupabaseService.getStudent(sNumber);
       if (!student) {
-        setErrorDialog({
-          visible: true,
-          message: 'S-Number not found in our system. Please check your S-Number or contact your Key Club sponsor.'
+        showModal({
+          title: 'Error',
+          message: 'S-Number not found in our system. Please check your S-Number or contact your Key Club sponsor.',
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'alert-circle',
+          iconColor: '#ff4d4d'
         });
         setLoading(false);
         return;
@@ -73,9 +80,15 @@ export default function ForgotPasswordScreen({ navigation }) {
       // Check if they have an account
       const authUser = await SupabaseService.getAuthUser(sNumber);
       if (!authUser) {
-        setErrorDialog({
-          visible: true,
-          message: 'No account found for this S-Number. Please use the registration process to create an account first.'
+        showModal({
+          title: 'Error',
+          message: 'No account found for this S-Number. Please use the registration process to create an account first.',
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'alert-circle',
+          iconColor: '#ff4d4d'
         });
         setLoading(false);
         return;
@@ -86,9 +99,15 @@ export default function ForgotPasswordScreen({ navigation }) {
       const enteredName = name.toLowerCase().trim();
       
       if (storedName !== enteredName) {
-        setErrorDialog({
-          visible: true,
-          message: 'The name you entered does not match our records. Please check your spelling and try again.'
+        showModal({
+          title: 'Error',
+          message: 'The name you entered does not match our records. Please check your spelling and try again.',
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'alert-circle',
+          iconColor: '#ff4d4d'
         });
         setLoading(false);
         return;
@@ -96,17 +115,28 @@ export default function ForgotPasswordScreen({ navigation }) {
 
       // Verification successful
       setStep('reset');
-      setSuccessDialog({
-        visible: true,
+      showModal({
         title: 'Identity Verified',
-        message: `Welcome ${student.name}! You can now set a new password for your account.`
+        message: `Welcome ${student.name}! You can now set a new password for your account.`,
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
       });
       
     } catch (error) {
       console.error('Verification error:', error);
-      setErrorDialog({
-        visible: true,
-        message: error.message || 'Failed to verify your information. Please try again.'
+      showModal({
+        title: 'Error',
+        message: error.message || 'Failed to verify your information. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setLoading(false);
@@ -116,25 +146,43 @@ export default function ForgotPasswordScreen({ navigation }) {
   // Step 2: Set new password
   const handleResetPassword = async () => {
     if (!newPassword.trim() || !confirmPassword.trim()) {
-      setErrorDialog({
-        visible: true,
-        message: 'Please fill in both password fields.'
+      showModal({
+        title: 'Error',
+        message: 'Please fill in both password fields.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorDialog({
-        visible: true,
-        message: 'Passwords do not match. Please try again.'
+      showModal({
+        title: 'Error',
+        message: 'Passwords do not match. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorDialog({
-        visible: true,
-        message: 'Password must be at least 6 characters long.'
+      showModal({
+        title: 'Error',
+        message: 'Password must be at least 6 characters long.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
@@ -143,10 +191,15 @@ export default function ForgotPasswordScreen({ navigation }) {
     try {
       await SupabaseService.resetStudentPassword(sNumber, newPassword);
       
-      setSuccessDialog({
-        visible: true,
+      showModal({
         title: 'Password Reset Complete',
-        message: 'Your password has been successfully reset! You can now log in with your new password.'
+        message: 'Your password has been successfully reset! You can now log in with your new password.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
       });
       
       // Navigate to login after success
@@ -159,9 +212,15 @@ export default function ForgotPasswordScreen({ navigation }) {
       
     } catch (error) {
       console.error('Password reset error:', error);
-      setErrorDialog({
-        visible: true,
-        message: error.message || 'Failed to reset password. Please try again.'
+      showModal({
+        title: 'Error',
+        message: error.message || 'Failed to reset password. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setLoading(false);
@@ -394,31 +453,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Success Dialog */}
-      <ConfirmationDialog
-        visible={successDialog.visible}
-        title={successDialog.title}
-        message={successDialog.message}
-        onCancel={() => setSuccessDialog({ visible: false, title: '', message: '' })}
-        onConfirm={() => setSuccessDialog({ visible: false, title: '', message: '' })}
-        cancelText=""
-        confirmText="OK"
-        icon="checkmark-circle"
-        iconColor="#4CAF50"
-      />
 
-      {/* Error Dialog */}
-      <ConfirmationDialog
-        visible={errorDialog.visible}
-        title="Error"
-        message={errorDialog.message}
-        onCancel={() => setErrorDialog({ visible: false, message: '' })}
-        onConfirm={() => setErrorDialog({ visible: false, message: '' })}
-        cancelText=""
-        confirmText="OK"
-        icon="alert-circle"
-        iconColor="#ff4d4d"
-      />
     </SafeAreaView>
   );
 }

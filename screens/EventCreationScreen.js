@@ -20,9 +20,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
-import ConfirmationDialog from '../components/ConfirmationDialog';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -34,6 +34,7 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function EventCreationScreen({ route, navigation }) {
   const { addEvent, getEventById, updateEvent } = useEvents();
   const { isAdmin } = useAuth();
+  const { showModal } = useModal();
   
   // Check if we're editing an existing event
   const { eventId, isEditing } = route.params || {};
@@ -66,18 +67,7 @@ export default function EventCreationScreen({ route, navigation }) {
   const successAnim = useRef(new Animated.Value(0)).current;
   const colorSelectorAnim = useRef(new Animated.Value(1)).current;
   
-  // State for confirmation dialogs
-  const [successDialog, setSuccessDialog] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    onConfirm: null
-  });
-  
-  const [errorDialog, setErrorDialog] = useState({
-    visible: false,
-    message: ''
-  });
+
 
   // Initialize form animations
   useEffect(() => {
@@ -222,9 +212,15 @@ export default function EventCreationScreen({ route, navigation }) {
         }),
       ]).start();
 
-      setErrorDialog({
-        visible: true,
-        message: 'Please fill in all required fields'
+      showModal({
+        title: 'Error',
+        message: 'Please fill in all required fields',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
       return;
     }
@@ -268,14 +264,15 @@ export default function EventCreationScreen({ route, navigation }) {
         // Success animation
         await animateSuccess();
         
-        setSuccessDialog({
-          visible: true,
+        showModal({
           title: 'Event Updated! ✨',
           message: `"${title}" has been successfully updated with all your changes.`,
-          onConfirm: () => {
-            setSuccessDialog({ visible: false, title: '', message: '', onConfirm: null });
-            navigation.goBack();
-          }
+          onCancel: () => { navigation.goBack(); },
+          onConfirm: () => { navigation.goBack(); },
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50'
         });
       } else {
         // Create new event
@@ -299,14 +296,15 @@ export default function EventCreationScreen({ route, navigation }) {
         // Success animation
         await animateSuccess();
         
-        setSuccessDialog({
-          visible: true,
+        showModal({
           title: 'Event Created! 🎉',
           message: `"${title}" has been successfully created and added to the calendar. People can now sign up for this amazing event!`,
-          onConfirm: () => {
-            setSuccessDialog({ visible: false, title: '', message: '', onConfirm: null });
-            navigation.navigate('Calendar');
-          }
+          onCancel: () => { navigation.navigate('Calendar'); },
+          onConfirm: () => { navigation.navigate('Calendar'); },
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50'
         });
       }
     } catch (err) {
@@ -327,9 +325,15 @@ export default function EventCreationScreen({ route, navigation }) {
         }),
       ]).start();
       
-      setErrorDialog({
-        visible: true,
-        message: isEditing ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.'
+      showModal({
+        title: 'Error',
+        message: isEditing ? 'Failed to update event. Please try again.' : 'Failed to create event. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     } finally {
       setLoading(false);
@@ -920,31 +924,7 @@ export default function EventCreationScreen({ route, navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Success Dialog */}
-      <ConfirmationDialog
-        visible={successDialog.visible}
-        title={successDialog.title}
-        message={successDialog.message}
-        onCancel={successDialog.onConfirm}
-        onConfirm={successDialog.onConfirm}
-        cancelText=""
-        confirmText="Awesome! 🎉"
-        icon="checkmark-circle"
-        iconColor="#4CAF50"
-      />
 
-      {/* Error Dialog */}
-      <ConfirmationDialog
-        visible={errorDialog.visible}
-        title="Oops! 😅"
-        message={errorDialog.message}
-        onCancel={() => setErrorDialog({ visible: false, message: '' })}
-        onConfirm={() => setErrorDialog({ visible: false, message: '' })}
-        cancelText=""
-        confirmText="Try Again"
-        icon="alert-circle"
-        iconColor="#ff4d4d"
-      />
     </SafeAreaView>
   );
 }

@@ -16,8 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 import { Ionicons } from '@expo/vector-icons';
-import ConfirmationDialog from '../components/ConfirmationDialog';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Enable LayoutAnimation on Android
@@ -30,6 +30,7 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 export default function CalendarScreen({ navigation, route }) {
   const { events, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin, logout } = useAuth();
+  const { showModal } = useModal();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -56,20 +57,7 @@ export default function CalendarScreen({ navigation, route }) {
     eventId: null
   });
   
-  // State for confirmation dialog
-  const [confirmDialog, setConfirmDialog] = useState({
-    visible: false,
-    eventId: null,
-    eventTitle: ''
-  });
-  
-  // State for success/error messages
-  const [messageDialog, setMessageDialog] = useState({
-    visible: false,
-    title: '',
-    message: '',
-    isError: false
-  });
+
 
   // Loading state for refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -371,21 +359,23 @@ export default function CalendarScreen({ navigation, route }) {
         break;
       case 'delete':
         const eventToDelete = events.find(e => e.id === eventId);
-        setConfirmDialog({
-          visible: true,
-          eventId: eventId,
-          eventTitle: eventToDelete ? eventToDelete.title : 'this event'
+        showModal({
+          title: 'Confirm Deletion',
+          message: `Delete ${eventToDelete ? eventToDelete.title : 'this event'}?`,
+          onCancel: () => {},
+          onConfirm: () => handleDeleteConfirm(eventId),
+          cancelText: 'Cancel',
+          confirmText: 'Delete',
+          icon: 'alert-circle',
+          iconColor: '#ff4d4d'
         });
         break;
     }
   };
 
   // Enhanced delete with dramatic animation
-  const handleDeleteConfirm = async () => {
-    const eventId = confirmDialog.eventId;
+  const handleDeleteConfirm = async (eventId) => {
     deletingEventId.current = eventId;
-    
-    setConfirmDialog({ visible: false, eventId: null, eventTitle: '' });
     
     // Create dramatic delete animation
     const animationId = `event_${eventId}`;
@@ -420,11 +410,15 @@ export default function CalendarScreen({ navigation, route }) {
         setRefreshKey(prev => prev + 1);
         
         // Success animation
-        setMessageDialog({
-          visible: true,
+        showModal({
           title: 'Success',
           message: 'Event deleted successfully',
-          isError: false
+          onCancel: () => {},
+          onConfirm: () => {},
+          cancelText: '',
+          confirmText: 'OK',
+          icon: 'checkmark-circle',
+          iconColor: '#4CAF50'
         });
 
         // Clean up animation ref
@@ -443,11 +437,15 @@ export default function CalendarScreen({ navigation, route }) {
         useNativeDriver: false,
       }).start();
       
-      setMessageDialog({
-        visible: true,
+      showModal({
         title: 'Error',
         message: 'Failed to delete event. Please try again.',
-        isError: true
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
       });
     }
   };
@@ -781,31 +779,7 @@ export default function CalendarScreen({ navigation, route }) {
         </Animated.View>
       )}
 
-      {/* Confirmation Dialog */}
-      <ConfirmationDialog
-        visible={confirmDialog.visible}
-        title="Delete Event"
-        message={`Are you sure you want to delete "${confirmDialog.eventTitle}"? This action cannot be undone.`}
-        onCancel={() => setConfirmDialog({ visible: false, eventId: null, eventTitle: '' })}
-        onConfirm={handleDeleteConfirm}
-        cancelText="Cancel"
-        confirmText="Delete"
-        destructive={true}
-        icon="trash-outline"
-      />
 
-      {/* Message Dialog (Success/Error) */}
-      <ConfirmationDialog
-        visible={messageDialog.visible}
-        title={messageDialog.title}
-        message={messageDialog.message}
-        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        cancelText=""
-        confirmText="OK"
-        icon={messageDialog.isError ? "alert-circle" : "checkmark-circle"}
-        iconColor={messageDialog.isError ? "#e53e3e" : "#4CAF50"}
-      />
     </SafeAreaView>
   );
 }

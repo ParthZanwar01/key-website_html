@@ -14,11 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../contexts/ModalContext';
 import SupabaseService from '../services/SupabaseService';
-import ConfirmationDialog from '../components/ConfirmationDialog';
 
 export default function ContactScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
+  const { showModal } = useModal();
   
   // FAQ dropdown states - start with all collapsed
   const [expandedFaq, setExpandedFaq] = useState(null);
@@ -42,8 +43,6 @@ export default function ContactScreen({ navigation }) {
   
   // Dialog states
   const [dialogs, setDialogs] = useState({
-    error: { visible: false, message: '' },
-    success: { visible: false, message: '' },
     export: { visible: false },
     video: { visible: false, video: null },
     respond: { visible: false, question: null, response: '' }
@@ -85,10 +84,34 @@ export default function ContactScreen({ navigation }) {
 
   // Show dialog helper
   const showDialog = (type, data = {}) => {
-    setDialogs(prev => ({
-      ...prev,
-      [type]: { visible: true, ...data }
-    }));
+    if (type === 'error') {
+      showModal({
+        title: 'Error',
+        message: data.message,
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle',
+        iconColor: '#ff4d4d'
+      });
+    } else if (type === 'success') {
+      showModal({
+        title: 'Success',
+        message: data.message,
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
+      });
+    } else {
+      setDialogs(prev => ({
+        ...prev,
+        [type]: { visible: true, ...data }
+      }));
+    }
   };
 
   // Hide dialog helper
@@ -878,37 +901,7 @@ export default function ContactScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Error Dialog */}
-      <ConfirmationDialog
-        visible={dialogs.error.visible}
-        title="Error"
-        message={dialogs.error.message}
-        onCancel={() => hideDialog('error')}
-        onConfirm={() => hideDialog('error')}
-        cancelText=""
-        confirmText="OK"
-        icon="alert-circle"
-        iconColor="#ff4d4d"
-      />
 
-      {/* Success Dialog */}
-      <ConfirmationDialog
-        visible={dialogs.success.visible}
-        title="Success"
-        message={dialogs.success.message}
-        onCancel={() => {
-          if (dialogs.success.onConfirm) dialogs.success.onConfirm();
-          hideDialog('success');
-        }}
-        onConfirm={() => {
-          if (dialogs.success.onConfirm) dialogs.success.onConfirm();
-          hideDialog('success');
-        }}
-        cancelText=""
-        confirmText="OK"
-        icon="checkmark-circle"
-        iconColor="#4CAF50"
-      />
 
       {/* Export Dialog */}
       <ConfirmationDialog
