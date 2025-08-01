@@ -165,10 +165,8 @@ export default function EventScreen({ route, navigation }) {
 
   if (!event) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text>Loading event...</Text>
-        </View>
+      <View style={styles.loadingContainer}>
+        <Text>Loading event...</Text>
         
         {/* Error dialog for event not found */}
         <ConfirmationDialog
@@ -187,18 +185,16 @@ export default function EventScreen({ route, navigation }) {
           confirmText="OK"
           icon="alert-circle"
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (deleting) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#59a2f0" />
-          <Text style={styles.loadingText}>Deleting event...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#59a2f0" />
+        <Text style={styles.loadingText}>Deleting event...</Text>
+      </View>
     );
   }
 
@@ -214,7 +210,6 @@ export default function EventScreen({ route, navigation }) {
         style={styles.keyboardAvoid}
       >
         <ScrollView>
-          <View style={styles.eventDetails}>
           <View style={styles.eventDetails}>
             {isAdmin && (
               <View style={styles.adminControls}>
@@ -435,12 +430,6 @@ const styles = StyleSheet.create({
   },
   keyboardAvoid: {
     flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
   },
   loadingContainer: {
     flex: 1,
