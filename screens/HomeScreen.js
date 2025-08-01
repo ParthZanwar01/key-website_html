@@ -556,13 +556,6 @@ export default function HomeScreen() {
       action: () => navigateTo('Officers')
     },
     {
-      id: 'contact',
-      title: isAdmin ? 'Help' : 'Contact',
-      icon: isAdmin ? 'help-circle' : 'mail',
-      gradient: ['#ed64a6', '#d53f8c'],
-      action: () => navigateTo('Contact')
-    },
-    {
       id: 'meetingAttendance',
       title: isAdmin ? 'Meeting Management' : 'Meeting Attendance',
       icon: isAdmin ? 'settings' : 'checkmark-circle',
