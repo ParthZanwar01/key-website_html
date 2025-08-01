@@ -30,6 +30,8 @@ import AnimationScreen from '../screens/AnimationScreen';
 import SplashAnimationScreen from '../screens/SplashAnimationScreen'; // New splash screen
 import GoogleDriveService from '../screens/GoogleDriveService';
 import AdminStudentManagementScreen from '../screens/AdminStudentManagementScreen';
+import AdminMeetingManagementScreen from '../screens/AdminMeetingManagementScreen';
+import StudentMeetingAttendanceScreen from '../screens/StudentMeetingAttendanceScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -209,17 +211,34 @@ function MainStackNavigator() {
       />
 
       {isAdmin && (
-        <Stack.Screen
-          name="AdminStudentManagement"
-          component={AdminStudentManagementScreen}
-          options={{
-            headerShown: true,
-            headerTitle: 'Student Management',
-            headerStyle: { backgroundColor: '#1a365d' },
-            headerTintColor: '#fff',
-          }}
-        />
+        <>
+          <Stack.Screen
+            name="AdminStudentManagement"
+            component={AdminStudentManagementScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'Student Management',
+              headerStyle: { backgroundColor: '#1a365d' },
+              headerTintColor: '#fff',
+            }}
+          />
+          <Stack.Screen
+            name="AdminMeetingManagement"
+            component={AdminMeetingManagementScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+        </>
       )}
+
+      <Stack.Screen
+        name="StudentMeetingAttendance"
+        component={StudentMeetingAttendanceScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }

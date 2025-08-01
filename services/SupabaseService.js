@@ -1129,6 +1129,475 @@ class SupabaseService {
       return { data: [], error };
     }
   }
+
+  // ========== MEETING MANAGEMENT ==========
+
+  /**
+   * Generate a random attendance code
+   */
+  static generateAttendanceCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  /**
+   * Get all meetings for the current school year
+   */
+  static async getAllMeetings() {
+    try {
+      console.log('📅 Getting all meetings...');
+      
+      const { data: meetings, error } = await supabase
+        .from('meetings')
+        .select('*')
+        .order('meeting_date', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error getting meetings:', error);
+        throw error;
+      }
+
+      console.log(`✅ Found ${meetings?.length || 0} meetings`);
+      return meetings || [];
+    } catch (error) {
+      console.error('❌ Error getting meetings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get meeting by ID
+   */
+  static async getMeetingById(meetingId) {
+    try {
+      console.log('📅 Getting meeting by ID:', meetingId);
+      
+      const { data: meeting, error } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .single();
+
+      if (error) {
+        console.error('❌ Error getting meeting:', error);
+        throw error;
+      }
+
+      return meeting;
+    } catch (error) {
+      console.error('❌ Error getting meeting by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new meeting
+   */
+  static async createMeeting(meetingData) {
+    try {
+      console.log('📅 Creating new meeting...');
+      
+      const { data: meeting, error } = await supabase
+        .from('meetings')
+        .insert([{
+          meeting_date: meetingData.meetingDate,
+          meeting_type: meetingData.meetingType, // 'morning' or 'afternoon'
+          attendance_code: meetingData.attendanceCode,
+          is_open: meetingData.isOpen || false,
+          created_by: meetingData.createdBy,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating meeting:', error);
+        throw error;
+      }
+
+      console.log('✅ Meeting created successfully:', meeting);
+      return meeting;
+    } catch (error) {
+      console.error('❌ Error creating meeting:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update meeting (open/close attendance, change code, etc.)
+   */
+  static async updateMeeting(meetingId, updateData) {
+    try {
+      console.log('📅 Updating meeting:', meetingId);
+      
+      const { data: meeting, error } = await supabase
+        .from('meetings')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', meetingId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating meeting:', error);
+        throw error;
+      }
+
+      console.log('✅ Meeting updated successfully:', meeting);
+      return meeting;
+    } catch (error) {
+      console.error('❌ Error updating meeting:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a meeting
+   */
+  static async deleteMeeting(meetingId) {
+    try {
+      console.log('🗑️ Deleting meeting:', meetingId);
+      
+      // First, let's check if the meeting exists
+      const { data: existingMeeting, error: checkError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .single();
+
+      if (checkError) {
+        console.error('❌ Error checking if meeting exists:', checkError);
+        throw new Error(`Meeting not found: ${checkError.message}`);
+      }
+
+      console.log('✅ Meeting exists:', existingMeeting);
+      
+      // First delete related attendance records
+      console.log('🗑️ Deleting attendance records for meeting:', meetingId);
+      const { data: attendanceData, error: attendanceError, count: attendanceCount } = await supabase
+        .from('meeting_attendance')
+        .delete()
+        .eq('meeting_id', meetingId)
+        .select();
+
+      if (attendanceError) {
+        console.error('❌ Error deleting attendance records:', attendanceError);
+        throw attendanceError;
+      }
+
+      console.log('✅ Attendance records deleted successfully:', attendanceData);
+      console.log('📊 Attendance records deleted count:', attendanceCount);
+      
+      // Then delete the meeting
+      console.log('🗑️ Deleting meeting record:', meetingId);
+      const { data: meetingData, error: meetingError, count: meetingCount } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId)
+        .select();
+
+      if (meetingError) {
+        console.error('❌ Error deleting meeting:', meetingError);
+        throw meetingError;
+      }
+
+      console.log('✅ Meeting deleted successfully:', meetingData);
+      console.log('📊 Meeting records deleted count:', meetingCount);
+      
+      // Verify deletion
+      const { data: verifyMeeting, error: verifyError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .single();
+
+      if (verifyError && verifyError.code === 'PGRST116') {
+        console.log('✅ Verification: Meeting successfully deleted (not found)');
+      } else if (verifyMeeting) {
+        console.warn('⚠️ Verification: Meeting still exists after deletion attempt');
+        throw new Error('Meeting still exists after deletion attempt');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error deleting meeting:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get attendance for a specific meeting
+   */
+  static async getMeetingAttendance(meetingId) {
+    try {
+      console.log('📊 Getting attendance for meeting:', meetingId);
+      
+      // First get the attendance records
+      const { data: attendance, error } = await supabase
+        .from('meeting_attendance')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .order('submitted_at');
+
+      if (error) {
+        console.error('❌ Error getting meeting attendance:', error);
+        throw error;
+      }
+
+      // Then get student names for each attendance record
+      const attendanceWithNames = await Promise.all(
+        (attendance || []).map(async (record) => {
+          try {
+            const { data: student, error: studentError } = await supabase
+              .from('students')
+              .select('name, s_number')
+              .eq('s_number', record.student_s_number)
+              .single();
+
+            if (studentError) {
+              console.warn(`⚠️ Could not find student for ${record.student_s_number}:`, studentError);
+              return {
+                ...record,
+                students: {
+                  name: 'Unknown Student',
+                  s_number: record.student_s_number
+                }
+              };
+            }
+
+            return {
+              ...record,
+              students: student
+            };
+          } catch (error) {
+            console.warn(`⚠️ Error getting student info for ${record.student_s_number}:`, error);
+            return {
+              ...record,
+              students: {
+                name: 'Unknown Student',
+                s_number: record.student_s_number
+              }
+            };
+          }
+        })
+      );
+
+      console.log(`✅ Found ${attendanceWithNames.length} attendance records`);
+      return attendanceWithNames;
+    } catch (error) {
+      console.error('❌ Error getting meeting attendance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get open meetings for students
+   */
+  static async getOpenMeetings() {
+    try {
+      console.log('📅 Getting open meetings...');
+      
+      const { data: meetings, error } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('is_open', true)
+        .order('meeting_date', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error getting open meetings:', error);
+        throw error;
+      }
+
+      console.log(`✅ Found ${meetings?.length || 0} open meetings`);
+      return meetings || [];
+    } catch (error) {
+      console.error('❌ Error getting open meetings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get student's attendance history
+   */
+  static async getStudentAttendanceHistory(studentSNumber) {
+    try {
+      console.log('📊 Getting attendance history for student:', studentSNumber);
+      
+      // First get the attendance records
+      const { data: attendance, error } = await supabase
+        .from('meeting_attendance')
+        .select('*')
+        .eq('student_s_number', studentSNumber.toLowerCase())
+        .order('submitted_at');
+
+      if (error) {
+        console.error('❌ Error getting student attendance:', error);
+        throw error;
+      }
+
+      // Then get meeting info for each attendance record
+      const attendanceWithMeetings = await Promise.all(
+        (attendance || []).map(async (record) => {
+          try {
+            const { data: meeting, error: meetingError } = await supabase
+              .from('meetings')
+              .select('meeting_date, meeting_type, is_open')
+              .eq('id', record.meeting_id)
+              .single();
+
+            if (meetingError) {
+              console.warn(`⚠️ Could not find meeting for ${record.meeting_id}:`, meetingError);
+              return {
+                ...record,
+                meetings: {
+                  meeting_date: 'Unknown Date',
+                  meeting_type: 'unknown',
+                  is_open: false
+                }
+              };
+            }
+
+            return {
+              ...record,
+              meetings: meeting
+            };
+          } catch (error) {
+            console.warn(`⚠️ Error getting meeting info for ${record.meeting_id}:`, error);
+            return {
+              ...record,
+              meetings: {
+                meeting_date: 'Unknown Date',
+                meeting_type: 'unknown',
+                is_open: false
+              }
+            };
+          }
+        })
+      );
+
+      console.log(`✅ Found ${attendanceWithMeetings.length} attendance records for student`);
+      return attendanceWithMeetings;
+    } catch (error) {
+      console.error('❌ Error getting student attendance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get student's attendance records (alias for getStudentAttendanceHistory)
+   */
+  static async getStudentAttendance(studentSNumber) {
+    return this.getStudentAttendanceHistory(studentSNumber);
+  }
+
+  /**
+   * Get student's missed meetings count
+   */
+  static async getStudentMissedMeetings(studentSNumber) {
+    try {
+      console.log('📊 Getting missed meetings for student:', studentSNumber);
+      
+      // Get all meetings for the current school year
+      const allMeetings = await this.getAllMeetings();
+      
+      // Get student's attendance
+      const studentAttendance = await this.getStudentAttendance(studentSNumber);
+      
+      // Find meetings where student didn't attend AND the meeting date has passed
+      const attendedMeetingIds = studentAttendance.map(a => a.meeting_id);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      
+      const missedMeetings = allMeetings.filter(meeting => {
+        const meetingDate = new Date(meeting.meeting_date);
+        meetingDate.setHours(0, 0, 0, 0);
+        
+        // Only count as missed if:
+        // 1. Student didn't attend
+        // 2. Meeting date has passed
+        return !attendedMeetingIds.includes(meeting.id) && meetingDate < today;
+      });
+
+      console.log(`✅ Student missed ${missedMeetings.length} meetings (only counting past meetings)`);
+      return missedMeetings;
+    } catch (error) {
+      console.error('❌ Error getting missed meetings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit attendance for a meeting
+   */
+  static async submitAttendance(meetingId, studentSNumber, attendanceCode, sessionType = 'both') {
+    try {
+      console.log('✅ Submitting attendance for meeting:', meetingId);
+      console.log('👤 Student:', studentSNumber);
+      console.log('🔑 Code:', attendanceCode);
+      console.log('⏰ Session:', sessionType);
+      
+      // First, verify the meeting exists and is open
+      const meeting = await this.getMeetingById(meetingId);
+      if (!meeting) {
+        throw new Error('Meeting not found');
+      }
+      
+      if (!meeting.is_open) {
+        throw new Error('Attendance submission is closed for this meeting');
+      }
+      
+      if (meeting.attendance_code !== attendanceCode) {
+        throw new Error('Invalid attendance code');
+      }
+
+      // Check if student already submitted attendance
+      const { data: existingAttendance, error: checkError } = await supabase
+        .from('meeting_attendance')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .eq('student_s_number', studentSNumber.toLowerCase())
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('❌ Error checking existing attendance:', checkError);
+        throw checkError;
+      }
+
+      if (existingAttendance) {
+        throw new Error('You have already submitted attendance for this meeting');
+      }
+
+      // Submit attendance
+      const { data: attendance, error } = await supabase
+        .from('meeting_attendance')
+        .insert([{
+          meeting_id: meetingId,
+          student_s_number: studentSNumber.toLowerCase(),
+          attendance_code: attendanceCode,
+          session_type: sessionType,
+          submitted_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error submitting attendance:', error);
+        throw error;
+      }
+
+      console.log('✅ Attendance submitted successfully:', attendance);
+      return attendance;
+    } catch (error) {
+      console.error('❌ Error submitting attendance:', error);
+      throw error;
+    }
+  }
 }
 
 export default SupabaseService;

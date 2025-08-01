@@ -497,6 +497,10 @@ export default function HomeScreen() {
         navigation.navigate('Contact');
       } else if (screen === 'studentManagement') {
         navigation.navigate('AdminStudentManagement');
+      } else if (screen === 'AdminMeetingManagement') {
+        navigation.navigate('AdminMeetingManagement');
+      } else if (screen === 'StudentMeetingAttendance') {
+        navigation.navigate('StudentMeetingAttendance');
       } else if (screen === 'Logout' || screen === 'logout') {
         logout();
         navigation.reset({
@@ -549,6 +553,13 @@ export default function HomeScreen() {
       icon: isAdmin ? 'help-circle' : 'mail',
       gradient: ['#ed64a6', '#d53f8c'],
       action: () => navigateTo('Contact')
+    },
+    {
+      id: 'meetingAttendance',
+      title: isAdmin ? 'Meeting Management' : 'Meeting Attendance',
+      icon: isAdmin ? 'settings' : 'checkmark-circle',
+      gradient: ['#f59e0b', '#d97706'],
+      action: () => navigateTo(isAdmin ? 'AdminMeetingManagement' : 'StudentMeetingAttendance')
     },
     ...(isAdmin ? [{
       id: 'studentManagement',
