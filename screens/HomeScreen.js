@@ -730,30 +730,30 @@ export default function HomeScreen() {
             <Text style={styles.adminTitle}>Admin Dashboard</Text>
             
             <TouchableOpacity
-              style={styles.adminButtonFull}
+              style={styles.requestButton}
               onPress={() => navigateTo('calendar')}
               activeOpacity={0.8}
             >
               <Ionicons name="calendar" size={20} color="#ffffff" />
-              <Text style={styles.adminButtonFullText}>Create Event</Text>
+              <Text style={styles.requestButtonText}>Create Event</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={styles.adminButtonFull}
+              style={[styles.requestButton, { marginTop: 12 }]}
               onPress={() => navigateTo('hours')}
               activeOpacity={0.8}
             >
               <Ionicons name="time" size={20} color="#ffffff" />
-              <Text style={styles.adminButtonFullText}>Review Hours</Text>
+              <Text style={styles.requestButtonText}>Review Hours</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={styles.adminButtonFull}
+              style={[styles.requestButton, { marginTop: 12 }]}
               onPress={() => navigateTo('meetingAttendance')}
               activeOpacity={0.8}
             >
               <Ionicons name="people" size={20} color="#ffffff" />
-              <Text style={styles.adminButtonFullText}>Meeting Management</Text>
+              <Text style={styles.requestButtonText}>Meeting Management</Text>
             </TouchableOpacity>
           </View>
         )}
