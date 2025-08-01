@@ -32,6 +32,8 @@ import GoogleDriveService from '../screens/GoogleDriveService';
 import AdminStudentManagementScreen from '../screens/AdminStudentManagementScreen';
 import AdminMeetingManagementScreen from '../screens/AdminMeetingManagementScreen';
 import StudentMeetingAttendanceScreen from '../screens/StudentMeetingAttendanceScreen';
+import SocialMediaScreen from '../screens/SocialMediaScreen';
+import PublicEventsScreen from '../screens/PublicEventsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -235,6 +237,22 @@ function MainStackNavigator() {
       <Stack.Screen
         name="StudentMeetingAttendance"
         component={StudentMeetingAttendanceScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen
+        name="SocialMedia"
+        component={SocialMediaScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen
+        name="PublicEvents"
+        component={PublicEventsScreen}
         options={{
           headerShown: false,
         }}

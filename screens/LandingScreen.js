@@ -160,6 +160,25 @@ export default function LandingScreen({ navigation }) {
             <Text style={styles.buttonText}>Admin Login</Text>
           </TouchableOpacity>
         </Animated.View>
+
+        <Animated.View
+          style={{
+            opacity: adminButtonAnim,
+            transform: [
+              { translateY: adminButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) },
+              { scale: adminButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }
+            ]
+          }}
+        >
+          <TouchableOpacity
+            style={[styles.button, styles.publicButton]}
+            onPress={() => navigation.navigate('PublicEvents')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar" size={20} color="#ffffff" style={{ marginRight: 8 }} />
+            <Text style={styles.buttonText}>View Public Events</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
       
       <View style={styles.helpContainer}>
@@ -227,6 +246,12 @@ const styles = StyleSheet.create({
     marginTop: 15,
     borderWidth: 1,
     borderColor: '#4299e1',
+  },
+  publicButton: {
+    backgroundColor: 'rgba(16, 185, 129, 0.9)', // Green for public access
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#10b981',
   },
   buttonText: { 
     color: '#ffffff', // White for contrast against professional blue

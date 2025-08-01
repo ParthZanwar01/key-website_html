@@ -497,13 +497,15 @@ export default function HomeScreen() {
         navigation.navigate('Contact');
       } else if (screen === 'studentManagement') {
         navigation.navigate('AdminStudentManagement');
-      } else if (screen === 'meetingAttendance') {
-        if (isAdmin) {
-          navigation.navigate('AdminMeetingManagement');
-        } else {
-          navigation.navigate('StudentMeetingAttendance');
-        }
-      } else if (screen === 'AdminMeetingManagement') {
+                } else if (screen === 'meetingAttendance') {
+            if (isAdmin) {
+              navigation.navigate('AdminMeetingManagement');
+            } else {
+              navigation.navigate('StudentMeetingAttendance');
+            }
+          } else if (screen === 'socialMedia') {
+            navigation.navigate('SocialMedia');
+          } else if (screen === 'AdminMeetingManagement') {
         navigation.navigate('AdminMeetingManagement');
       } else if (screen === 'StudentMeetingAttendance') {
         navigation.navigate('StudentMeetingAttendance');
@@ -566,6 +568,13 @@ export default function HomeScreen() {
       icon: isAdmin ? 'settings' : 'checkmark-circle',
       gradient: ['#f59e0b', '#d97706'],
       action: () => navigateTo(isAdmin ? 'AdminMeetingManagement' : 'StudentMeetingAttendance')
+    },
+    {
+      id: 'socialMedia',
+      title: 'Social Media',
+      icon: 'logo-instagram',
+      gradient: ['#E1306C', '#F56040'],
+      action: () => navigateTo('socialMedia')
     },
     ...(isAdmin ? [{
       id: 'studentManagement',
@@ -724,6 +733,15 @@ export default function HomeScreen() {
               <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
               <Text style={styles.requestButtonText}>Request Hours</Text>
             </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.requestButton, { marginTop: 12 }]}
+              onPress={() => navigateTo('socialMedia')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-instagram" size={20} color="#ffffff" />
+              <Text style={styles.requestButtonText}>Follow Us</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.adminCard}>
@@ -754,6 +772,15 @@ export default function HomeScreen() {
             >
               <Ionicons name="people" size={20} color="#ffffff" />
               <Text style={styles.requestButtonText}>Meeting Management</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.requestButton, { marginTop: 12 }]}
+              onPress={() => navigateTo('socialMedia')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-instagram" size={20} color="#ffffff" />
+              <Text style={styles.requestButtonText}>Social Media</Text>
             </TouchableOpacity>
           </View>
         )}
