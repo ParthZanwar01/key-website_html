@@ -722,15 +722,6 @@ export default function HomeScreen() {
               <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
               <Text style={styles.requestButtonText}>Request Hours</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.requestButton, { marginTop: 12 }]}
-              onPress={() => navigateTo('socialMedia')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="logo-instagram" size={20} color="#ffffff" />
-              <Text style={styles.requestButtonText}>Follow Us</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.adminCard}>
@@ -761,15 +752,6 @@ export default function HomeScreen() {
             >
               <Ionicons name="people" size={20} color="#ffffff" />
               <Text style={styles.requestButtonText}>Meeting Management</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.requestButton, { marginTop: 12 }]}
-              onPress={() => navigateTo('socialMedia')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="logo-instagram" size={20} color="#ffffff" />
-              <Text style={styles.requestButtonText}>Social Media</Text>
             </TouchableOpacity>
           </View>
         )}
