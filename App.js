@@ -6,6 +6,7 @@ import { Platform, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
+import { ModalProvider } from './contexts/ModalContext';
 import AppNavigator from './navigation/AppNavigator';
 import { preventFocusOnHidden } from './utils/AccessibilityHelper';
 import { applyChromeOptimizations } from './utils/ChromeCompatibilityHelper';
@@ -184,7 +185,9 @@ export default function App() {
         <AuthProvider>
           <EventsProvider>
             <HourProvider>
-              <AuthenticatedApp />
+              <ModalProvider>
+                <AuthenticatedApp />
+              </ModalProvider>
             </HourProvider>
           </EventsProvider>
         </AuthProvider>

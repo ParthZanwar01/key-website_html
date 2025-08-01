@@ -15,44 +15,53 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import ConfirmationDialog from '../components/ConfirmationDialog';
+import { useModal } from '../contexts/ModalContext';
 
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
   const { getEventById, signupForEvent, deleteEvent, refreshEvents } = useEvents();
   const { isAdmin } = useAuth();
+  const { showModal } = useModal();
   const [event, setEvent] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // State for confirmation dialogs
-  const [deleteDialog, setDeleteDialog] = useState({ visible: false });
-  const [errorDialog, setErrorDialog] = useState({ visible: false, message: '' });
-  const [successDialog, setSuccessDialog] = useState({ visible: false, message: '' });
-
   useEffect(() => {
     const eventData = getEventById(eventId);
     if (eventData) {
       setEvent(eventData);
     } else {
-      setErrorDialog({ 
-        visible: true, 
-        message: 'Event not found' 
+      showModal({
+        title: 'Error',
+        message: 'Event not found',
+        onCancel: () => navigation.goBack(),
+        onConfirm: () => navigation.goBack(),
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
       });
     }
-  }, [eventId, getEventById, navigation]);
+  }, [eventId, getEventById, navigation, showModal]);
 
   // Enhanced delete handler using EventsContext
   const handleDeleteEvent = () => {
     console.log('Delete button clicked');
-    setDeleteDialog({ visible: true });
+    showModal({
+      title: 'Delete Event',
+      message: `Are you sure you want to delete "${event.title}"? This action cannot be undone.`,
+      onCancel: () => {},
+      onConfirm: confirmDelete,
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      destructive: true,
+      icon: 'trash-outline'
+    });
   };
 
   const confirmDelete = async () => {
     console.log('Delete confirmed');
-    setDeleteDialog({ visible: false });
     setDeleting(true);
     
     try {
@@ -65,9 +74,19 @@ export default function EventScreen({ route, navigation }) {
       console.log('Delete succeeded, navigating back');
       
       // Show success message briefly then navigate
-      setSuccessDialog({
-        visible: true,
-        message: 'Event deleted successfully'
+      showModal({
+        title: 'Success',
+        message: 'Event deleted successfully',
+        onCancel: () => {
+          navigation.goBack();
+        },
+        onConfirm: () => {
+          navigation.goBack();
+        },
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
       });
       
       // Navigate back after showing success
@@ -93,36 +112,56 @@ export default function EventScreen({ route, navigation }) {
     } catch (error) {
       console.error('Delete failed:', error);
       setDeleting(false);
-      setErrorDialog({
-        visible: true,
-        message: 'Failed to delete event. Please try again.'
+      showModal({
+        title: 'Error',
+        message: 'Failed to delete event. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
       });
     }
   };
 
   const handleSignup = async () => {
     if (!name.trim() || !email.trim()) {
-      setErrorDialog({
-        visible: true,
-        message: 'Please fill in all fields'
+      showModal({
+        title: 'Error',
+        message: 'Please fill in all fields',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
       });
       return;
     }
 
     // Check if capacity reached
     if (event.attendees && event.attendees.length >= event.capacity) {
-      setErrorDialog({
-        visible: true,
-        message: 'This event has reached its capacity'
+      showModal({
+        title: 'Error',
+        message: 'This event has reached its capacity',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
       });
       return;
     }
 
     // Check if already registered
     if (event.attendees && event.attendees.some(attendee => attendee.email === email)) {
-      setErrorDialog({
-        visible: true,
-        message: 'You are already registered for this event'
+      showModal({
+        title: 'Error',
+        message: 'You are already registered for this event',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
       });
       return;
     }
@@ -135,9 +174,19 @@ export default function EventScreen({ route, navigation }) {
       // Refresh the event data to show updated attendee list
       await refreshEvents();
       
-      setSuccessDialog({
-        visible: true,
-        message: 'You have successfully signed up for this event!'
+      showModal({
+        title: 'Success',
+        message: 'You have successfully signed up for this event!',
+        onCancel: () => {
+          navigation.goBack();
+        },
+        onConfirm: () => {
+          navigation.goBack();
+        },
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
       });
       
       // Navigate back after success
@@ -147,9 +196,14 @@ export default function EventScreen({ route, navigation }) {
       
     } catch (err) {
       console.error('Signup error:', err);
-      setErrorDialog({
-        visible: true,
-        message: 'Failed to sign up for event. Please try again.'
+      showModal({
+        title: 'Error',
+        message: 'Failed to sign up for event. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
       });
     } finally {
       setLoading(false);
@@ -167,24 +221,6 @@ export default function EventScreen({ route, navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <Text>Loading event...</Text>
-        
-        {/* Error dialog for event not found */}
-        <ConfirmationDialog
-          visible={errorDialog.visible}
-          title="Error"
-          message={errorDialog.message}
-          onCancel={() => {
-            setErrorDialog({ visible: false, message: '' });
-            navigation.goBack();
-          }}
-          onConfirm={() => {
-            setErrorDialog({ visible: false, message: '' });
-            navigation.goBack();
-          }}
-          cancelText=""
-          confirmText="OK"
-          icon="alert-circle"
-        />
       </View>
     );
   }
@@ -375,50 +411,6 @@ export default function EventScreen({ route, navigation }) {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmationDialog
-        visible={deleteDialog.visible}
-        title="Delete Event"
-        message={`Are you sure you want to delete "${event.title}"? This action cannot be undone.`}
-        onCancel={() => setDeleteDialog({ visible: false })}
-        onConfirm={confirmDelete}
-        cancelText="Cancel"
-        confirmText="Delete"
-        destructive={true}
-        icon="trash-outline"
-      />
-
-      {/* Error Dialog */}
-      <ConfirmationDialog
-        visible={errorDialog.visible}
-        title="Error"
-        message={errorDialog.message}
-        onCancel={() => setErrorDialog({ visible: false, message: '' })}
-        onConfirm={() => setErrorDialog({ visible: false, message: '' })}
-        cancelText=""
-        confirmText="OK"
-        icon="alert-circle"
-      />
-
-      {/* Success Dialog */}
-      <ConfirmationDialog
-        visible={successDialog.visible}
-        title="Success"
-        message={successDialog.message}
-        onCancel={() => {
-          setSuccessDialog({ visible: false, message: '' });
-          navigation.goBack();
-        }}
-        onConfirm={() => {
-          setSuccessDialog({ visible: false, message: '' });
-          navigation.goBack();
-        }}
-        cancelText=""
-        confirmText="OK"
-        icon="checkmark-circle"
-        iconColor="#4CAF50"
-      />
     </SafeAreaView>
   );
 }
