@@ -165,12 +165,10 @@ export default function EventScreen({ route, navigation }) {
 
   if (!event) {
     return (
-      <View style={styles.container}>
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={styles.loadingContainer}>
-            <Text>Loading event...</Text>
-          </View>
-        </SafeAreaView>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>Loading event...</Text>
+        </View>
         
         {/* Error dialog for event not found */}
         <ConfirmationDialog
@@ -189,20 +187,18 @@ export default function EventScreen({ route, navigation }) {
           confirmText="OK"
           icon="alert-circle"
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (deleting) {
     return (
-      <View style={styles.container}>
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#59a2f0" />
-            <Text style={styles.loadingText}>Deleting event...</Text>
-          </View>
-        </SafeAreaView>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#59a2f0" />
+          <Text style={styles.loadingText}>Deleting event...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -212,17 +208,13 @@ export default function EventScreen({ route, navigation }) {
   const isFullyBooked = event.attendees && event.attendees.length >= event.capacity;
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoid}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
+      >
+        <ScrollView>
+          <View style={styles.eventDetails}>
           <View style={styles.eventDetails}>
             {isAdmin && (
               <View style={styles.adminControls}>
@@ -387,8 +379,7 @@ export default function EventScreen({ route, navigation }) {
             )
           )}
         </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+      </KeyboardAvoidingView>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
@@ -433,7 +424,7 @@ export default function EventScreen({ route, navigation }) {
         icon="checkmark-circle"
         iconColor="#4CAF50"
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
