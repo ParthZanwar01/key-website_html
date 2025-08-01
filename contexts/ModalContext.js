@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Portal } from 'react-native-portalize';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const ModalContext = createContext();
@@ -11,6 +10,8 @@ export const useModal = () => {
   }
   return context;
 };
+
+
 
 export const ModalProvider = ({ children }) => {
   const [modal, setModal] = useState({
@@ -57,22 +58,20 @@ export const ModalProvider = ({ children }) => {
     <ModalContext.Provider value={{ showModal, hideModal }}>
       {children}
       
-      <Portal>
-        <ConfirmationDialog
-          visible={modal.visible}
-          title={modal.title}
-          message={modal.message}
-          onCancel={handleCancel}
-          onConfirm={handleConfirm}
-          cancelText={modal.cancelText}
-          confirmText={modal.confirmText}
-          confirmButtonColor={modal.confirmButtonColor}
-          confirmTextColor={modal.confirmTextColor}
-          icon={modal.icon}
-          iconColor={modal.iconColor}
-          destructive={modal.destructive}
-        />
-      </Portal>
+      <ConfirmationDialog
+        visible={modal.visible}
+        title={modal.title}
+        message={modal.message}
+        onCancel={handleCancel}
+        onConfirm={handleConfirm}
+        cancelText={modal.cancelText}
+        confirmText={modal.confirmText}
+        confirmButtonColor={modal.confirmButtonColor}
+        confirmTextColor={modal.confirmTextColor}
+        icon={modal.icon}
+        iconColor={modal.iconColor}
+        destructive={modal.destructive}
+      />
     </ModalContext.Provider>
   );
 }; 

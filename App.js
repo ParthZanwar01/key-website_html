@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
 import { ModalProvider } from './contexts/ModalContext';
-import { PortalProvider } from 'react-native-portalize';
 import AppNavigator from './navigation/AppNavigator';
 import { preventFocusOnHidden } from './utils/AccessibilityHelper';
 import { applyChromeOptimizations } from './utils/ChromeCompatibilityHelper';
@@ -182,19 +181,17 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PortalProvider>
-        <NavigationContainer>
-          <AuthProvider>
-            <EventsProvider>
-              <HourProvider>
-                <ModalProvider>
-                  <AuthenticatedApp />
-                </ModalProvider>
-              </HourProvider>
-            </EventsProvider>
-          </AuthProvider>
-        </NavigationContainer>
-      </PortalProvider>
+      <NavigationContainer>
+        <AuthProvider>
+          <EventsProvider>
+            <HourProvider>
+              <ModalProvider>
+                <AuthenticatedApp />
+              </ModalProvider>
+            </HourProvider>
+          </EventsProvider>
+        </AuthProvider>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
