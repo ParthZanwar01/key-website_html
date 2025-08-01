@@ -2,12 +2,14 @@ import React from 'react';
 import { 
   View, 
   Text, 
-  Modal, 
   StyleSheet, 
   TouchableOpacity, 
-  TouchableWithoutFeedback 
+  TouchableWithoutFeedback,
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 /**
  * A reusable confirmation dialog component for the app
@@ -42,21 +44,14 @@ export default function ConfirmationDialog({
   const finalConfirmColor = destructive ? "#ff4d4d" : confirmButtonColor;
   const finalIconColor = destructive ? "#ff4d4d" : iconColor;
   
+  if (!visible) return null;
+  
   return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onCancel}
-      accessibilityViewIsModal={true}
-      accessibilityLabel="Confirmation Dialog"
-      statusBarTranslucent={true}
-    >
-      <View style={styles.overlay} pointerEvents="box-none">
-        <TouchableWithoutFeedback onPress={onCancel}>
-          <View style={styles.overlayTouchable}>
-            <TouchableWithoutFeedback>
-              <View style={styles.dialogContainer} pointerEvents="auto">
+    <View style={styles.overlay}>
+      <TouchableWithoutFeedback onPress={onCancel}>
+        <View style={styles.overlayTouchable}>
+          <TouchableWithoutFeedback>
+            <View style={styles.dialogContainer} pointerEvents="auto">
               <View style={styles.iconContainer}>
                 <Ionicons name={icon} size={40} color={finalIconColor} />
               </View>
@@ -90,7 +85,6 @@ export default function ConfirmationDialog({
         </View>
       </TouchableWithoutFeedback>
     </View>
-    </Modal>
   );
 }
 
@@ -101,6 +95,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: screenWidth,
+    height: screenHeight,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
