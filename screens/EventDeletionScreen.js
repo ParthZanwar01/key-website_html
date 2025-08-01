@@ -218,33 +218,33 @@ export default function EventDeletionScreen({ navigation }) {
           keyExtractor={(_, index) => index.toString()}
           showsVerticalScrollIndicator={false}
         />
+
+        <ConfirmationDialog
+          visible={confirmDialog.visible}
+          title="Confirm Deletion"
+          message={confirmDialog.type === 'single'
+            ? `Delete ${confirmDialog.eventTitle}?`
+            : `Delete ${confirmDialog.count} selected events?`}
+          onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
+          onConfirm={confirmDeletion}
+          cancelText="Cancel"
+          confirmText="Delete"
+          icon="alert-circle"
+          iconColor="#ff4d4d"
+        />
+
+        <ConfirmationDialog
+          visible={messageDialog.visible}
+          title={messageDialog.title}
+          message={messageDialog.message}
+          onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+          onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+          cancelText=""
+          confirmText="OK"
+          icon={messageDialog.isError ? 'alert-circle' : 'checkmark-circle'}
+          iconColor={messageDialog.isError ? '#ff4d4d' : '#4CAF50'}
+        />
       </SafeAreaView>
-
-      <ConfirmationDialog
-        visible={confirmDialog.visible}
-        title="Confirm Deletion"
-        message={confirmDialog.type === 'single'
-          ? `Delete ${confirmDialog.eventTitle}?`
-          : `Delete ${confirmDialog.count} selected events?`}
-        onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
-        onConfirm={confirmDeletion}
-        cancelText="Cancel"
-        confirmText="Delete"
-        icon="alert-circle"
-        iconColor="#ff4d4d"
-      />
-
-      <ConfirmationDialog
-        visible={messageDialog.visible}
-        title={messageDialog.title}
-        message={messageDialog.message}
-        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-        cancelText=""
-        confirmText="OK"
-        icon={messageDialog.isError ? 'alert-circle' : 'checkmark-circle'}
-        iconColor={messageDialog.isError ? '#ff4d4d' : '#4CAF50'}
-      />
     </View>
   );
 }
