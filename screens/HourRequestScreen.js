@@ -440,69 +440,63 @@ const SubmittingAnimation = ({ visible, stage, hasImage }) => {
   if (!visible) return null;
 
   return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="none"
-    >
-      <View style={animationStyles.overlay}>
+    <View style={animationStyles.overlay}>
+      <Animated.View
+        style={[
+          animationStyles.container,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        {/* Main spinning circle */}
         <Animated.View
           style={[
-            animationStyles.container,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
+            animationStyles.spinnerCircle,
+            { transform: [{ rotate: spin }] },
           ]}
         >
-          {/* Main spinning circle */}
-          <Animated.View
-            style={[
-              animationStyles.spinnerCircle,
-              { transform: [{ rotate: spin }] },
-            ]}
-          >
-            <View style={animationStyles.spinnerInner} />
-          </Animated.View>
+          <View style={animationStyles.spinnerInner} />
+        </Animated.View>
 
-          {/* Center icon */}
-          <View style={animationStyles.iconContainer}>
-            <Ionicons
-              name={getStageIcon()}
-              size={32}
-              color="#59a2f0"
+        {/* Center icon */}
+        <View style={animationStyles.iconContainer}>
+          <Ionicons
+            name={getStageIcon()}
+            size={32}
+            color="#59a2f0"
+          />
+        </View>
+
+        {/* Progress bar */}
+        <View style={animationStyles.progressContainer}>
+          <View style={animationStyles.progressBackground}>
+            <Animated.View
+              style={[
+                animationStyles.progressFill,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
             />
           </View>
+        </View>
 
-          {/* Progress bar */}
-          <View style={animationStyles.progressContainer}>
-            <View style={animationStyles.progressBackground}>
-              <Animated.View
-                style={[
-                  animationStyles.progressFill,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  },
-                ]}
-              />
-            </View>
-          </View>
+        {/* Stage text */}
+        <Text style={animationStyles.stageText}>
+          {getStageText()}
+        </Text>
 
-          {/* Stage text */}
-          <Text style={animationStyles.stageText}>
-            {getStageText()}
-          </Text>
-
-          {/* Key Club branding */}
-          <Text style={animationStyles.brandText}>
-            Key Club Hour Submission
-          </Text>
-        </Animated.View>
-      </View>
-    </Modal>
+        {/* Key Club branding */}
+        <Text style={animationStyles.brandText}>
+          Key Club Hour Submission
+        </Text>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -1129,11 +1123,13 @@ export default function HourRequestScreen({ navigation }) {
 // Animation Styles
 const animationStyles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    width: Platform.OS === 'web' ? '100vw' : '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
