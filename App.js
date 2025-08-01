@@ -6,13 +6,15 @@ import { Platform, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
-import { ModalProvider } from './contexts/ModalContext';
+import { ModalProvider, useModal } from './contexts/ModalContext';
 import AppNavigator from './navigation/AppNavigator';
+import ConfirmationDialog from './components/ConfirmationDialog';
 import { preventFocusOnHidden } from './utils/AccessibilityHelper';
 import { applyChromeOptimizations } from './utils/ChromeCompatibilityHelper';
 
 function AuthenticatedApp() {
   const { isAuthenticated, isAdmin } = useAuth();
+  const { modal } = useModal();
   
   useEffect(() => {
     console.log("Auth state in App:", { isAuthenticated, isAdmin });
@@ -22,6 +24,25 @@ function AuthenticatedApp() {
     <>
       <StatusBar style="auto" />
       <AppNavigator />
+      
+      <ConfirmationDialog
+        visible={modal.visible}
+        title={modal.title}
+        message={modal.message}
+        onCancel={() => {
+          if (modal.onCancel) modal.onCancel();
+        }}
+        onConfirm={() => {
+          if (modal.onConfirm) modal.onConfirm();
+        }}
+        cancelText={modal.cancelText}
+        confirmText={modal.confirmText}
+        confirmButtonColor={modal.confirmButtonColor}
+        confirmTextColor={modal.confirmTextColor}
+        icon={modal.icon}
+        iconColor={modal.iconColor}
+        destructive={modal.destructive}
+      />
     </>
   );
 }
@@ -150,6 +171,57 @@ export default function App() {
         /* Ensure React Native Modal appears above everything */
         .react-native-modal {
           z-index: 9999 !important;
+        }
+        
+        /* Specific styling for ConfirmationDialog */
+        [data-testid="modal"] {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 99999 !important;
+          overflow: visible !important;
+        }
+        
+        /* Ensure the dialog container is properly positioned */
+        [data-testid="modal"] > div {
+          position: relative !important;
+          z-index: 100000 !important;
+        }
+        
+        /* Force modal to be at the very top level */
+        body > div[data-testid="modal"] {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 999999 !important;
+          pointer-events: auto !important;
+        }
+        
+        /* Override any parent container constraints */
+        * {
+          overflow: visible !important;
+        }
+        
+        /* Ensure modal is not constrained by parent containers */
+        [data-testid="modal"] {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 999999 !important;
+          overflow: visible !important;
+          pointer-events: auto !important;
         }
       `;
       document.head.appendChild(style);

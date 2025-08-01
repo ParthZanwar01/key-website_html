@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Platform } from 'react-native';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 
 const ModalContext = createContext();
@@ -54,24 +55,32 @@ export const ModalProvider = ({ children }) => {
     hideModal();
   };
 
+  // For web, render the modal at the document body level
+  useEffect(() => {
+    if (Platform.OS === 'web' && modal.visible) {
+      const modalElement = document.createElement('div');
+      modalElement.id = 'global-modal-container';
+      modalElement.style.position = 'fixed';
+      modalElement.style.top = '0';
+      modalElement.style.left = '0';
+      modalElement.style.right = '0';
+      modalElement.style.bottom = '0';
+      modalElement.style.zIndex = '999999';
+      modalElement.style.pointerEvents = 'auto';
+      document.body.appendChild(modalElement);
+
+      return () => {
+        const existingModal = document.getElementById('global-modal-container');
+        if (existingModal) {
+          document.body.removeChild(existingModal);
+        }
+      };
+    }
+  }, [modal.visible]);
+
   return (
-    <ModalContext.Provider value={{ showModal, hideModal }}>
+    <ModalContext.Provider value={{ showModal, hideModal, modal }}>
       {children}
-      
-      <ConfirmationDialog
-        visible={modal.visible}
-        title={modal.title}
-        message={modal.message}
-        onCancel={handleCancel}
-        onConfirm={handleConfirm}
-        cancelText={modal.cancelText}
-        confirmText={modal.confirmText}
-        confirmButtonColor={modal.confirmButtonColor}
-        confirmTextColor={modal.confirmTextColor}
-        icon={modal.icon}
-        iconColor={modal.iconColor}
-        destructive={modal.destructive}
-      />
     </ModalContext.Provider>
   );
 }; 
