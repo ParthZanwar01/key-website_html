@@ -351,6 +351,13 @@ function AuthNavigator() {
           headerTintColor: '#333',
         }} 
       />
+      <Stack.Screen
+        name="PublicEvents"
+        component={PublicEventsScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }
