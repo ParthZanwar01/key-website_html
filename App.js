@@ -6,15 +6,13 @@ import { Platform, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
-import { ModalProvider, useModal } from './contexts/ModalContext';
+import { ModalProvider } from './contexts/ModalContext';
 import AppNavigator from './navigation/AppNavigator';
-import ConfirmationDialog from './components/ConfirmationDialog';
 import { preventFocusOnHidden } from './utils/AccessibilityHelper';
 import { applyChromeOptimizations } from './utils/ChromeCompatibilityHelper';
 
 function AuthenticatedApp() {
   const { isAuthenticated, isAdmin } = useAuth();
-  const { modal } = useModal();
   
   useEffect(() => {
     console.log("Auth state in App:", { isAuthenticated, isAdmin });
@@ -24,25 +22,6 @@ function AuthenticatedApp() {
     <>
       <StatusBar style="auto" />
       <AppNavigator />
-      
-      <ConfirmationDialog
-        visible={modal.visible}
-        title={modal.title}
-        message={modal.message}
-        onCancel={() => {
-          if (modal.onCancel) modal.onCancel();
-        }}
-        onConfirm={() => {
-          if (modal.onConfirm) modal.onConfirm();
-        }}
-        cancelText={modal.cancelText}
-        confirmText={modal.confirmText}
-        confirmButtonColor={modal.confirmButtonColor}
-        confirmTextColor={modal.confirmTextColor}
-        icon={modal.icon}
-        iconColor={modal.iconColor}
-        destructive={modal.destructive}
-      />
     </>
   );
 }
