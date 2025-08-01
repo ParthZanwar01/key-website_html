@@ -717,6 +717,7 @@ export default function CalendarScreen({ navigation, route }) {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setContextMenu({ visible: false, eventId: null })}
+          data-testid="modal"
         >
           <Animated.View 
             style={[
@@ -973,15 +974,18 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   modalOverlay: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    width: Platform.OS === 'web' ? '100vw' : '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   contextMenuContainer: {
     backgroundColor: 'white',

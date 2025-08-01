@@ -216,15 +216,16 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   menuModal: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    width: Platform.OS === 'web' ? '100vw' : '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 9999,
-    width: '100%',
-    height: '100%',
+    zIndex: 99999,
+    elevation: 99999,
   },
   menuContainer: {
     position: 'absolute',
@@ -769,6 +770,7 @@ export default function HomeScreen() {
           }
         ]}
         pointerEvents={menuVisible ? 'auto' : 'none'}
+        data-testid="modal"
       >
         <TouchableOpacity
           style={{ flex: 1 }}

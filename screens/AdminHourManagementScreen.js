@@ -843,7 +843,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         transparent={true}
         animationType="slide"
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlay} data-testid="modal">
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
               {reviewModal.action === 'approve' ? 'Approve' : 'Reject'} Request
@@ -899,7 +899,7 @@ export default function AdminHourManagementScreen({ navigation }) {
         transparent={true}
         animationType="fade"
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlay} data-testid="modal">
           <View style={styles.photoModalContainer}>
             <Text style={styles.photoModalTitle}>Photo Information</Text>
             <Text style={styles.photoModalText}>
@@ -1181,15 +1181,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   modalOverlay: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    width: Platform.OS === 'web' ? '100vw' : '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   modalContainer: {
     backgroundColor: '#2d3748',

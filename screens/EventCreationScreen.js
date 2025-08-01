@@ -430,7 +430,7 @@ export default function EventCreationScreen({ route, navigation }) {
         animationType="slide"
         onRequestClose={() => setShowDatePicker(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={styles.modalContainer} data-testid="modal">
           <Animated.View 
             style={[
               styles.pickerContainer,
@@ -520,7 +520,7 @@ export default function EventCreationScreen({ route, navigation }) {
         animationType="slide"
         onRequestClose={() => setVisible(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={styles.modalContainer} data-testid="modal">
           <Animated.View style={styles.pickerContainer}>
             <View style={styles.pickerHeader}>
               <TouchableOpacity 
@@ -1105,15 +1105,18 @@ const styles = StyleSheet.create({
   },
   // Modal Picker Styles
   modalContainer: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    width: Platform.OS === 'web' ? '100vw' : '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   pickerContainer: {
     backgroundColor: 'white',
