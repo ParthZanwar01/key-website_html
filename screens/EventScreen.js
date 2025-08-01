@@ -165,8 +165,12 @@ export default function EventScreen({ route, navigation }) {
 
   if (!event) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading event...</Text>
+      <View style={styles.container}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={styles.loadingContainer}>
+            <Text>Loading event...</Text>
+          </View>
+        </SafeAreaView>
         
         {/* Error dialog for event not found */}
         <ConfirmationDialog
@@ -191,9 +195,13 @@ export default function EventScreen({ route, navigation }) {
 
   if (deleting) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#59a2f0" />
-        <Text style={styles.loadingText}>Deleting event...</Text>
+      <View style={styles.container}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#59a2f0" />
+            <Text style={styles.loadingText}>Deleting event...</Text>
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -204,16 +212,17 @@ export default function EventScreen({ route, navigation }) {
   const isFullyBooked = event.attendees && event.attendees.length >= event.capacity;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
-      >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+    <View style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
         >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.eventDetails}>
             {isAdmin && (
               <View style={styles.adminControls}>
@@ -378,7 +387,8 @@ export default function EventScreen({ route, navigation }) {
             )
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
@@ -423,7 +433,7 @@ export default function EventScreen({ route, navigation }) {
         icon="checkmark-circle"
         iconColor="#4CAF50"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
