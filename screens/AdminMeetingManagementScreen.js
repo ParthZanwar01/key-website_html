@@ -235,9 +235,14 @@ export default function AdminMeetingManagementScreen({ navigation }) {
         is_open: newStatus
       });
       
-      Alert.alert('Success!', `Meeting ${action}ed successfully!`, [
-        { text: 'OK', onPress: loadData }
-      ]);
+      // Update the local state immediately for better UX
+      setMeetings(prevMeetings => 
+        prevMeetings.map(m => 
+          m.id === meeting.id ? { ...m, is_open: newStatus } : m
+        )
+      );
+      
+      Alert.alert('Success!', `Meeting ${action}ed successfully!`);
     } catch (error) {
       console.error(`❌ Failed to ${action} meeting:`, error);
       Alert.alert('Error', `Failed to ${action} meeting`);

@@ -472,8 +472,6 @@ export default function HomeScreen() {
     hourRequest: 'HourRequest',
     announcements: 'Announcements',
     officers: 'Officers',
-    help: 'Contact',
-    contact: 'Contact',
     logout: 'Logout',
   };
 
@@ -493,19 +491,17 @@ export default function HomeScreen() {
         navigation.navigate('Announcements');
       } else if (screen === 'officers') {
         navigation.navigate('Officers');
-      } else if (screen === 'contact' || screen === 'help') {
-        navigation.navigate('Contact');
       } else if (screen === 'studentManagement') {
         navigation.navigate('AdminStudentManagement');
-                } else if (screen === 'meetingAttendance') {
-            if (isAdmin) {
-              navigation.navigate('AdminMeetingManagement');
-            } else {
-              navigation.navigate('StudentMeetingAttendance');
-            }
-          } else if (screen === 'socialMedia') {
-            navigation.navigate('SocialMedia');
-          } else if (screen === 'AdminMeetingManagement') {
+      } else if (screen === 'meetingAttendance') {
+        if (isAdmin) {
+          navigation.navigate('AdminMeetingManagement');
+        } else {
+          navigation.navigate('StudentMeetingAttendance');
+        }
+      } else if (screen === 'socialMedia') {
+        navigation.navigate('SocialMedia');
+      } else if (screen === 'AdminMeetingManagement') {
         navigation.navigate('AdminMeetingManagement');
       } else if (screen === 'StudentMeetingAttendance') {
         navigation.navigate('StudentMeetingAttendance');
