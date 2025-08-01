@@ -50,12 +50,13 @@ export default function ConfirmationDialog({
       onRequestClose={onCancel}
       accessibilityViewIsModal={true}
       accessibilityLabel="Confirmation Dialog"
+      statusBarTranslucent={true}
     >
-      <View style={styles.overlay}>
+      <View style={styles.overlay} pointerEvents="box-none">
         <TouchableWithoutFeedback onPress={onCancel}>
           <View style={styles.overlayTouchable}>
             <TouchableWithoutFeedback>
-              <View style={styles.dialogContainer}>
+              <View style={styles.dialogContainer} pointerEvents="auto">
               <View style={styles.iconContainer}>
                 <Ionicons name={icon} size={40} color={finalIconColor} />
               </View>
@@ -103,7 +104,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   overlayTouchable: {
     flex: 1,
@@ -116,11 +118,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 100000,
   },
   iconContainer: {
     marginBottom: 15,
