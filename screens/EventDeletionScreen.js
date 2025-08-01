@@ -187,65 +187,63 @@ export default function EventDeletionScreen({ navigation }) {
   const selectedCount = Object.values(selectedEvents).filter(Boolean).length;
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="black" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Manage Events</Text>
-          <TouchableOpacity
-            style={[styles.deleteButton, (loading || selectedCount === 0) && styles.disabledButton]}
-            onPress={handleMultipleDelete}
-            disabled={loading || selectedCount === 0}
-          >
-            <Text style={[styles.deleteButtonText, (loading || selectedCount === 0) && styles.disabledButtonText]}>Delete</Text>
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Manage Events</Text>
+        <TouchableOpacity
+          style={[styles.deleteButton, (loading || selectedCount === 0) && styles.disabledButton]}
+          onPress={handleMultipleDelete}
+          disabled={loading || selectedCount === 0}
+        >
+          <Text style={[styles.deleteButtonText, (loading || selectedCount === 0) && styles.disabledButtonText]}>Delete</Text>
+        </TouchableOpacity>
+      </View>
 
-        <FlatList
-          contentContainerStyle={styles.listContent}
-          data={[
-            { title: 'Upcoming Events', data: upcomingEvents, key: 'upcoming' },
-            { title: 'Past Events', data: pastEvents, key: 'past' }
-          ]}
-          renderItem={({ item }) => (
-            <View>
-              <SectionHeader title={item.title} count={item.data.length} section={item.key} />
-              {item.data.map(event => renderEventItem({ item: event }))}
-            </View>
-          )}
-          keyExtractor={(_, index) => index.toString()}
-          showsVerticalScrollIndicator={false}
-        />
+      <FlatList
+        contentContainerStyle={styles.listContent}
+        data={[
+          { title: 'Upcoming Events', data: upcomingEvents, key: 'upcoming' },
+          { title: 'Past Events', data: pastEvents, key: 'past' }
+        ]}
+        renderItem={({ item }) => (
+          <View>
+            <SectionHeader title={item.title} count={item.data.length} section={item.key} />
+            {item.data.map(event => renderEventItem({ item: event }))}
+          </View>
+        )}
+        keyExtractor={(_, index) => index.toString()}
+        showsVerticalScrollIndicator={false}
+      />
 
-        <ConfirmationDialog
-          visible={confirmDialog.visible}
-          title="Confirm Deletion"
-          message={confirmDialog.type === 'single'
-            ? `Delete ${confirmDialog.eventTitle}?`
-            : `Delete ${confirmDialog.count} selected events?`}
-          onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
-          onConfirm={confirmDeletion}
-          cancelText="Cancel"
-          confirmText="Delete"
-          icon="alert-circle"
-          iconColor="#ff4d4d"
-        />
+      <ConfirmationDialog
+        visible={confirmDialog.visible}
+        title="Confirm Deletion"
+        message={confirmDialog.type === 'single'
+          ? `Delete ${confirmDialog.eventTitle}?`
+          : `Delete ${confirmDialog.count} selected events?`}
+        onCancel={() => setConfirmDialog({ visible: false, type: 'single', eventId: null, eventTitle: '', count: 0 })}
+        onConfirm={confirmDeletion}
+        cancelText="Cancel"
+        confirmText="Delete"
+        icon="alert-circle"
+        iconColor="#ff4d4d"
+      />
 
-        <ConfirmationDialog
-          visible={messageDialog.visible}
-          title={messageDialog.title}
-          message={messageDialog.message}
-          onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-          onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
-          cancelText=""
-          confirmText="OK"
-          icon={messageDialog.isError ? 'alert-circle' : 'checkmark-circle'}
-          iconColor={messageDialog.isError ? '#ff4d4d' : '#4CAF50'}
-        />
-      </SafeAreaView>
-    </View>
+      <ConfirmationDialog
+        visible={messageDialog.visible}
+        title={messageDialog.title}
+        message={messageDialog.message}
+        onCancel={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+        onConfirm={() => setMessageDialog({ visible: false, title: '', message: '', isError: false })}
+        cancelText=""
+        confirmText="OK"
+        icon={messageDialog.isError ? 'alert-circle' : 'checkmark-circle'}
+        iconColor={messageDialog.isError ? '#ff4d4d' : '#4CAF50'}
+      />
+    </SafeAreaView>
   );
 }
 
