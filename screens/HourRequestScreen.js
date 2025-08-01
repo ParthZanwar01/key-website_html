@@ -445,7 +445,7 @@ const SubmittingAnimation = ({ visible, stage, hasImage }) => {
       visible={visible}
       animationType="none"
     >
-      <View style={animationStyles.overlay} data-testid="modal">
+      <View style={animationStyles.overlay}>
         <Animated.View
           style={[
             animationStyles.container,
@@ -1129,13 +1129,11 @@ export default function HourRequestScreen({ navigation }) {
 // Animation Styles
 const animationStyles = StyleSheet.create({
   overlay: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    width: Platform.OS === 'web' ? '100vw' : '100%',
-    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
