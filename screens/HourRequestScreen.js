@@ -1115,7 +1115,6 @@ export default function HourRequestScreen({ navigation }) {
                 <Text>{formatDate(eventDate)}</Text>
                 <Ionicons name="calendar" size={20} color="#666" />
               </TouchableOpacity>
-              {renderDatePicker()}
             </View>
             
             <View style={styles.formGroup}>
@@ -1197,6 +1196,8 @@ export default function HourRequestScreen({ navigation }) {
         hasImage={!!image}
       />
 
+      {/* Date Picker Modal */}
+      {renderDatePicker()}
 
     </SafeAreaView>
   );

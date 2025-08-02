@@ -890,7 +890,6 @@ export default function EventCreationScreen({ route, navigation }) {
                 <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
                 <Ionicons name="calendar" size={20} color="#59a2f0" />
               </TouchableOpacity>
-              {renderDatePicker()}
             </Animated.View>
             
             {/* Time Fields */}
@@ -918,7 +917,6 @@ export default function EventCreationScreen({ route, navigation }) {
                   <Text style={styles.dateTimeText}>{formatTime(startTime)}</Text>
                   <Ionicons name="time" size={20} color="#59a2f0" />
                 </TouchableOpacity>
-                {renderTimePicker('start', startTime, setStartTime, showStartTimePicker, setShowStartTimePicker)}
               </View>
               
               <View style={styles.timeInputGroup}>
@@ -931,7 +929,6 @@ export default function EventCreationScreen({ route, navigation }) {
                   <Text style={styles.dateTimeText}>{formatTime(endTime)}</Text>
                   <Ionicons name="time" size={20} color="#59a2f0" />
                 </TouchableOpacity>
-                {renderTimePicker('end', endTime, setEndTime, showEndTimePicker, setShowEndTimePicker)}
               </View>
             </Animated.View>
             
@@ -1062,6 +1059,10 @@ export default function EventCreationScreen({ route, navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Date and Time Picker Modals */}
+      {renderDatePicker()}
+      {renderTimePicker('start', startTime, setStartTime, showStartTimePicker, setShowStartTimePicker)}
+      {renderTimePicker('end', endTime, setEndTime, showEndTimePicker, setShowEndTimePicker)}
 
     </SafeAreaView>
   );
