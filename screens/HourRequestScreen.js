@@ -846,6 +846,8 @@ export default function HourRequestScreen({ navigation }) {
         visible={showDatePicker}
         animationType="fade"
         onRequestClose={() => setShowDatePicker(false)}
+        statusBarTranslucent={true}
+        presentationStyle="overFullScreen"
       >
         <View style={styles.modalContainer}>
           <TouchableOpacity 
@@ -1534,10 +1536,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 9999,
+    zIndex: 999999,
+    elevation: 999999,
   },
   modalOverlay: {
     position: 'absolute',
@@ -1560,6 +1565,7 @@ const styles = StyleSheet.create({
     maxWidth: 450,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    zIndex: 1000000,
   },
   pickerHeader: {
     flexDirection: 'row',
