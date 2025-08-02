@@ -1,14 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Dimensions, Text } from 'react-native';
-import { Svg, Path, Circle, Rect, G, Defs, LinearGradient as SvgLinearGradient, Stop, RadialGradient } from 'react-native-svg';
+import { View, Animated, Dimensions, Text, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
-
-const AnimatedSvg = Animated.createAnimatedComponent(Svg);
-const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function AnimationScreen() {
   const { hideAnimation } = useAuth();
@@ -32,7 +27,7 @@ export default function AnimationScreen() {
         Animated.timing(orbitalAnim, {
           toValue: 1,
           duration: 8000,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         })
       ).start();
 
@@ -42,12 +37,12 @@ export default function AnimationScreen() {
           Animated.timing(glowPulseAnim, {
             toValue: 0.8,
             duration: 2000,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(glowPulseAnim, {
             toValue: 0.3,
             duration: 2000,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ])
       ).start();
@@ -57,13 +52,13 @@ export default function AnimationScreen() {
         Animated.timing(fadeInAnim, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           tension: 40,
           friction: 6,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]).start(() => {
         
@@ -73,28 +68,28 @@ export default function AnimationScreen() {
             toValue: 1.2,
             tension: 60,
             friction: 4,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.spring(logoScaleAnim, {
             toValue: 1,
             tension: 80,
             friction: 8,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ]).start();
 
         // Logo rotation with easing
         Animated.timing(logoRotateAnim, {
-          toValue: 360,
+          toValue: 1,
           duration: 2500,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }).start();
 
         // Ripple effect
         Animated.timing(rippleAnim, {
           toValue: 1,
           duration: 2000,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }).start();
 
         // Particles floating up
@@ -102,7 +97,7 @@ export default function AnimationScreen() {
           Animated.timing(particlesAnim, {
             toValue: 1,
             duration: 4000,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           })
         ).start();
 
@@ -113,12 +108,12 @@ export default function AnimationScreen() {
               toValue: 0,
               tension: 50,
               friction: 7,
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== 'web',
             }),
             Animated.timing(textOpacityAnim, {
               toValue: 1,
               duration: 800,
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== 'web',
             }),
           ]).start();
         }, 1000);
@@ -133,9 +128,9 @@ export default function AnimationScreen() {
     startAnimation();
   }, []);
 
-  // Interpolated values
+  // Interpolated values with web compatibility
   const logoRotation = logoRotateAnim.interpolate({
-    inputRange: [0, 360],
+    inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
@@ -296,31 +291,78 @@ export default function AnimationScreen() {
             ],
           }}
         >
-          {/* K Letter - Clean and Modern */}
-          <AnimatedSvg
-            width={80}
-            height={80}
-            viewBox="0 0 80 80"
-          >
-            <Defs>
-              <SvgLinearGradient id="kGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-                <Stop offset="100%" stopColor="#e2e8f0" stopOpacity="1" />
-              </SvgLinearGradient>
-            </Defs>
+          {/* K Letter - Pure CSS/React Native Implementation */}
+          <View style={{
+            width: 80,
+            height: 80,
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative',
+          }}>
+            {/* Main K Letter using React Native Views */}
+            <View style={{
+              position: 'absolute',
+              width: 8,
+              height: 50,
+              backgroundColor: '#ffffff',
+              left: 20,
+              top: 15,
+              borderRadius: 2,
+            }} />
             
-            {/* Modern K Design */}
-            <Path
-              d="M 20 15 L 28 15 L 28 35 L 45 20 L 55 20 L 40 35 L 58 55 L 48 55 L 35 42 L 28 48 L 28 65 L 20 65 Z"
-              fill="url(#kGradient)"
-              stroke="none"
-            />
+            {/* Top diagonal of K */}
+            <View style={{
+              position: 'absolute',
+              width: 25,
+              height: 6,
+              backgroundColor: '#ffffff',
+              left: 28,
+              top: 25,
+              borderRadius: 3,
+              transform: [{ rotate: '25deg' }],
+            }} />
+            
+            {/* Bottom diagonal of K */}
+            <View style={{
+              position: 'absolute',
+              width: 25,
+              height: 6,
+              backgroundColor: '#ffffff',
+              left: 28,
+              top: 40,
+              borderRadius: 3,
+              transform: [{ rotate: '-25deg' }],
+            }} />
             
             {/* Decorative dots */}
-            <Circle cx="62" cy="25" r="3" fill="rgba(255,255,255,0.8)" />
-            <Circle cx="65" cy="35" r="2" fill="rgba(255,255,255,0.6)" />
-            <Circle cx="60" cy="42" r="2.5" fill="rgba(255,255,255,0.7)" />
-          </AnimatedSvg>
+            <View style={{
+              position: 'absolute',
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: 'rgba(255,255,255,0.8)',
+              right: 8,
+              top: 10,
+            }} />
+            <View style={{
+              position: 'absolute',
+              width: 4,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: 'rgba(255,255,255,0.6)',
+              right: 5,
+              top: 20,
+            }} />
+            <View style={{
+              position: 'absolute',
+              width: 5,
+              height: 5,
+              borderRadius: 2.5,
+              backgroundColor: 'rgba(255,255,255,0.7)',
+              right: 10,
+              top: 27,
+            }} />
+          </View>
         </Animated.View>
 
         {/* Orbital Elements */}
