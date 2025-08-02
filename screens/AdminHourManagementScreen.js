@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import GoogleDriveService from '../services/GoogleDriveService';
 import SimpleDriveService from '../services/SimpleDriveService';
 import GoogleAuthButton from '../components/GoogleAuthButton';
+import GoogleDriveAuthTest from '../components/GoogleDriveAuthTest';
 import SupabaseService from '../services/SupabaseService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -64,6 +65,8 @@ export default function AdminHourManagementScreen({ navigation }) {
     imageName: null,
     imageData: null
   });
+
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
 
 
@@ -800,6 +803,22 @@ export default function AdminHourManagementScreen({ navigation }) {
         style={styles.googleAuthContainer}
       />
 
+      {/* Google Drive Diagnostics */}
+      <TouchableOpacity
+        style={styles.diagnosticButton}
+        onPress={() => setShowDiagnostics(!showDiagnostics)}
+      >
+        <Text style={styles.diagnosticButtonText}>
+          {showDiagnostics ? '🔍 Hide Diagnostics' : '🔍 Show Google Drive Diagnostics'}
+        </Text>
+      </TouchableOpacity>
+
+      {showDiagnostics && (
+        <View style={styles.diagnosticContainer}>
+          <GoogleDriveAuthTest />
+        </View>
+      )}
+
       {/* Requests List */}
       {filteredRequests.length === 0 && !loading ? (
         <View style={styles.emptyContainer}>
@@ -1271,6 +1290,27 @@ const styles = StyleSheet.create({
   googleAuthContainer: {
     marginHorizontal: 16,
     marginVertical: 8,
+  },
+  diagnosticButton: {
+    backgroundColor: '#6366f1',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  diagnosticButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  diagnosticContainer: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: '#1a202c',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   closeButtonText: {
     color: '#fff',

@@ -847,12 +847,11 @@ export default function HourRequestScreen({ navigation }) {
         animationType="fade"
         onRequestClose={() => setShowDatePicker(false)}
       >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity 
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowDatePicker(false)}
-          />
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDatePicker(false)}
+        >
           <View style={styles.pickerContainer}>
             {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
@@ -984,7 +983,7 @@ export default function HourRequestScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     );
   };
@@ -1528,8 +1527,8 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   
-  // Enhanced Modal Picker Styles
-  modalContainer: {
+
+  modalOverlay: {
     position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
@@ -1542,14 +1541,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 99999,
     elevation: 99999,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
   },
   pickerContainer: {
     backgroundColor: 'white',

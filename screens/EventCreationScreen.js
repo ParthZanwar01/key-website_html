@@ -430,12 +430,12 @@ export default function EventCreationScreen({ route, navigation }) {
         animationType="fade"
         onRequestClose={() => setShowDatePicker(false)}
       >
-        <View style={styles.modalContainer} data-testid="modal">
-          <TouchableOpacity 
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowDatePicker(false)}
-          />
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDatePicker(false)}
+          data-testid="modal"
+        >
           <Animated.View 
             style={[
               styles.pickerContainer,
@@ -576,7 +576,7 @@ export default function EventCreationScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
           </Animated.View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     );
   };
@@ -595,12 +595,12 @@ export default function EventCreationScreen({ route, navigation }) {
         animationType="fade"
         onRequestClose={() => setVisible(false)}
       >
-        <View style={styles.modalContainer} data-testid="modal">
-          <TouchableOpacity 
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setVisible(false)}
-          />
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setVisible(false)}
+          data-testid="modal"
+        >
           <Animated.View style={styles.pickerContainer}>
             {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
@@ -718,7 +718,7 @@ export default function EventCreationScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
           </Animated.View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     );
   };
@@ -1248,8 +1248,8 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     marginTop: 15,
   },
-  // Enhanced Modal Picker Styles
-  modalContainer: {
+
+  modalOverlay: {
     position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
@@ -1262,14 +1262,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 99999,
     elevation: 99999,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
   },
   pickerContainer: {
     backgroundColor: 'white',
