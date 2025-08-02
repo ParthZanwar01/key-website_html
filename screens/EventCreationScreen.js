@@ -427,10 +427,15 @@ export default function EventCreationScreen({ route, navigation }) {
       <Modal
         transparent={true}
         visible={showDatePicker}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowDatePicker(false)}
       >
         <View style={styles.modalContainer} data-testid="modal">
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowDatePicker(false)}
+          />
           <Animated.View 
             style={[
               styles.pickerContainer,
@@ -441,64 +446,134 @@ export default function EventCreationScreen({ route, navigation }) {
               }
             ]}
           >
+            {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
               <TouchableOpacity 
                 onPress={() => setShowDatePicker(false)}
                 style={styles.pickerHeaderButton}
+                activeOpacity={0.7}
               >
                 <Text style={styles.pickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.pickerTitle}>Select Date 📅</Text>
+              <View style={styles.pickerTitleContainer}>
+                <Text style={styles.pickerTitle}>Select Date</Text>
+                <Text style={styles.pickerSubtitle}>📅 Choose your event date</Text>
+              </View>
               <TouchableOpacity 
                 onPress={() => setShowDatePicker(false)}
-                style={styles.pickerHeaderButton}
+                style={[styles.pickerHeaderButton, styles.pickerDoneButton]}
+                activeOpacity={0.7}
               >
                 <Text style={styles.pickerDone}>Done</Text>
               </TouchableOpacity>
             </View>
             
+            {/* Date Display */}
+            <View style={styles.selectedDateDisplay}>
+              <Text style={styles.selectedDateText}>
+                {formatDate(date)}
+              </Text>
+            </View>
+            
+            {/* Enhanced Picker Row */}
             <View style={styles.pickerRow}>
-              <Picker
-                style={styles.picker}
-                selectedValue={date.getMonth()}
-                onValueChange={(itemValue) => {
-                  const newDate = new Date(date);
-                  newDate.setMonth(itemValue);
-                  setDate(newDate);
-                }}
-              >
-                {months.map((month, index) => (
-                  <Picker.Item key={month} label={month} value={index} />
-                ))}
-              </Picker>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Month</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={date.getMonth()}
+                    onValueChange={(itemValue) => {
+                      const newDate = new Date(date);
+                      newDate.setMonth(itemValue);
+                      setDate(newDate);
+                    }}
+                  >
+                    {months.map((month, index) => (
+                      <Picker.Item 
+                        key={month} 
+                        label={month} 
+                        value={index}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
               
-              <Picker
-                style={styles.picker}
-                selectedValue={date.getDate()}
-                onValueChange={(itemValue) => {
-                  const newDate = new Date(date);
-                  newDate.setDate(itemValue);
-                  setDate(newDate);
-                }}
-              >
-                {days.map(day => (
-                  <Picker.Item key={day} label={day.toString()} value={day} />
-                ))}
-              </Picker>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Day</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={date.getDate()}
+                    onValueChange={(itemValue) => {
+                      const newDate = new Date(date);
+                      newDate.setDate(itemValue);
+                      setDate(newDate);
+                    }}
+                  >
+                    {days.map(day => (
+                      <Picker.Item 
+                        key={day} 
+                        label={day.toString()} 
+                        value={day}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
               
-              <Picker
-                style={styles.picker}
-                selectedValue={date.getFullYear()}
-                onValueChange={(itemValue) => {
-                  const newDate = new Date(date);
-                  newDate.setFullYear(itemValue);
-                  setDate(newDate);
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Year</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={date.getFullYear()}
+                    onValueChange={(itemValue) => {
+                      const newDate = new Date(date);
+                      newDate.setFullYear(itemValue);
+                      setDate(newDate);
+                    }}
+                  >
+                    {years.map(year => (
+                      <Picker.Item 
+                        key={year} 
+                        label={year.toString()} 
+                        value={year}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            </View>
+            
+            {/* Quick Actions */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  setDate(new Date());
+                  setShowDatePicker(false);
                 }}
+                activeOpacity={0.7}
               >
-                {years.map(year => (
-                  <Picker.Item key={year} label={year.toString()} value={year} />
-                ))}
-              </Picker>
+                <Text style={styles.quickActionText}>Today</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  setDate(tomorrow);
+                  setShowDatePicker(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.quickActionText}>Tomorrow</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -517,67 +592,130 @@ export default function EventCreationScreen({ route, navigation }) {
       <Modal
         transparent={true}
         visible={visible}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setVisible(false)}
       >
         <View style={styles.modalContainer} data-testid="modal">
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setVisible(false)}
+          />
           <Animated.View style={styles.pickerContainer}>
+            {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
               <TouchableOpacity 
                 onPress={() => setVisible(false)}
                 style={styles.pickerHeaderButton}
+                activeOpacity={0.7}
               >
                 <Text style={styles.pickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.pickerTitle}>
-                {type === 'start' ? 'Start Time ⏰' : 'End Time ⏰'}
-              </Text>
+              <View style={styles.pickerTitleContainer}>
+                <Text style={styles.pickerTitle}>
+                  {type === 'start' ? 'Start Time' : 'End Time'}
+                </Text>
+                <Text style={styles.pickerSubtitle}>
+                  {type === 'start' ? '⏰ When does it begin?' : '⏰ When does it end?'}
+                </Text>
+              </View>
               <TouchableOpacity 
                 onPress={() => setVisible(false)}
-                style={styles.pickerHeaderButton}
+                style={[styles.pickerHeaderButton, styles.pickerDoneButton]}
+                activeOpacity={0.7}
               >
                 <Text style={styles.pickerDone}>Done</Text>
               </TouchableOpacity>
             </View>
             
-            <View style={styles.pickerRow}>
-              <Picker
-                style={styles.picker}
-                selectedValue={time.getHours()}
-                onValueChange={(itemValue) => {
-                  const newTime = new Date(time);
-                  newTime.setHours(itemValue);
-                  setTime(newTime);
-                }}
-              >
-                {hours.map(hour => (
-                  <Picker.Item 
-                    key={hour} 
-                    label={hour < 10 ? `0${hour}` : `${hour}`}
-                    value={hour} 
-                  />
-                ))}
-              </Picker>
+            {/* Time Display */}
+            <View style={styles.selectedTimeDisplay}>
+              <Text style={styles.selectedTimeText}>
+                {formatTime(time)}
+              </Text>
+            </View>
+            
+            {/* Enhanced Time Picker Row */}
+            <View style={styles.timePickerRow}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Hour</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={time.getHours()}
+                    onValueChange={(itemValue) => {
+                      const newTime = new Date(time);
+                      newTime.setHours(itemValue);
+                      setTime(newTime);
+                    }}
+                  >
+                    {hours.map(hour => (
+                      <Picker.Item 
+                        key={hour} 
+                        label={hour < 10 ? `0${hour}` : `${hour}`}
+                        value={hour}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
               
-              <Text style={styles.pickerSeparator}>:</Text>
+              <View style={styles.timeSeparatorContainer}>
+                <Text style={styles.timeSeparator}>:</Text>
+              </View>
               
-              <Picker
-                style={styles.picker}
-                selectedValue={time.getMinutes()}
-                onValueChange={(itemValue) => {
-                  const newTime = new Date(time);
-                  newTime.setMinutes(itemValue);
-                  setTime(newTime);
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Minute</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={time.getMinutes()}
+                    onValueChange={(itemValue) => {
+                      const newTime = new Date(time);
+                      newTime.setMinutes(itemValue);
+                      setTime(newTime);
+                    }}
+                  >
+                    {minutes.map(minute => (
+                      <Picker.Item 
+                        key={minute} 
+                        label={minute < 10 ? `0${minute}` : `${minute}`}
+                        value={minute}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            </View>
+            
+            {/* Quick Time Actions */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  const now = new Date();
+                  setTime(now);
+                  setVisible(false);
                 }}
+                activeOpacity={0.7}
               >
-                {minutes.map(minute => (
-                  <Picker.Item 
-                    key={minute} 
-                    label={minute < 10 ? `0${minute}` : `${minute}`}
-                    value={minute} 
-                  />
-                ))}
-              </Picker>
+                <Text style={styles.quickActionText}>Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  const nextHour = new Date();
+                  nextHour.setHours(nextHour.getHours() + 1);
+                  nextHour.setMinutes(0);
+                  setTime(nextHour);
+                  setVisible(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.quickActionText}>Next Hour</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -1001,15 +1139,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    padding: 15,
-    backgroundColor: '#f8f9fa',
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   dateTimeText: {
     fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    color: '#2d3748',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -1103,7 +1247,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     marginTop: 15,
   },
-  // Modal Picker Styles
+  // Enhanced Modal Picker Styles
   modalContainer: {
     position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
@@ -1112,23 +1256,33 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: Platform.OS === 'web' ? '100vw' : '100%',
     height: Platform.OS === 'web' ? '100vh' : '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 99999,
     elevation: 99999,
   },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+  },
   pickerContainer: {
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 24,
     paddingBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
     width: '90%',
-    maxWidth: 400,
+    maxWidth: 450,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   pickerHeader: {
     flexDirection: 'row',
@@ -1136,41 +1290,158 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#f8f9fa',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fafbfc',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   pickerHeaderButton: {
-    padding: 5,
+    padding: 8,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  pickerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   pickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2d3748',
+    letterSpacing: 0.5,
   },
-  pickerCancel: {
-    color: '#ff4d4d',
+  pickerSubtitle: {
+    fontSize: 13,
+    color: '#718096',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  pickerDoneButton: {
+    backgroundColor: '#59a2f0',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  pickerDone: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  pickerDone: {
-    color: '#59a2f0',
+  pickerCancel: {
+    color: '#e53e3e',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  selectedDateDisplay: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8fafc',
+  },
+  selectedDateText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2d3748',
+    letterSpacing: 1,
   },
   pickerRow: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 15,
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  pickerColumn: {
+    flex: 1,
     alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  pickerLabel: {
+    fontSize: 13,
+    color: '#718096',
+    marginBottom: 8,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pickerWrapper: {
+    width: '100%',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   picker: {
-    flex: 1,
-    height: 200,
+    width: '100%',
+    height: 180,
   },
-  pickerSeparator: {
+  pickerItem: {
+    height: 45,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    paddingHorizontal: 15,
+  },
+  quickActionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    backgroundColor: '#ebf8ff',
+    borderWidth: 2,
+    borderColor: '#bee3f8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 14,
+    color: '#3182ce',
+    fontWeight: '600',
+  },
+  selectedTimeDisplay: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8fafc',
+  },
+  selectedTimeText: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#2d3748',
+    letterSpacing: 1,
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 15,
+    marginBottom: 20,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  timeSeparatorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
+  },
+  timeSeparator: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#2d3748',
     marginHorizontal: 10,
   },
 });

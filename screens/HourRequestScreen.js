@@ -829,7 +829,7 @@ export default function HourRequestScreen({ navigation }) {
     }
   };
 
-  // Date picker component
+  // Enhanced date picker component
   const renderDatePicker = () => {
     if (!showDatePicker) return null;
     
@@ -844,62 +844,144 @@ export default function HourRequestScreen({ navigation }) {
       <Modal
         transparent={true}
         visible={showDatePicker}
-        animationType="slide"
+        animationType="fade"
+        onRequestClose={() => setShowDatePicker(false)}
       >
         <View style={styles.modalContainer}>
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowDatePicker(false)}
+          />
           <View style={styles.pickerContainer}>
+            {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(false)}
+                style={styles.pickerHeaderButton}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.pickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.pickerTitle}>Event Date</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <View style={styles.pickerTitleContainer}>
+                <Text style={styles.pickerTitle}>Event Date</Text>
+                <Text style={styles.pickerSubtitle}>📅 When did this event happen?</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(false)}
+                style={[styles.pickerHeaderButton, styles.pickerDoneButton]}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.pickerDone}>Done</Text>
               </TouchableOpacity>
             </View>
             
+            {/* Date Display */}
+            <View style={styles.selectedDateDisplay}>
+              <Text style={styles.selectedDateText}>
+                {formatDate(eventDate)}
+              </Text>
+            </View>
+            
+            {/* Enhanced Picker Row */}
             <View style={styles.pickerRow}>
-              <Picker
-                style={styles.picker}
-                selectedValue={eventDate.getMonth()}
-                onValueChange={(itemValue) => {
-                  const newDate = new Date(eventDate);
-                  newDate.setMonth(itemValue);
-                  setEventDate(newDate);
-                }}
-              >
-                {months.map((month, index) => (
-                  <Picker.Item key={month} label={month} value={index} />
-                ))}
-              </Picker>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Month</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={eventDate.getMonth()}
+                    onValueChange={(itemValue) => {
+                      const newDate = new Date(eventDate);
+                      newDate.setMonth(itemValue);
+                      setEventDate(newDate);
+                    }}
+                  >
+                    {months.map((month, index) => (
+                      <Picker.Item 
+                        key={month} 
+                        label={month} 
+                        value={index}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
               
-              <Picker
-                style={styles.picker}
-                selectedValue={eventDate.getDate()}
-                onValueChange={(itemValue) => {
-                  const newDate = new Date(eventDate);
-                  newDate.setDate(itemValue);
-                  setEventDate(newDate);
-                }}
-              >
-                {days.map(day => (
-                  <Picker.Item key={day} label={day.toString()} value={day} />
-                ))}
-              </Picker>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Day</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={eventDate.getDate()}
+                    onValueChange={(itemValue) => {
+                      const newDate = new Date(eventDate);
+                      newDate.setDate(itemValue);
+                      setEventDate(newDate);
+                    }}
+                  >
+                    {days.map(day => (
+                      <Picker.Item 
+                        key={day} 
+                        label={day.toString()} 
+                        value={day}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
               
-              <Picker
-                style={styles.picker}
-                selectedValue={eventDate.getFullYear()}
-                onValueChange={(itemValue) => {
-                  const newDate = new Date(eventDate);
-                  newDate.setFullYear(itemValue);
-                  setEventDate(newDate);
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Year</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    style={styles.picker}
+                    selectedValue={eventDate.getFullYear()}
+                    onValueChange={(itemValue) => {
+                      const newDate = new Date(eventDate);
+                      newDate.setFullYear(itemValue);
+                      setEventDate(newDate);
+                    }}
+                  >
+                    {years.map(year => (
+                      <Picker.Item 
+                        key={year} 
+                        label={year.toString()} 
+                        value={year}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            </View>
+            
+            {/* Quick Actions */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  setEventDate(new Date());
+                  setShowDatePicker(false);
                 }}
+                activeOpacity={0.7}
               >
-                {years.map(year => (
-                  <Picker.Item key={year} label={year.toString()} value={year} />
-                ))}
-              </Picker>
+                <Text style={styles.quickActionText}>Today</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => {
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  setEventDate(yesterday);
+                  setShowDatePicker(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.quickActionText}>Yesterday</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -1338,16 +1420,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#4299e1', // Professional blue
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 2,
+    borderColor: '#4299e1',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   helpText: {
     fontSize: 12,
@@ -1445,7 +1527,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   
-  // Modal Picker Styles
+  // Enhanced Modal Picker Styles
   modalContainer: {
     position: 'absolute',
     top: 0,
@@ -1457,47 +1539,155 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 9999,
   },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+  },
   pickerContainer: {
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 24,
     paddingBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
     width: '90%',
-    maxWidth: 400,
+    maxWidth: 450,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fafbfc',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  pickerHeaderButton: {
+    padding: 8,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  pickerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   pickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2d3748', // Dark gray
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2d3748',
+    letterSpacing: 0.5,
   },
-  pickerCancel: {
-    color: '#e53e3e', // Red
-    fontSize: 16,
+  pickerSubtitle: {
+    fontSize: 13,
+    color: '#718096',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  pickerDoneButton: {
+    backgroundColor: '#4299e1',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
   },
   pickerDone: {
-    color: '#4299e1', // Professional blue
+    color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  pickerCancel: {
+    color: '#e53e3e',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  selectedDateDisplay: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8fafc',
+  },
+  selectedDateText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2d3748',
+    letterSpacing: 1,
   },
   pickerRow: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 15,
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  pickerColumn: {
+    flex: 1,
     alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  pickerLabel: {
+    fontSize: 13,
+    color: '#718096',
+    marginBottom: 8,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pickerWrapper: {
+    width: '100%',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   picker: {
-    flex: 1,
-    height: 200,
+    width: '100%',
+    height: 180,
+  },
+  pickerItem: {
+    height: 45,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    paddingHorizontal: 15,
+  },
+  quickActionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    backgroundColor: '#ebf8ff',
+    borderWidth: 2,
+    borderColor: '#bee3f8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionText: {
+    fontSize: 14,
+    color: '#3182ce',
+    fontWeight: '600',
   },
   floatingSparkle: {
     position: 'absolute',
