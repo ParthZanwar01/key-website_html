@@ -26,6 +26,7 @@ import { useModal } from '../contexts/ModalContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import ModernDatePicker from '../components/ModernDatePicker';
 // Remove Google Drive dependency - we'll use local storage instead
 
 // Conditionally import FileSystem only on native platforms
@@ -828,155 +829,16 @@ export default function HourRequestScreen({ navigation }) {
     }
   };
 
-  // Enhanced date picker component
+    // Modern date picker component
   const renderDatePicker = () => {
-    if (!showDatePicker) return null;
-    
-    const days = Array.from({ length: 31 }, (_, i) => i + 1);
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const years = Array.from({ length: 2 }, (_, i) => new Date().getFullYear() - i);
-    
     return (
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={() => setShowDatePicker(false)}
-      >
-          <View style={styles.pickerContainer}>
-            {/* Enhanced Header */}
-            <View style={styles.pickerHeader}>
-              <TouchableOpacity 
-                onPress={() => setShowDatePicker(false)}
-                style={styles.pickerHeaderButton}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pickerCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <View style={styles.pickerTitleContainer}>
-                <Text style={styles.pickerTitle}>Event Date</Text>
-                <Text style={styles.pickerSubtitle}>📅 When did this event happen?</Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => setShowDatePicker(false)}
-                style={[styles.pickerHeaderButton, styles.pickerDoneButton]}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Date Display */}
-            <View style={styles.selectedDateDisplay}>
-              <Text style={styles.selectedDateText}>
-                {formatDate(eventDate)}
-              </Text>
-            </View>
-            
-            {/* Enhanced Picker Row */}
-            <View style={styles.pickerRow}>
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Month</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    style={styles.picker}
-                    selectedValue={eventDate.getMonth()}
-                    onValueChange={(itemValue) => {
-                      const newDate = new Date(eventDate);
-                      newDate.setMonth(itemValue);
-                      setEventDate(newDate);
-                    }}
-                  >
-                    {months.map((month, index) => (
-                      <Picker.Item 
-                        key={month} 
-                        label={month} 
-                        value={index}
-                        style={styles.pickerItem}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-              
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Day</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    style={styles.picker}
-                    selectedValue={eventDate.getDate()}
-                    onValueChange={(itemValue) => {
-                      const newDate = new Date(eventDate);
-                      newDate.setDate(itemValue);
-                      setEventDate(newDate);
-                    }}
-                  >
-                    {days.map(day => (
-                      <Picker.Item 
-                        key={day} 
-                        label={day.toString()} 
-                        value={day}
-                        style={styles.pickerItem}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-              
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Year</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    style={styles.picker}
-                    selectedValue={eventDate.getFullYear()}
-                    onValueChange={(itemValue) => {
-                      const newDate = new Date(eventDate);
-                      newDate.setFullYear(itemValue);
-                      setEventDate(newDate);
-                    }}
-                  >
-                    {years.map(year => (
-                      <Picker.Item 
-                        key={year} 
-                        label={year.toString()} 
-                        value={year}
-                        style={styles.pickerItem}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-            </View>
-            
-            {/* Quick Actions */}
-            <View style={styles.quickActions}>
-              <TouchableOpacity 
-                style={styles.quickActionButton}
-                onPress={() => {
-                  setEventDate(new Date());
-                  setShowDatePicker(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickActionText}>Today</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.quickActionButton}
-                onPress={() => {
-                  const yesterday = new Date();
-                  yesterday.setDate(yesterday.getDate() - 1);
-                  setEventDate(yesterday);
-                  setShowDatePicker(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickActionText}>Yesterday</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
+      <ModernDatePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={eventDate}
+        onDateSelect={(selectedDate) => setEventDate(selectedDate)}
+        title="Select Event Date"
+      />
     );
   };
 
