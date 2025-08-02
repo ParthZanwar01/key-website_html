@@ -8,12 +8,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
-  Modal,
   Image,
   Dimensions,
   StatusBar,
   Animated,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHours } from '../contexts/HourContext';
@@ -838,11 +838,7 @@ export default function AdminHourManagementScreen({ navigation }) {
       )}
 
       {/* Review Modal */}
-      <Modal
-        visible={reviewModal.visible}
-        transparent={true}
-        animationType="slide"
-      >
+      {reviewModal.visible && (
         <View style={styles.modalOverlay} data-testid="modal">
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
@@ -891,14 +887,10 @@ export default function AdminHourManagementScreen({ navigation }) {
             </View>
           </View>
         </View>
-      </Modal>
+      )}
 
       {/* Photo Modal */}
-      <Modal
-        visible={photoModal.visible}
-        transparent={true}
-        animationType="fade"
-      >
+      {photoModal.visible && (
         <View style={styles.modalOverlay} data-testid="modal">
           <View style={styles.photoModalContainer}>
             <Text style={styles.photoModalTitle}>Photo Information</Text>
@@ -924,7 +916,7 @@ export default function AdminHourManagementScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      )}
 
 
     </SafeAreaView>
