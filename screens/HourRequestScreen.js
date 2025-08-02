@@ -11,7 +11,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Modal,
   Image,
   Alert,
   ActivityIndicator,
@@ -841,17 +840,11 @@ export default function HourRequestScreen({ navigation }) {
     const years = Array.from({ length: 2 }, (_, i) => new Date().getFullYear() - i);
     
     return (
-      <Modal
-        transparent={true}
-        visible={showDatePicker}
-        animationType="fade"
-        onRequestClose={() => setShowDatePicker(false)}
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowDatePicker(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePicker(false)}
-        >
           <View style={styles.pickerContainer}>
             {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
@@ -984,7 +977,6 @@ export default function HourRequestScreen({ navigation }) {
             </View>
           </View>
         </TouchableOpacity>
-      </Modal>
     );
   };
 

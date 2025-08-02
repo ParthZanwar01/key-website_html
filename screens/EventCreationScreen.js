@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
-  Modal,
   Animated,
   Easing,
   Dimensions,
@@ -424,28 +423,22 @@ export default function EventCreationScreen({ route, navigation }) {
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i);
     
     return (
-      <Modal
-        transparent={true}
-        visible={showDatePicker}
-        animationType="fade"
-        onRequestClose={() => setShowDatePicker(false)}
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowDatePicker(false)}
+        data-testid="modal"
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePicker(false)}
-          data-testid="modal"
+        <Animated.View 
+          style={[
+            styles.pickerContainer,
+            {
+              transform: [{
+                translateY: showDatePicker ? 0 : 300
+              }]
+            }
+          ]}
         >
-          <Animated.View 
-            style={[
-              styles.pickerContainer,
-              {
-                transform: [{
-                  translateY: showDatePicker ? 0 : 300
-                }]
-              }
-            ]}
-          >
             {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
               <TouchableOpacity 
@@ -577,7 +570,6 @@ export default function EventCreationScreen({ route, navigation }) {
             </View>
           </Animated.View>
         </TouchableOpacity>
-      </Modal>
     );
   };
   
@@ -589,18 +581,12 @@ export default function EventCreationScreen({ route, navigation }) {
     const minutes = Array.from({ length: 60 }, (_, i) => i);
     
     return (
-      <Modal
-        transparent={true}
-        visible={visible}
-        animationType="fade"
-        onRequestClose={() => setVisible(false)}
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setVisible(false)}
+        data-testid="modal"
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setVisible(false)}
-          data-testid="modal"
-        >
           <Animated.View style={styles.pickerContainer}>
             {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
@@ -719,7 +705,6 @@ export default function EventCreationScreen({ route, navigation }) {
             </View>
           </Animated.View>
         </TouchableOpacity>
-      </Modal>
     );
   };
 
