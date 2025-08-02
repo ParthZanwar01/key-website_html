@@ -429,8 +429,6 @@ export default function EventCreationScreen({ route, navigation }) {
         visible={showDatePicker}
         animationType="fade"
         onRequestClose={() => setShowDatePicker(false)}
-        statusBarTranslucent={true}
-        presentationStyle="overFullScreen"
       >
         <View style={styles.modalContainer} data-testid="modal">
           <TouchableOpacity 
@@ -596,8 +594,6 @@ export default function EventCreationScreen({ route, navigation }) {
         visible={visible}
         animationType="fade"
         onRequestClose={() => setVisible(false)}
-        statusBarTranslucent={true}
-        presentationStyle="overFullScreen"
       >
         <View style={styles.modalContainer} data-testid="modal">
           <TouchableOpacity 
@@ -1253,18 +1249,18 @@ const styles = StyleSheet.create({
   },
   // Enhanced Modal Picker Styles
   modalContainer: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    width: '100%',
-    height: '100%',
+    width: Platform.OS === 'web' ? '100vw' : '100%',
+    height: Platform.OS === 'web' ? '100vh' : '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999999,
-    elevation: 999999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   modalOverlay: {
     position: 'absolute',
@@ -1287,7 +1283,6 @@ const styles = StyleSheet.create({
     maxWidth: 450,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    zIndex: 1000000,
   },
   pickerHeader: {
     flexDirection: 'row',
