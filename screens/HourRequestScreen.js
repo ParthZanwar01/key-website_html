@@ -695,6 +695,22 @@ export default function HourRequestScreen({ navigation }) {
       return;
     }
 
+    // Validate photo is required
+    if (!image) {
+      console.log('❌ Validation failed: photo is required');
+      showModal({
+        title: 'Photo Required',
+        message: 'Please upload a proof photo for your hour request. This helps verify your volunteer work.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'camera',
+        iconColor: '#ff4d4d'
+      });
+      return;
+    }
+
     const hours = parseFloat(hoursRequested);
     if (isNaN(hours) || hours <= 0 || hours > 24) {
       console.log('❌ Validation failed: invalid hours value:', hoursRequested);
@@ -767,7 +783,7 @@ export default function HourRequestScreen({ navigation }) {
           if (result.imageUpload === 'success') {
             successMessage += ` Your proof photo "${result.imageFileName}" has been uploaded and linked to this request.`;
           } else if (result.imageUpload === 'failed') {
-            successMessage += ` Your request was saved, but the photo upload failed due to a network issue. Your hours request is still valid and will be processed. You can try uploading the photo again later if needed.`;
+            successMessage += ` Your request was saved, but the photo upload failed due to a network issue. Please contact an administrator to resolve this issue.`;
           }
         }
         
@@ -845,7 +861,7 @@ export default function HourRequestScreen({ navigation }) {
   // Photo section
   const renderPhotoSection = () => (
     <View style={styles.formGroup}>
-      <Text style={styles.label}>Upload Proof Photo (Optional)</Text>
+      <Text style={styles.label}>Upload Proof Photo *</Text>
       
       {!image ? (
         <TouchableOpacity
@@ -883,7 +899,7 @@ export default function HourRequestScreen({ navigation }) {
       )}
       
       <Text style={styles.helpText}>
-        Photos will be uploaded to Google Drive and the filename will be saved with your request to help verify your volunteer work.
+        A proof photo is required to verify your volunteer work. Photos will be uploaded and linked to your request.
       </Text>
     </View>
   );
