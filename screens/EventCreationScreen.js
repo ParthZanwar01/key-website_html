@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
-  Modal,
   Animated,
   Easing,
   Dimensions,
@@ -23,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import ModernDatePicker from '../components/ModernDatePicker';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -412,172 +412,16 @@ export default function EventCreationScreen({ route, navigation }) {
     { color: '#f542a4', name: 'Pink Flamingo' },
   ];
   
-  // Enhanced date picker with animations
+  // Modern date picker component
   const renderDatePicker = () => {
-    if (!showDatePicker) return null;
-    
-    const days = Array.from({ length: 31 }, (_, i) => i + 1);
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i);
-    
     return (
-      <Modal
-        transparent={true}
+      <ModernDatePicker
         visible={showDatePicker}
-        animationType="fade"
-        onRequestClose={() => setShowDatePicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePicker(false)}
-          data-testid="modal"
-        >
-          <Animated.View 
-            style={[
-              styles.pickerContainer,
-              {
-                transform: [{
-                  translateY: showDatePicker ? 0 : 300
-                }]
-              }
-            ]}
-          >
-            {/* Enhanced Header */}
-            <View style={styles.pickerHeader}>
-              <TouchableOpacity 
-                onPress={() => setShowDatePicker(false)}
-                style={styles.pickerHeaderButton}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pickerCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <View style={styles.pickerTitleContainer}>
-                <Text style={styles.pickerTitle}>Select Date</Text>
-                <Text style={styles.pickerSubtitle}>📅 Choose your event date</Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => setShowDatePicker(false)}
-                style={[styles.pickerHeaderButton, styles.pickerDoneButton]}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.pickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Date Display */}
-            <View style={styles.selectedDateDisplay}>
-              <Text style={styles.selectedDateText}>
-                {formatDate(date)}
-              </Text>
-            </View>
-            
-            {/* Enhanced Picker Row */}
-            <View style={styles.pickerRow}>
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Month</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    style={styles.picker}
-                    selectedValue={date.getMonth()}
-                    onValueChange={(itemValue) => {
-                      const newDate = new Date(date);
-                      newDate.setMonth(itemValue);
-                      setDate(newDate);
-                    }}
-                  >
-                    {months.map((month, index) => (
-                      <Picker.Item 
-                        key={month} 
-                        label={month} 
-                        value={index}
-                        style={styles.pickerItem}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-              
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Day</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    style={styles.picker}
-                    selectedValue={date.getDate()}
-                    onValueChange={(itemValue) => {
-                      const newDate = new Date(date);
-                      newDate.setDate(itemValue);
-                      setDate(newDate);
-                    }}
-                  >
-                    {days.map(day => (
-                      <Picker.Item 
-                        key={day} 
-                        label={day.toString()} 
-                        value={day}
-                        style={styles.pickerItem}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-              
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Year</Text>
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    style={styles.picker}
-                    selectedValue={date.getFullYear()}
-                    onValueChange={(itemValue) => {
-                      const newDate = new Date(date);
-                      newDate.setFullYear(itemValue);
-                      setDate(newDate);
-                    }}
-                  >
-                    {years.map(year => (
-                      <Picker.Item 
-                        key={year} 
-                        label={year.toString()} 
-                        value={year}
-                        style={styles.pickerItem}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-            </View>
-            
-            {/* Quick Actions */}
-            <View style={styles.quickActions}>
-              <TouchableOpacity 
-                style={styles.quickActionButton}
-                onPress={() => {
-                  setDate(new Date());
-                  setShowDatePicker(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickActionText}>Today</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.quickActionButton}
-                onPress={() => {
-                  const tomorrow = new Date();
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  setDate(tomorrow);
-                  setShowDatePicker(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.quickActionText}>Tomorrow</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={date}
+        onDateSelect={(selectedDate) => setDate(selectedDate)}
+        title="Select Event Date"
+      />
     );
   };
   
@@ -589,18 +433,12 @@ export default function EventCreationScreen({ route, navigation }) {
     const minutes = Array.from({ length: 60 }, (_, i) => i);
     
     return (
-      <Modal
-        transparent={true}
-        visible={visible}
-        animationType="fade"
-        onRequestClose={() => setVisible(false)}
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setVisible(false)}
+        data-testid="modal"
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setVisible(false)}
-          data-testid="modal"
-        >
           <Animated.View style={styles.pickerContainer}>
             {/* Enhanced Header */}
             <View style={styles.pickerHeader}>
@@ -719,7 +557,6 @@ export default function EventCreationScreen({ route, navigation }) {
             </View>
           </Animated.View>
         </TouchableOpacity>
-      </Modal>
     );
   };
 
