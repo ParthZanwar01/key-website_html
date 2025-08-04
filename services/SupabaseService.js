@@ -713,6 +713,39 @@ class SupabaseService {
     }
   }
 
+  /**
+   * Get attendees for a specific event
+   */
+  static async getEventAttendees(eventId) {
+    try {
+      console.log('👥 Getting attendees for event:', eventId);
+      
+      const { data: attendeesData, error } = await supabase
+        .from('event_attendees')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('registered_at', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error getting event attendees:', error);
+        throw error;
+      }
+
+      const attendees = (attendeesData || []).map(attendee => ({
+        id: attendee.id,
+        name: attendee.name,
+        email: attendee.email,
+        registeredAt: attendee.registered_at
+      }));
+
+      console.log(`✅ Found ${attendees.length} attendees for event ${eventId}`);
+      return attendees;
+    } catch (error) {
+      console.error('❌ Failed to get event attendees:', error);
+      throw error;
+    }
+  }
+
   // ========== HOUR REQUESTS ==========
 
   /**
