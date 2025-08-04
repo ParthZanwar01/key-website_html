@@ -408,21 +408,27 @@ export default function PublicEventsScreen() {
             onPress={closeAttendeesModal}
             activeOpacity={1}
           />
-          <Animated.View
-            style={[
-              styles.modalContent,
-              {
-                transform: [
+                        <Animated.View
+                style={[
+                  styles.modalContent,
                   {
-                    translateY: modalAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [300, 0]
-                    })
+                    transform: [
+                      {
+                        scale: modalAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1]
+                        })
+                      },
+                      {
+                        translateY: modalAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [50, 0]
+                        })
+                      }
+                    ]
                   }
-                ]
-              }
-            ]}
-          >
+                ]}
+              >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {selectedEvent?.title} - Volunteers
@@ -766,7 +772,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   modalBackdrop: {
     position: 'absolute',
@@ -777,11 +783,11 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderRadius: 20,
     maxHeight: '80%',
+    marginHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 12,
