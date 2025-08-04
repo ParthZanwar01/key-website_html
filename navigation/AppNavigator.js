@@ -74,7 +74,7 @@ function CalendarStack() {
       <Stack.Screen 
         name="EventCreation" 
         component={EventCreationScreen} 
-        options={{ title: "Create Event" }} 
+        options={{ headerShown: false }} 
       />
       <Stack.Screen 
         name="EventDeletion" 
