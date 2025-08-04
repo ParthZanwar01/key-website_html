@@ -746,6 +746,32 @@ class SupabaseService {
     }
   }
 
+  /**
+   * Unregister from an event
+   */
+  static async unregisterFromEvent(eventId, email) {
+    try {
+      console.log('🚫 Unregistering from event:', eventId, email);
+      
+      const { error } = await supabase
+        .from('event_attendees')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('email', email);
+
+      if (error) {
+        console.error('❌ Error unregistering from event:', error);
+        throw error;
+      }
+
+      console.log('✅ Successfully unregistered from event');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to unregister from event:', error);
+      throw error;
+    }
+  }
+
   // ========== HOUR REQUESTS ==========
 
   /**

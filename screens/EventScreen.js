@@ -16,6 +16,7 @@ import { useEvents } from '../contexts/EventsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useModal } from '../contexts/ModalContext';
+import SupabaseService from '../services/SupabaseService';
 
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
@@ -27,6 +28,8 @@ export default function EventScreen({ route, navigation }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
+  const [currentRegistration, setCurrentRegistration] = useState(null);
 
   useEffect(() => {
     const eventData = getEventById(eventId);
@@ -44,6 +47,84 @@ export default function EventScreen({ route, navigation }) {
       });
     }
   }, [eventId, getEventById, navigation, showModal]);
+
+  // Check if user is already registered for this event
+  const checkRegistrationStatus = (userEmail) => {
+    if (!event || !event.attendees || !userEmail) return;
+    
+    const existingRegistration = event.attendees.find(attendee => 
+      attendee.email.toLowerCase() === userEmail.toLowerCase()
+    );
+    
+    if (existingRegistration) {
+      setIsAlreadyRegistered(true);
+      setCurrentRegistration(existingRegistration);
+      setName(existingRegistration.name);
+      setEmail(existingRegistration.email);
+    } else {
+      setIsAlreadyRegistered(false);
+      setCurrentRegistration(null);
+    }
+  };
+
+  // Handle unregistration
+  const handleUnregister = async () => {
+    if (!currentRegistration) return;
+    
+    showModal({
+      title: 'Unregister from Event',
+      message: `Are you sure you want to unregister from "${event.title}"?`,
+      onCancel: () => {},
+      onConfirm: confirmUnregister,
+      cancelText: 'Cancel',
+      confirmText: 'Unregister',
+      destructive: true,
+      icon: 'person-remove-outline'
+    });
+  };
+
+  const confirmUnregister = async () => {
+    try {
+      setLoading(true);
+      
+      // Call the unregister function (we'll need to add this to SupabaseService)
+      await SupabaseService.unregisterFromEvent(eventId, currentRegistration.email);
+      
+      // Refresh events to update the UI
+      await refreshEvents();
+      
+      // Reset the form
+      setIsAlreadyRegistered(false);
+      setCurrentRegistration(null);
+      setName('');
+      setEmail('');
+      
+      showModal({
+        title: 'Success',
+        message: 'You have been unregistered from this event.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
+      });
+      
+    } catch (error) {
+      console.error('Unregister error:', error);
+      showModal({
+        title: 'Error',
+        message: 'Failed to unregister from event. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Enhanced delete handler using EventsContext
   const handleDeleteEvent = () => {
@@ -381,7 +462,16 @@ export default function EventScreen({ route, navigation }) {
                   <TextInput
                     style={styles.input}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      // Check registration status when email changes
+                      if (text.trim()) {
+                        checkRegistrationStatus(text);
+                      } else {
+                        setIsAlreadyRegistered(false);
+                        setCurrentRegistration(null);
+                      }
+                    }}
                     placeholder="Enter your email"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -389,22 +479,47 @@ export default function EventScreen({ route, navigation }) {
                 </View>
                 
                 <View style={styles.buttonContainer}>
-                  <TouchableOpacity
-                    style={[styles.signupButton, loading && styles.disabledButton]}
-                    onPress={handleSignup}
-                    disabled={loading}
-                  >
-                    <Text style={styles.buttonText}>
-                      {loading ? 'Signing up...' : 'Sign Up'}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => navigation.goBack()}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
+                  {isAlreadyRegistered ? (
+                    // Show registration status and unregister option
+                    <View style={styles.registeredContainer}>
+                      <View style={styles.registeredStatus}>
+                        <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                        <Text style={styles.registeredText}>You're already registered!</Text>
+                      </View>
+                      <Text style={styles.registeredDetails}>
+                        Registered as: {currentRegistration?.name}
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.unregisterButton, loading && styles.disabledButton]}
+                        onPress={handleUnregister}
+                        disabled={loading}
+                      >
+                        <Text style={styles.unregisterButtonText}>
+                          {loading ? 'Unregistering...' : 'Unregister from Event'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    // Show normal signup form
+                    <>
+                      <TouchableOpacity
+                        style={[styles.signupButton, loading && styles.disabledButton]}
+                        onPress={handleSignup}
+                        disabled={loading}
+                      >
+                        <Text style={styles.buttonText}>
+                          {loading ? 'Signing up...' : 'Sign Up'}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={() => navigation.goBack()}
+                      >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
             )
@@ -640,5 +755,38 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#666',
     fontSize: 16,
+  },
+  registeredContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  registeredStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  registeredText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginLeft: 8,
+  },
+  registeredDetails: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  unregisterButton: {
+    backgroundColor: '#ff6b6b',
+    padding: 15,
+    borderRadius: 4,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  unregisterButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
