@@ -141,6 +141,70 @@ export default function EventScreen({ route, navigation }) {
     }
   };
 
+  // Handle email update for existing registration
+  const handleUpdateEmail = async () => {
+    if (!email.trim()) {
+      showModal({
+        title: 'Error',
+        message: 'Please enter a valid email address',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // First unregister with old email
+      await SupabaseService.unregisterFromEvent(eventId, currentRegistration.email);
+      
+      // Then register with new email
+      await signupForEvent(eventId, {
+        name: currentRegistration.name,
+        email: email.trim(),
+        sNumber: currentRegistration.sNumber
+      });
+      
+      // Refresh events to update the UI
+      await refreshEvents();
+      
+      // Update current registration
+      setCurrentRegistration({
+        ...currentRegistration,
+        email: email.trim()
+      });
+      
+      showModal({
+        title: 'Success',
+        message: 'Your email has been updated successfully!',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'checkmark-circle',
+        iconColor: '#4CAF50'
+      });
+      
+    } catch (error) {
+      console.error('Email update error:', error);
+      showModal({
+        title: 'Error',
+        message: 'Failed to update email. Please try again.',
+        onCancel: () => {},
+        onConfirm: () => {},
+        cancelText: '',
+        confirmText: 'OK',
+        icon: 'alert-circle'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Enhanced delete handler using EventsContext
   const handleDeleteEvent = () => {
     console.log('Delete button clicked');
@@ -253,17 +317,14 @@ export default function EventScreen({ route, navigation }) {
       return;
     }
 
-    // Check if already registered
-    if (event.attendees && event.attendees.some(attendee => attendee.email === email)) {
-      showModal({
-        title: 'Error',
-        message: 'You are already registered for this event',
-        onCancel: () => {},
-        onConfirm: () => {},
-        cancelText: '',
-        confirmText: 'OK',
-        icon: 'alert-circle'
-      });
+    // Check if already registered and update registration status
+    if (event.attendees && event.attendees.some(attendee => attendee.email === finalEmail)) {
+      // User is already registered, update the registration status
+      const existingRegistration = event.attendees.find(attendee => attendee.email === finalEmail);
+      setIsAlreadyRegistered(true);
+      setCurrentRegistration(existingRegistration);
+      setName(existingRegistration.name);
+      setEmail(existingRegistration.email);
       return;
     }
 
@@ -517,7 +578,7 @@ export default function EventScreen({ route, navigation }) {
                 
                 <View style={styles.buttonContainer}>
                   {isAlreadyRegistered ? (
-                    // Show registration status and unregister option
+                    // Show registration status and management options
                     <View style={styles.registeredContainer}>
                       <View style={styles.registeredStatus}>
                         <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -526,6 +587,30 @@ export default function EventScreen({ route, navigation }) {
                       <Text style={styles.registeredDetails}>
                         Registered as: {currentRegistration?.name}
                       </Text>
+                      
+                      {/* Email Update Section */}
+                      <View style={styles.emailUpdateSection}>
+                        <Text style={styles.emailUpdateLabel}>Update Email Address:</Text>
+                        <TextInput
+                          style={styles.emailUpdateInput}
+                          value={email}
+                          onChangeText={setEmail}
+                          placeholder="Enter new email address"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+                        <TouchableOpacity
+                          style={[styles.updateEmailButton, loading && styles.disabledButton]}
+                          onPress={handleUpdateEmail}
+                          disabled={loading}
+                        >
+                          <Text style={styles.updateEmailButtonText}>
+                            {loading ? 'Updating...' : 'Update Email'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      
+                      {/* Unregister Button */}
                       <TouchableOpacity
                         style={[styles.unregisterButton, loading && styles.disabledButton]}
                         onPress={handleUnregister}
@@ -848,5 +933,39 @@ const styles = StyleSheet.create({
   disabledInput: {
     backgroundColor: '#f5f5f5',
     color: '#666',
+  },
+  emailUpdateSection: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  emailUpdateLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: 8,
+  },
+  emailUpdateInput: {
+    borderWidth: 1,
+    borderColor: '#ced4da',
+    borderRadius: 4,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: 'white',
+    marginBottom: 10,
+  },
+  updateEmailButton: {
+    backgroundColor: '#17a2b8',
+    padding: 12,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  updateEmailButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
