@@ -42,6 +42,8 @@ export default function EventCreationScreen({ route, navigation }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [locationAddress, setLocationAddress] = useState('');
+  const [locationCoordinates, setLocationCoordinates] = useState(null);
   const [capacity, setCapacity] = useState('20');
   const [date, setDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
@@ -53,6 +55,7 @@ export default function EventCreationScreen({ route, navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   
   const [loading, setLoading] = useState(false);
   
@@ -66,6 +69,7 @@ export default function EventCreationScreen({ route, navigation }) {
   const loadingSpinAnim = useRef(new Animated.Value(0)).current;
   const successAnim = useRef(new Animated.Value(0)).current;
   const colorSelectorAnim = useRef(new Animated.Value(1)).current;
+  const locationPickerAnim = useRef(new Animated.Value(0)).current;
   
 
 
@@ -146,6 +150,8 @@ export default function EventCreationScreen({ route, navigation }) {
         setTitle(existingEvent.title);
         setDescription(existingEvent.description);
         setLocation(existingEvent.location);
+        setLocationAddress(existingEvent.locationAddress || '');
+        setLocationCoordinates(existingEvent.locationCoordinates || null);
         setCapacity(existingEvent.capacity.toString());
         
         const eventDate = new Date(existingEvent.date);
@@ -250,6 +256,8 @@ export default function EventCreationScreen({ route, navigation }) {
           title,
           description,
           location,
+          locationAddress,
+          locationCoordinates,
           capacity: parseInt(capacity) || 20,
           date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
           startTime: `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}:00`,
@@ -281,6 +289,8 @@ export default function EventCreationScreen({ route, navigation }) {
           title,
           description,
           location,
+          locationAddress,
+          locationCoordinates,
           capacity: parseInt(capacity) || 20,
           date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
           startTime: `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}:00`,
@@ -397,10 +407,107 @@ export default function EventCreationScreen({ route, navigation }) {
       date: setShowDatePicker,
       startTime: setShowStartTimePicker,
       endTime: setShowEndTimePicker,
+      location: setShowLocationPicker,
     }[pickerType];
     
     setState(true);
   };
+
+  // Location picker functions
+  const openLocationPicker = () => {
+    setShowLocationPicker(true);
+    Animated.timing(locationPickerAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeLocationPicker = () => {
+    Animated.timing(locationPickerAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowLocationPicker(false);
+    });
+  };
+
+  const selectLocation = (selectedLocation) => {
+    setLocation(selectedLocation.name);
+    setLocationAddress(selectedLocation.address);
+    setLocationCoordinates(selectedLocation.coordinates);
+    closeLocationPicker();
+  };
+
+  const openGoogleMaps = () => {
+    if (locationCoordinates) {
+      const { latitude, longitude } = locationCoordinates;
+      const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+      
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        // For mobile, you might want to use Linking
+        // Linking.openURL(url);
+        window.open(url, '_blank');
+      }
+    }
+  };
+
+  // Common locations for Key Club events
+  const commonLocations = [
+    {
+      name: "School Cafeteria",
+      address: "Main Building, Room 101",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "School Gymnasium",
+      address: "Athletic Center",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "School Library",
+      address: "Learning Resource Center",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "School Auditorium",
+      address: "Performing Arts Center",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "School Parking Lot",
+      address: "Main Parking Area",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "Local Community Center",
+      address: "123 Community Drive",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "Local Park",
+      address: "Central Park",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "Local Library",
+      address: "Public Library",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "Local Church",
+      address: "Community Church",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    },
+    {
+      name: "Local Restaurant",
+      address: "Community Restaurant",
+      coordinates: { latitude: 37.7749, longitude: -122.4194 }
+    }
+  ];
 
   // Color options
   const colorOptions = [
@@ -668,13 +775,34 @@ export default function EventCreationScreen({ route, navigation }) {
               ]}
             >
               <Text style={styles.label}>Location 📍</Text>
-              <TextInput
-                style={styles.input}
-                value={location}
-                onChangeText={setLocation}
-                placeholder="Where will this amazing event happen?"
-                placeholderTextColor="#999"
-              />
+              <TouchableOpacity 
+                style={styles.locationButton}
+                onPress={openLocationPicker}
+                activeOpacity={0.8}
+              >
+                <View style={styles.locationContent}>
+                  <View style={styles.locationTextContainer}>
+                    <Text style={styles.locationText}>
+                      {location || "Select event location"}
+                    </Text>
+                    {locationAddress && (
+                      <Text style={styles.locationAddress}>{locationAddress}</Text>
+                    )}
+                  </View>
+                  <Ionicons name="location" size={20} color="#59a2f0" />
+                </View>
+              </TouchableOpacity>
+              
+              {locationCoordinates && (
+                <TouchableOpacity 
+                  style={styles.mapsButton}
+                  onPress={openGoogleMaps}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="map" size={16} color="#4CAF50" />
+                  <Text style={styles.mapsButtonText}>Open in Google Maps</Text>
+                </TouchableOpacity>
+              )}
             </Animated.View>
             
             {/* Capacity Field */}
@@ -900,6 +1028,71 @@ export default function EventCreationScreen({ route, navigation }) {
       {renderDatePicker()}
       {renderTimePicker('start', startTime, setStartTime, showStartTimePicker, setShowStartTimePicker)}
       {renderTimePicker('end', endTime, setEndTime, showEndTimePicker, setShowEndTimePicker)}
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <Animated.View
+          style={[
+            styles.modalOverlay,
+            {
+              opacity: locationPickerAnim
+            }
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            onPress={closeLocationPicker}
+            activeOpacity={1}
+          />
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                transform: [
+                  {
+                    scale: locationPickerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1]
+                    })
+                  },
+                  {
+                    translateY: locationPickerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0]
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Event Location</Text>
+              <TouchableOpacity onPress={closeLocationPicker}>
+                <Ionicons name="close" size={24} color="#4a5568" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.locationList} showsVerticalScrollIndicator={false}>
+              {commonLocations.map((loc, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.locationItem}
+                  onPress={() => selectLocation(loc)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.locationItemContent}>
+                    <View style={styles.locationItemInfo}>
+                      <Text style={styles.locationItemName}>{loc.name}</Text>
+                      <Text style={styles.locationItemAddress}>{loc.address}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#cbd5e0" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </Animated.View>
+      )}
 
     </SafeAreaView>
   );
@@ -1273,5 +1466,86 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2d3748',
     marginHorizontal: 10,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  locationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  locationTextContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  locationText: {
+    fontSize: 16,
+    color: '#2d3748',
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  locationAddress: {
+    fontSize: 14,
+    color: '#718096',
+    marginTop: 2,
+  },
+  mapsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0fff4',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#c6f6d5',
+  },
+  mapsButtonText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  locationList: {
+    maxHeight: 400,
+    padding: 20,
+  },
+  locationItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  locationItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  locationItemInfo: {
+    flex: 1,
+  },
+  locationItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2d3748',
+    marginBottom: 2,
+  },
+  locationItemAddress: {
+    fontSize: 14,
+    color: '#718096',
   },
 });
