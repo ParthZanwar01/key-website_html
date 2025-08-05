@@ -695,6 +695,7 @@ class SupabaseService {
           event_id: eventId,
           name: attendeeData.name,
           email: attendeeData.email,
+          s_number: attendeeData.sNumber || null,
           registered_at: new Date().toISOString()
         }])
         .select()
@@ -735,6 +736,7 @@ class SupabaseService {
         id: attendee.id,
         name: attendee.name,
         email: attendee.email,
+        sNumber: attendee.s_number,
         registeredAt: attendee.registered_at
       }));
 

@@ -21,11 +21,12 @@ import SupabaseService from '../services/SupabaseService';
 export default function EventScreen({ route, navigation }) {
   const { eventId } = route.params;
   const { getEventById, signupForEvent, deleteEvent, refreshEvents } = useEvents();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, isAuthenticated } = useAuth();
   const { showModal } = useModal();
   const [event, setEvent] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [sNumber, setSNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
@@ -47,6 +48,20 @@ export default function EventScreen({ route, navigation }) {
       });
     }
   }, [eventId, getEventById, navigation, showModal]);
+
+  // Populate form with user data when logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setName(user.name || '');
+      setEmail(user.email || ''); // If user has email stored
+      setSNumber(user.sNumber || '');
+      
+      // Check if they're already registered
+      if (event && event.attendees) {
+        checkRegistrationStatus(user.email || user.sNumber);
+      }
+    }
+  }, [isAuthenticated, user, event]);
 
   // Check if user is already registered for this event
   const checkRegistrationStatus = (userEmail) => {
@@ -206,10 +221,15 @@ export default function EventScreen({ route, navigation }) {
   };
 
   const handleSignup = async () => {
-    if (!name.trim() || !email.trim()) {
+    // For logged-in users, use their account info
+    const finalName = isAuthenticated && user ? user.name : name.trim();
+    const finalEmail = isAuthenticated && user ? (user.email || email.trim()) : email.trim();
+    const finalSNumber = isAuthenticated && user ? user.sNumber : sNumber.trim();
+
+    if (!finalName || !finalEmail) {
       showModal({
         title: 'Error',
-        message: 'Please fill in all fields',
+        message: 'Please fill in all required fields',
         onCancel: () => {},
         onConfirm: () => {},
         cancelText: '',
@@ -250,7 +270,11 @@ export default function EventScreen({ route, navigation }) {
     // Submit signup using EventsContext
     try {
       setLoading(true);
-      await signupForEvent(eventId, { name, email });
+      await signupForEvent(eventId, { 
+        name: finalName, 
+        email: finalEmail,
+        sNumber: finalSNumber 
+      });
       
       // Refresh the event data to show updated attendee list
       await refreshEvents();
@@ -295,6 +319,9 @@ export default function EventScreen({ route, navigation }) {
     <View style={styles.attendeeItem}>
       <Text style={styles.attendeeName}>{item.name}</Text>
       <Text style={styles.attendeeEmail}>{item.email}</Text>
+      {item.sNumber && (
+        <Text style={styles.attendeeSNumber}>S-Number: {item.sNumber}</Text>
+      )}
     </View>
   );
 
@@ -447,13 +474,23 @@ export default function EventScreen({ route, navigation }) {
               <View style={styles.signupContainer}>
                 <Text style={styles.signupTitle}>Sign Up for This Event</Text>
                 
+                {isAuthenticated && user && (
+                  <View style={styles.loggedInInfo}>
+                    <Ionicons name="person-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.loggedInText}>
+                      Logged in as: {user.name} ({user.sNumber})
+                    </Text>
+                  </View>
+                )}
+                
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Name</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, isAuthenticated && styles.disabledInput]}
                     value={name}
                     onChangeText={setName}
                     placeholder="Enter your name"
+                    editable={!isAuthenticated}
                   />
                 </View>
                 
@@ -665,6 +702,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  attendeeSNumber: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
+  },
   separator: {
     height: 1,
     backgroundColor: '#e0e0e0',
@@ -788,5 +830,23 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loggedInInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e8f5e8',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  loggedInText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  disabledInput: {
+    backgroundColor: '#f5f5f5',
+    color: '#666',
   },
 });
