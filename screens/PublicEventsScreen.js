@@ -237,22 +237,22 @@ export default function PublicEventsScreen() {
     <View style={styles.attendeeItem}>
       <View style={styles.attendeeInfo}>
         <Text style={styles.attendeeName}>
-          {item.students?.name || 'Unknown Student'}
+          {item.name || 'Unknown Student'}
         </Text>
         <Text style={styles.attendeeNumber}>
-          {item.student_s_number}
+          {item.sNumber || 'No S-Number'}
         </Text>
       </View>
       <View style={styles.attendeeStatus}>
         <Ionicons 
-          name={item.status === 'approved' ? 'checkmark-circle' : 'time'} 
+          name="checkmark-circle" 
           size={16} 
-          color={item.status === 'approved' ? '#10b981' : '#f59e0b'} 
+          color="#10b981" 
         />
         <Text style={[styles.attendeeStatusText, { 
-          color: item.status === 'approved' ? '#10b981' : '#f59e0b' 
+          color: '#10b981' 
         }]}>
-          {item.status === 'approved' ? 'Confirmed' : 'Pending'}
+          Confirmed
         </Text>
       </View>
     </View>
@@ -448,22 +448,22 @@ export default function PublicEventsScreen() {
                   <View key={attendee.id || index} style={styles.attendeeItem}>
                     <View style={styles.attendeeInfo}>
                       <Text style={styles.attendeeName}>
-                        {attendee.students?.name || 'Unknown Student'}
+                        {attendee.name || 'Unknown Student'}
                       </Text>
                       <Text style={styles.attendeeNumber}>
-                        {attendee.student_s_number}
+                        {attendee.sNumber || 'No S-Number'}
                       </Text>
                     </View>
                     <View style={styles.attendeeStatus}>
                       <Ionicons 
-                        name={attendee.status === 'approved' ? 'checkmark-circle' : 'time'} 
+                        name="checkmark-circle" 
                         size={16} 
-                        color={attendee.status === 'approved' ? '#10b981' : '#f59e0b'} 
+                        color="#10b981" 
                       />
                       <Text style={[styles.attendeeStatusText, { 
-                        color: attendee.status === 'approved' ? '#10b981' : '#f59e0b' 
+                        color: '#10b981' 
                       }]}>
-                        {attendee.status === 'approved' ? 'Confirmed' : 'Pending'}
+                        Confirmed
                       </Text>
                     </View>
                   </View>
