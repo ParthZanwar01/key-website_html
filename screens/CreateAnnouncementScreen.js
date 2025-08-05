@@ -190,6 +190,11 @@ export default function CreateAnnouncementScreen() {
       return;
     }
 
+    // Debug authentication
+    console.log('🔐 Current user:', user);
+    console.log('🔐 Is authenticated:', !!user);
+    console.log('🔐 User S-Number:', user?.sNumber);
+
     setIsCreating(true);
     
     // Button press animation
@@ -228,6 +233,12 @@ export default function CreateAnnouncementScreen() {
         imageUrl: imageData?.url,
         imageFilename: imageData?.filename
       };
+
+      console.log('📝 Creating announcement with data:', announcementData);
+
+      // Check Supabase auth status
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      console.log('🔐 Supabase auth user:', supabaseUser);
 
       await SupabaseService.createAnnouncement(announcementData);
 
