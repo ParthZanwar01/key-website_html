@@ -132,6 +132,7 @@ export default function CreateAnnouncementScreen() {
       }
 
       if (!result.canceled && result.assets && result.assets[0]) {
+        console.log('📸 Selected image object:', result.assets[0]);
         setSelectedImage(result.assets[0]);
         
         // Animate image appearance
@@ -169,7 +170,7 @@ export default function CreateAnnouncementScreen() {
       
       // Upload to Supabase Storage
       const imageUrl = await SupabaseService.uploadAnnouncementImage(
-        selectedImage.uri,
+        selectedImage,
         filename
       );
       

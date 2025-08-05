@@ -1761,18 +1761,50 @@ class SupabaseService {
   static async uploadAnnouncementImage(imageUri, filename) {
     try {
       console.log('📤 Uploading announcement image:', filename);
+      console.log('📤 Image URI type:', typeof imageUri);
+      console.log('📤 Image URI:', imageUri);
       
-      // Convert image to blob if needed
+      // Handle different image formats
       let imageBlob;
-      if (typeof imageUri === 'string' && imageUri.startsWith('file://')) {
-        // For local files, we need to fetch and convert to blob
-        const response = await fetch(imageUri);
-        imageBlob = await response.blob();
+      
+      if (typeof imageUri === 'string') {
+        // Handle string URIs (file://, http://, https://, data:)
+        if (imageUri.startsWith('file://') || imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
+          // Fetch the image and convert to blob
+          const response = await fetch(imageUri);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+          }
+          imageBlob = await response.blob();
+        } else if (imageUri.startsWith('data:')) {
+          // Handle data URLs
+          const response = await fetch(imageUri);
+          imageBlob = await response.blob();
+        } else {
+          throw new Error('Unsupported image URI format');
+        }
       } else if (imageUri instanceof Blob) {
+        // Direct blob
         imageBlob = imageUri;
+      } else if (imageUri && typeof imageUri === 'object' && imageUri.uri) {
+        // Handle React Native image object with uri property
+        const response = await fetch(imageUri.uri);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.statusText}`);
+        }
+        imageBlob = await response.blob();
       } else {
-        throw new Error('Invalid image format');
+        console.error('❌ Unsupported image format:', imageUri);
+        throw new Error('Unsupported image format. Please try selecting a different image.');
       }
+
+      // Validate that we have a blob
+      if (!imageBlob) {
+        throw new Error('Failed to process image');
+      }
+
+      console.log('📤 Image blob size:', imageBlob.size, 'bytes');
+      console.log('📤 Image blob type:', imageBlob.type);
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
