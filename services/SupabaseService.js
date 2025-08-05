@@ -1659,6 +1659,146 @@ class SupabaseService {
       throw error;
     }
   }
+
+  // ========== ANNOUNCEMENTS MANAGEMENT ==========
+
+  /**
+   * Get all announcements
+   */
+  static async getAllAnnouncements() {
+    try {
+      console.log('📢 Getting all announcements...');
+      
+      const { data: announcements, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error getting announcements:', error);
+        throw error;
+      }
+
+      console.log(`✅ Found ${announcements?.length || 0} announcements`);
+      return announcements || [];
+    } catch (error) {
+      console.error('❌ Error getting announcements:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create new announcement with optional image
+   */
+  static async createAnnouncement(announcementData) {
+    try {
+      console.log('📢 Creating new announcement:', announcementData.title);
+      
+      const insertData = {
+        title: announcementData.title,
+        message: announcementData.message,
+        created_by: announcementData.createdBy || 'admin',
+        date: new Date().toISOString()
+      };
+
+      // Add image data if provided
+      if (announcementData.imageUrl) {
+        insertData.image_url = announcementData.imageUrl;
+      }
+      if (announcementData.imageFilename) {
+        insertData.image_filename = announcementData.imageFilename;
+      }
+
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert([insertData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating announcement:', error);
+        throw error;
+      }
+
+      console.log('✅ Announcement created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to create announcement:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete announcement
+   */
+  static async deleteAnnouncement(announcementId) {
+    try {
+      console.log('🗑️ Deleting announcement:', announcementId);
+      
+      const { data, error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', announcementId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error deleting announcement:', error);
+        throw error;
+      }
+
+      console.log('✅ Announcement deleted successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to delete announcement:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload image to Supabase Storage
+   */
+  static async uploadAnnouncementImage(imageUri, filename) {
+    try {
+      console.log('📤 Uploading announcement image:', filename);
+      
+      // Convert image to blob if needed
+      let imageBlob;
+      if (typeof imageUri === 'string' && imageUri.startsWith('file://')) {
+        // For local files, we need to fetch and convert to blob
+        const response = await fetch(imageUri);
+        imageBlob = await response.blob();
+      } else if (imageUri instanceof Blob) {
+        imageBlob = imageUri;
+      } else {
+        throw new Error('Invalid image format');
+      }
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('announcement-images')
+        .upload(filename, imageBlob, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Error uploading image:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('announcement-images')
+        .getPublicUrl(filename);
+
+      console.log('✅ Image uploaded successfully:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('❌ Failed to upload image:', error);
+      throw error;
+    }
+  }
 }
 
 export default SupabaseService;

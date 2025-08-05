@@ -1,14 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Alert, StyleSheet, Animated, Text } from 'react-native';
+import { 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  Alert, 
+  StyleSheet, 
+  Animated, 
+  Text,
+  Image,
+  Platform,
+  ScrollView
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../supabase/supabaseClient';
 import { useNavigation } from '@react-navigation/native';
+import SupabaseService from '../services/SupabaseService';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function CreateAnnouncementScreen() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const navigation = useNavigation();
+  const { user } = useAuth();
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -17,8 +34,19 @@ export default function CreateAnnouncementScreen() {
   const spinValue = useRef(new Animated.Value(0)).current;
   const successScale = useRef(new Animated.Value(0)).current;
   const successOpacity = useRef(new Animated.Value(0)).current;
+  const imageScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Request permissions on mount
+    (async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Sorry, we need camera roll permissions to make this work!');
+        }
+      }
+    })();
+
     // Initial entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -83,6 +111,78 @@ export default function CreateAnnouncementScreen() {
     });
   };
 
+  const pickImage = async (source) => {
+    try {
+      let result;
+      
+      if (source === 'camera') {
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 9],
+          quality: 0.8,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 9],
+          quality: 0.8,
+        });
+      }
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedImage(result.assets[0]);
+        
+        // Animate image appearance
+        Animated.spring(imageScale, {
+          toValue: 1,
+          tension: 50,
+          friction: 8,
+          useNativeDriver: false,
+        }).start();
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    Animated.timing(imageScale, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const uploadImage = async () => {
+    if (!selectedImage) return null;
+
+    try {
+      setImageUploading(true);
+      
+      // Generate unique filename
+      const timestamp = Date.now();
+      const filename = `announcement_${timestamp}.jpg`;
+      
+      // Upload to Supabase Storage
+      const imageUrl = await SupabaseService.uploadAnnouncementImage(
+        selectedImage.uri,
+        filename
+      );
+      
+      return { url: imageUrl, filename };
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      return null;
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const createAnnouncement = async () => {
     if (!title || !message) {
       Alert.alert('Fill all fields');
@@ -109,27 +209,38 @@ export default function CreateAnnouncementScreen() {
     startSpinAnimation();
 
     try {
-      const { error } = await supabase.from('announcements').insert([{ 
-        title, 
-        message, 
-        date: new Date() 
-      }]);
+      let imageData = null;
+      
+      // Upload image if selected
+      if (selectedImage) {
+        imageData = await uploadImage();
+        if (!imageData) {
+          throw new Error('Failed to upload image');
+        }
+      }
+
+      // Create announcement
+      const announcementData = {
+        title,
+        message,
+        createdBy: user?.sNumber || 'admin',
+        imageUrl: imageData?.url,
+        imageFilename: imageData?.filename
+      };
+
+      await SupabaseService.createAnnouncement(announcementData);
 
       // Add a small delay to show the animation
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (error) {
-        throw error;
-      } else {
-        stopSpinAnimation();
-        showSuccessAnimation();
-        
-        // Wait for success animation, then navigate back
-        setTimeout(() => {
-          Alert.alert('Success', 'Announcement posted');
-          navigation.goBack();
-        }, 2000);
-      }
+      stopSpinAnimation();
+      showSuccessAnimation();
+      
+      // Wait for success animation, then navigate back
+      setTimeout(() => {
+        Alert.alert('Success', 'Announcement posted');
+        navigation.goBack();
+      }, 2000);
     } catch (error) {
       stopSpinAnimation();
       Alert.alert('Error', error.message);
@@ -145,68 +256,113 @@ export default function CreateAnnouncementScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}
-      >
-        <Text style={styles.headerText}>Create Announcement</Text>
-        
-        <View style={styles.inputContainer}>
-          <Ionicons name="create-outline" size={20} color="#4299e1" style={styles.inputIcon} />
-          <TextInput 
-            placeholder="Title" 
-            value={title} 
-            onChangeText={setTitle} 
-            style={styles.input}
-            editable={!isCreating}
-          />
-        </View>
-        
-        <View style={[styles.inputContainer, styles.messageContainer]}>
-          <Ionicons name="chatbubble-outline" size={20} color="#4299e1" style={[styles.inputIcon, styles.messageIcon]} />
-          <TextInput
-            placeholder="Message"
-            value={message}
-            onChangeText={setMessage}
-            style={[styles.input, styles.messageInput]}
-            multiline
-            textAlignVertical="top"
-            editable={!isCreating}
-          />
-        </View>
-
+      <ScrollView showsVerticalScrollIndicator={false}>
         <Animated.View
-          style={[
-            styles.buttonContainer,
-            {
-              transform: [{ scale: buttonScale }],
-            },
-          ]}
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}
         >
-          <TouchableOpacity 
-            style={[styles.postButton, isCreating && styles.postButtonDisabled]} 
-            onPress={createAnnouncement}
-            disabled={isCreating}
-          >
-            {isCreating ? (
-              <Animated.View
-                style={{
-                  transform: [{ rotate: spin }],
-                }}
-              >
-                <Ionicons name="refresh" size={24} color="white" />
-              </Animated.View>
+          <Text style={styles.headerText}>Create Announcement</Text>
+          
+          <View style={styles.inputContainer}>
+            <Ionicons name="create-outline" size={20} color="#4299e1" style={styles.inputIcon} />
+            <TextInput 
+              placeholder="Title" 
+              value={title} 
+              onChangeText={setTitle} 
+              style={styles.input}
+              editable={!isCreating}
+            />
+          </View>
+          
+          <View style={[styles.inputContainer, styles.messageContainer]}>
+            <Ionicons name="chatbubble-outline" size={20} color="#4299e1" style={[styles.inputIcon, styles.messageIcon]} />
+            <TextInput
+              placeholder="Message"
+              value={message}
+              onChangeText={setMessage}
+              style={[styles.input, styles.messageInput]}
+              multiline
+              textAlignVertical="top"
+              editable={!isCreating}
+            />
+          </View>
+
+          {/* Image Upload Section */}
+          <View style={styles.imageSection}>
+            <Text style={styles.sectionTitle}>Add Image (Optional)</Text>
+            
+            {!selectedImage ? (
+              <View style={styles.imageButtonsContainer}>
+                <TouchableOpacity 
+                  style={styles.imageButton} 
+                  onPress={() => pickImage('camera')}
+                  disabled={isCreating}
+                >
+                  <Ionicons name="camera" size={24} color="#4299e1" />
+                  <Text style={styles.imageButtonText}>Camera</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.imageButton} 
+                  onPress={() => pickImage('gallery')}
+                  disabled={isCreating}
+                >
+                  <Ionicons name="images" size={24} color="#4299e1" />
+                  <Text style={styles.imageButtonText}>Gallery</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
-              <Ionicons name="send" size={24} color="white" />
+              <Animated.View 
+                style={[
+                  styles.imagePreviewContainer,
+                  { transform: [{ scale: imageScale }] }
+                ]}
+              >
+                <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} />
+                <TouchableOpacity 
+                  style={styles.removeImageButton} 
+                  onPress={removeImage}
+                  disabled={isCreating}
+                >
+                  <Ionicons name="close-circle" size={30} color="#e53e3e" />
+                </TouchableOpacity>
+              </Animated.View>
             )}
-            <Text style={styles.buttonText}>
-              {isCreating ? 'Creating...' : 'Post Announcement'}
-            </Text>
-          </TouchableOpacity>
+          </View>
+
+          <Animated.View
+            style={[
+              styles.buttonContainer,
+              {
+                transform: [{ scale: buttonScale }],
+              },
+            ]}
+          >
+            <TouchableOpacity 
+              style={[styles.postButton, isCreating && styles.postButtonDisabled]} 
+              onPress={createAnnouncement}
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <Animated.View
+                  style={{
+                    transform: [{ rotate: spin }],
+                  }}
+                >
+                  <Ionicons name="refresh" size={24} color="white" />
+                </Animated.View>
+              ) : (
+                <Ionicons name="send" size={24} color="white" />
+              )}
+              <Text style={styles.buttonText}>
+                {isCreating ? 'Creating...' : 'Post Announcement'}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </ScrollView>
 
       {/* Success Animation Overlay */}
       <Animated.View
@@ -271,26 +427,58 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 0,
   },
-  textArea: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#2d3748',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(66,153,225,0.18)',
-    minHeight: 80,
-    textAlignVertical: 'top',
+  messageInput: {
+    minHeight: 100,
   },
-  label: {
+  imageSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
     color: '#e2e8f0',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 6,
-    marginTop: 10,
-    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  imageButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  imageButton: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 0.45,
+    borderWidth: 1,
+    borderColor: '#4299e1',
+  },
+  imageButtonText: {
+    color: '#4299e1',
+    fontWeight: '600',
+    marginTop: 8,
+    fontSize: 14,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#4299e1',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 15,
   },
   buttonContainer: {
     marginTop: 20,
@@ -316,6 +504,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 17,
+    marginLeft: 8,
   },
   successOverlay: {
     position: 'absolute',

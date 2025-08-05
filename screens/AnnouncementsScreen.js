@@ -8,17 +8,22 @@ import {
   StyleSheet, 
   Animated, 
   Dimensions,
-  StatusBar
+  StatusBar,
+  Image,
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../supabase/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import SupabaseService from '../services/SupabaseService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function AnnouncementsScreen() {
   const [announcements, setAnnouncements] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
   const { isAdmin } = useAuth();
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -98,18 +103,12 @@ export default function AnnouncementsScreen() {
     };
   }, []);
 
-
-
   const fetchAnnouncements = async () => {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .order('date', { ascending: false });
-
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
+    try {
+      const data = await SupabaseService.getAllAnnouncements();
       setAnnouncements(data);
+    } catch (error) {
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -119,15 +118,25 @@ export default function AnnouncementsScreen() {
       {
         text: 'Delete',
         onPress: async () => {
-          const { error } = await supabase.from('announcements').delete().eq('id', id);
-          if (error) {
-            Alert.alert('Error', error.message);
-          } else {
+          try {
+            await SupabaseService.deleteAnnouncement(id);
             fetchAnnouncements();
+          } catch (error) {
+            Alert.alert('Error', error.message);
           }
         },
       },
     ]);
+  };
+
+  const openImageModal = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setImageModalVisible(true);
+  };
+
+  const closeImageModal = () => {
+    setImageModalVisible(false);
+    setSelectedImage(null);
   };
 
   const AnimatedAnnouncementCard = ({ item, index }) => {
@@ -183,7 +192,27 @@ export default function AnnouncementsScreen() {
             {new Date(item.date).toLocaleDateString()}
           </Text>
         </View>
-        <Text style={styles.cardContent}>{item.content}</Text>
+        
+        <Text style={styles.cardContent}>{item.message}</Text>
+        
+        {/* Image Display */}
+        {item.image_url && (
+          <TouchableOpacity 
+            style={styles.imageContainer}
+            onPress={() => openImageModal(item.image_url)}
+            activeOpacity={0.8}
+          >
+            <Image 
+              source={{ uri: item.image_url }} 
+              style={styles.announcementImage}
+              resizeMode="cover"
+            />
+            <View style={styles.imageOverlay}>
+              <Ionicons name="expand" size={20} color="white" />
+            </View>
+          </TouchableOpacity>
+        )}
+        
         {isAdmin && (
           <TouchableOpacity style={styles.deleteButtonSolid} onPress={() => deleteAnnouncement(item.id)}>
             <Ionicons name="trash" size={22} color="#fff" />
@@ -259,26 +288,8 @@ export default function AnnouncementsScreen() {
         ) : (
           <FlatList
             data={announcements}
-            renderItem={({ item }) => (
-              <View style={styles.announcementCard}>
-                <View style={styles.announcementContent}>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.titleContainer}>
-                      <Ionicons name="megaphone" size={20} color="#4299e1" style={styles.cardIcon} />
-                      <Text style={styles.cardTitle}>{item.title}</Text>
-                    </View>
-                    <Text style={styles.cardDate}>
-                      {new Date(item.date).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <Text style={styles.cardContent}>{item.content}</Text>
-                </View>
-                {isAdmin && (
-                  <TouchableOpacity style={styles.deleteButtonSolid} onPress={() => deleteAnnouncement(item.id)}>
-                    <Ionicons name="trash" size={22} color="#fff" />
-                  </TouchableOpacity>
-                )}
-              </View>
+            renderItem={({ item, index }) => (
+              <AnimatedAnnouncementCard item={item} index={index} />
             )}
             keyExtractor={(item) => item.id.toString()}
             showsVerticalScrollIndicator={false}
@@ -289,6 +300,38 @@ export default function AnnouncementsScreen() {
 
       {/* FAB */}
       {isAdmin && <AnimatedFAB />}
+
+      {/* Image Modal */}
+      <Modal
+        visible={imageModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeImageModal}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackground} 
+            onPress={closeImageModal}
+            activeOpacity={1}
+          >
+            <View style={styles.modalContent}>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={closeImageModal}
+              >
+                <Ionicons name="close" size={30} color="white" />
+              </TouchableOpacity>
+              {selectedImage && (
+                <Image 
+                  source={{ uri: selectedImage }} 
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -344,9 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(66,153,225,0.10)',
     shadowColor: '#000',
@@ -354,12 +394,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
-  },
-  announcementContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -392,12 +426,30 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     fontSize: 14,
-    color: '#e2e8f0', // Light gray
+    color: '#2d3748', // Dark gray for better readability
     lineHeight: 20,
     fontWeight: '500',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+    marginBottom: 12,
+  },
+  imageContainer: {
+    position: 'relative',
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f7fafc',
+  },
+  announcementImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+    padding: 5,
   },
   deleteButton: {
     position: 'absolute',
@@ -411,7 +463,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e53e3e',
     borderRadius: 8,
     padding: 10,
-    marginLeft: 12,
+    alignSelf: 'flex-end',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -451,6 +503,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    position: 'relative',
+  },
+  modalImage: {
+    width: screenWidth * 0.9,
+    height: screenHeight * 0.7,
+    borderRadius: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 8,
   },
   swipeDelete: {
     backgroundColor: '#e53e3e',

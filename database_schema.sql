@@ -24,24 +24,42 @@ CREATE TABLE IF NOT EXISTS meeting_attendance (
     UNIQUE(meeting_id, student_s_number)
 );
 
+-- Create announcements table with image support
+CREATE TABLE IF NOT EXISTS announcements (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    image_url TEXT,
+    image_filename VARCHAR(255),
+    created_by VARCHAR(20) NOT NULL,
+    date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_meetings_date ON meetings(meeting_date);
 CREATE INDEX IF NOT EXISTS idx_meetings_is_open ON meetings(is_open);
 CREATE INDEX IF NOT EXISTS idx_meeting_attendance_meeting_id ON meeting_attendance(meeting_id);
 CREATE INDEX IF NOT EXISTS idx_meeting_attendance_student ON meeting_attendance(student_s_number);
 CREATE INDEX IF NOT EXISTS idx_meeting_attendance_submitted ON meeting_attendance(submitted_at);
+CREATE INDEX IF NOT EXISTS idx_announcements_date ON announcements(date);
+CREATE INDEX IF NOT EXISTS idx_announcements_created_by ON announcements(created_by);
 
 -- Add comments for documentation
 COMMENT ON TABLE meetings IS 'Stores information about Key Club meetings';
 COMMENT ON TABLE meeting_attendance IS 'Stores student attendance records for meetings';
+COMMENT ON TABLE announcements IS 'Stores Key Club announcements with optional images';
 COMMENT ON COLUMN meetings.meeting_type IS 'Type of meeting: both, morning, afternoon, etc.';
 COMMENT ON COLUMN meetings.attendance_code IS '6-character code for attendance verification';
 COMMENT ON COLUMN meetings.is_open IS 'Whether the meeting is currently open for attendance submission';
 COMMENT ON COLUMN meetings.created_by IS 'S-Number of the admin who created the meeting';
+COMMENT ON COLUMN announcements.image_url IS 'URL to the uploaded image file';
+COMMENT ON COLUMN announcements.image_filename IS 'Original filename of the uploaded image';
 
 -- Enable Row Level Security (RLS) for Supabase
 ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meeting_attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for meetings table
 -- Allow all authenticated users to read meetings
@@ -85,6 +103,22 @@ CREATE POLICY "Allow admins to read all attendance" ON meeting_attendance
         )
     );
 
+-- Create RLS policies for announcements table
+-- Allow all authenticated users to read announcements
+CREATE POLICY "Allow authenticated users to read announcements" ON announcements
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Allow admins to insert, update, and delete announcements
+CREATE POLICY "Allow admins to manage announcements" ON announcements
+    FOR ALL USING (
+        auth.role() = 'authenticated' AND 
+        EXISTS (
+            SELECT 1 FROM students 
+            WHERE s_number = auth.jwt() ->> 's_number' 
+            AND is_admin = true
+        )
+    );
+
 -- Create a function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -100,6 +134,11 @@ CREATE TRIGGER update_meetings_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_announcements_updated_at 
+    BEFORE UPDATE ON announcements 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Insert some sample data for testing (optional)
 -- INSERT INTO meetings (meeting_date, meeting_type, attendance_code, is_open, created_by) VALUES
 --     ('2025-01-07', 'both', 'ABC123', false, 'admin'),
@@ -109,5 +148,7 @@ CREATE TRIGGER update_meetings_updated_at
 -- Grant necessary permissions (adjust as needed for your setup)
 -- GRANT SELECT, INSERT, UPDATE, DELETE ON meetings TO authenticated;
 -- GRANT SELECT, INSERT ON meeting_attendance TO authenticated;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON announcements TO authenticated;
 -- GRANT USAGE, SELECT ON SEQUENCE meetings_id_seq TO authenticated;
--- GRANT USAGE, SELECT ON SEQUENCE meeting_attendance_id_seq TO authenticated; 
+-- GRANT USAGE, SELECT ON SEQUENCE meeting_attendance_id_seq TO authenticated;
+-- GRANT USAGE, SELECT ON SEQUENCE announcements_id_seq TO authenticated; 
