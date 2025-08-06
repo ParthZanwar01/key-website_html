@@ -34,6 +34,8 @@ import AdminMeetingManagementScreen from '../screens/AdminMeetingManagementScree
 import StudentMeetingAttendanceScreen from '../screens/StudentMeetingAttendanceScreen';
 import SocialMediaScreen from '../screens/SocialMediaScreen';
 import PublicEventsScreen from '../screens/PublicEventsScreen';
+import HelpModal from '../components/HelpModal';
+import HelpSettingsScreen from '../screens/HelpSettingsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -251,6 +253,14 @@ function MainStackNavigator() {
       />
 
       <Stack.Screen
+        name="HelpSettings"
+        component={HelpSettingsScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen
         name="PublicEvents"
         component={PublicEventsScreen}
         options={{
@@ -381,37 +391,40 @@ export default function AppNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        showAnimation ? (
-          <Stack.Screen 
-            name="Animation" 
-            component={AnimationScreen}
-            options={{
-              animationEnabled: false,
-              gestureEnabled: false,
-            }}
-          />
+    <>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          showAnimation ? (
+            <Stack.Screen 
+              name="Animation" 
+              component={AnimationScreen}
+              options={{
+                animationEnabled: false,
+                gestureEnabled: false,
+              }}
+            />
+          ) : (
+            <Stack.Screen 
+              name="Main" 
+              component={MainStackNavigator}
+              options={{
+                animationEnabled: true,
+                animationTypeForReplace: 'push',
+              }}
+            />
+          )
         ) : (
           <Stack.Screen 
-            name="Main" 
-            component={MainStackNavigator}
+            name="Auth" 
+            component={AuthNavigator}
             options={{
               animationEnabled: true,
-              animationTypeForReplace: 'push',
+              animationTypeForReplace: 'pop',
             }}
           />
-        )
-      ) : (
-        <Stack.Screen 
-          name="Auth" 
-          component={AuthNavigator}
-          options={{
-            animationEnabled: true,
-            animationTypeForReplace: 'pop',
-          }}
-        />
-      )}
-    </Stack.Navigator>
+        )}
+      </Stack.Navigator>
+      <HelpModal />
+    </>
   );
 }
