@@ -3,14 +3,10 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Dimensions, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useHours } from '../contexts/HourContext';
-import { useHelper } from '../contexts/HelperContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop, RadialGradient } from 'react-native-svg';
-import HelperOverlay from '../components/HelperOverlay';
-import SmartSuggestions from '../components/SmartSuggestions';
-import HelpButton from '../components/HelpButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -351,7 +347,6 @@ const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
 export default function HomeScreen() {
   const { user, isAdmin, logout } = useAuth();
   const { getStudentHours } = useHours();
-  const { tutorialState, shouldShowTutorial, startTutorial, showHelp } = useHelper();
   const navigation = useNavigation();
   const [currentHours, setCurrentHours] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -449,13 +444,7 @@ export default function HomeScreen() {
       }),
     ]).start();
 
-    // Show welcome tutorial for first-time users
-    if (tutorialState.isFirstTime && shouldShowTutorial('welcome')) {
-      setTimeout(() => {
-        startTutorial('welcome');
-      }, 2000);
-    }
-  }, [tutorialState.isFirstTime, shouldShowTutorial, startTutorial]);
+  }, []);
 
   const toggleMenu = () => {
     const toValue = menuVisible ? 0 : 1;
@@ -578,15 +567,6 @@ export default function HomeScreen() {
       gradient: ['#E1306C', '#F56040'],
       action: () => navigateTo('socialMedia')
     },
-    {
-      id: 'help',
-      title: 'Help & Support',
-      icon: 'help-circle',
-      gradient: ['#9f7aea', '#805ad5'],
-      action: () => {
-        navigation.navigate('HelpSettings');
-      }
-    },
     ...(isAdmin ? [{
       id: 'studentManagement',
       title: 'Student Management',
@@ -609,13 +589,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* Help Button */}
-      <HelpButton
-        tooltipId="menu-help"
-        tooltipContent="Tap here to access the navigation menu and all app features"
-        position="top-left"
-        style={{ top: Platform.OS === 'web' ? 20 : 50, left: 80 }}
-      />
+
 
         <ScrollView
           style={styles.scrollView}
@@ -789,11 +763,7 @@ export default function HomeScreen() {
       </ScrollView>
       </SafeAreaView>
 
-      {/* Smart Suggestions */}
-      <SmartSuggestions />
 
-      {/* Helper Overlay */}
-      <HelperOverlay />
 
       {/* Hamburger Menu Overlay */}
       <Animated.View

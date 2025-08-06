@@ -15,7 +15,6 @@ import { supabase } from '../supabase/supabaseClient';
 import { useNavigation } from '@react-navigation/native';
 import SupabaseService from '../services/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
-import HelpButton from '../components/HelpButton';
 
 export default function CreateAnnouncementScreen() {
   const [title, setTitle] = useState('');
@@ -177,28 +176,6 @@ export default function CreateAnnouncementScreen() {
           }}
         >
           <Text style={styles.headerText}>Create Announcement</Text>
-          
-          <HelpButton
-            tooltipId="announcement-help"
-            tooltipContent="Create announcements to keep club members informed about events, meetings, and important updates"
-            helpContent={{
-              title: "Creating Announcements",
-              content: `
-                <h3>How to Create an Announcement</h3>
-                <p>1. Enter a clear, descriptive title</p>
-                <p>2. Write your message in the text area</p>
-                <p>3. Click "Post Announcement" to publish</p>
-                
-                <h3>Best Practices</h3>
-                <p>• Keep titles concise and informative</p>
-                <p>• Include relevant details like dates, times, and locations</p>
-                <p>• Use clear, professional language</p>
-                <p>• Proofread before posting</p>
-              `
-            }}
-            position="top-right"
-            style={{ top: 10, right: 10 }}
-          />
           
           <View style={styles.inputContainer}>
             <Ionicons name="create-outline" size={20} color="#4299e1" style={styles.inputIcon} />

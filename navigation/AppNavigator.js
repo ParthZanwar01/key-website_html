@@ -34,8 +34,6 @@ import AdminMeetingManagementScreen from '../screens/AdminMeetingManagementScree
 import StudentMeetingAttendanceScreen from '../screens/StudentMeetingAttendanceScreen';
 import SocialMediaScreen from '../screens/SocialMediaScreen';
 import PublicEventsScreen from '../screens/PublicEventsScreen';
-import HelpModal from '../components/HelpModal';
-import HelpSettingsScreen from '../screens/HelpSettingsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -253,14 +251,6 @@ function MainStackNavigator() {
       />
 
       <Stack.Screen
-        name="HelpSettings"
-        component={HelpSettingsScreen}
-        options={{
-          headerShown: false,
-        }}
-      />
-
-      <Stack.Screen
         name="PublicEvents"
         component={PublicEventsScreen}
         options={{
@@ -424,7 +414,6 @@ export default function AppNavigator() {
           />
         )}
       </Stack.Navigator>
-      <HelpModal />
     </>
   );
 }

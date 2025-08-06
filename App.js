@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
 import { HourProvider } from './contexts/HourContext';
 import { ModalProvider } from './contexts/ModalContext';
-import { HelperProvider } from './contexts/HelperContext';
 import AppNavigator from './navigation/AppNavigator';
 import { preventFocusOnHidden } from './utils/AccessibilityHelper';
 import { applyChromeOptimizations } from './utils/ChromeCompatibilityHelper';
@@ -20,10 +19,10 @@ function AuthenticatedApp() {
   }, [isAuthenticated, isAdmin]);
 
   return (
-    <HelperProvider>
+    <>
       <StatusBar style="auto" />
       <AppNavigator />
-    </HelperProvider>
+    </>
   );
 }
 

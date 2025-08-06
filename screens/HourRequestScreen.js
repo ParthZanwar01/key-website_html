@@ -27,7 +27,6 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import ModernDatePicker from '../components/ModernDatePicker';
-import HelpButton from '../components/HelpButton';
 // Remove Google Drive dependency - we'll use local storage instead
 
 // Conditionally import FileSystem only on native platforms
@@ -931,30 +930,6 @@ export default function HourRequestScreen({ navigation }) {
               <Ionicons name="arrow-back" size={24} color="#ffd60a" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Request Hours</Text>
-            
-            <HelpButton
-              tooltipId="hour-request-help"
-              tooltipContent="Submit volunteer hours for approval by club officers"
-              helpContent={{
-                title: "Submitting Volunteer Hours",
-                content: `
-                  <h3>How to Submit Hours</h3>
-                  <p>1. Select the event type from the dropdown</p>
-                  <p>2. Enter the event name and description</p>
-                  <p>3. Choose the date and enter hours worked</p>
-                  <p>4. Optionally add a photo for verification</p>
-                  <p>5. Click "Submit Request" to send for approval</p>
-                  
-                  <h3>Tips for Approval</h3>
-                  <p>• Be specific about the event and your role</p>
-                  <p>• Include accurate dates and times</p>
-                  <p>• Add photos when possible for verification</p>
-                  <p>• Contact officers if you have questions</p>
-                `
-              }}
-              position="top-right"
-              style={{ top: 10, right: 10 }}
-            />
           </Animated.View>
 
           {/* Animated Current Hours Card */}
