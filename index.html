@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Club Hub</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/animations.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Loading Key Club Hub...</p>
+    </div>
+
+    <!-- Splash Animation Screen -->
+    <div id="splashScreen" class="splash-screen hidden">
+        <div class="splash-content">
+            <img src="assets/images/keyclublogo-modified.png" alt="Key Club Logo" class="splash-logo">
+            <h1 class="splash-title">Key Club Hub</h1>
+            <div class="splash-progress">
+                <div class="splash-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Screens -->
+    <div id="authContainer" class="auth-container hidden">
+        <!-- Landing Screen -->
+        <div id="landingScreen" class="screen active">
+            <div class="landing-content">
+                <img src="assets/images/keyclublogo-modified.png" alt="Key Club Logo" class="landing-logo">
+                <h1 class="landing-title">Welcome to Key Club Hub</h1>
+                <p class="landing-subtitle">Manage events, track hours, and stay connected</p>
+                
+                <div class="landing-buttons">
+                    <button class="btn btn-primary btn-large" onclick="showScreen('authScreen')">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Get Started
+                    </button>
+                    <button class="btn btn-secondary btn-large" onclick="showScreen('publicEventsScreen')">
+                        <i class="fas fa-calendar-alt"></i>
+                        View Public Events
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Screen -->
+        <div id="authScreen" class="screen">
+            <div class="auth-content">
+                <div class="auth-header">
+                    <button class="btn btn-icon" onclick="showScreen('landingScreen')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2>Choose Login Type</h2>
+                </div>
+                
+                <div class="auth-options">
+                    <button class="auth-option" onclick="showScreen('studentLoginScreen')">
+                        <i class="fas fa-user-graduate"></i>
+                        <div>
+                            <h3>Student Login</h3>
+                            <p>Access your account with S-Number</p>
+                        </div>
+                    </button>
+                    
+                    <button class="auth-option" onclick="showScreen('adminLoginScreen')">
+                        <i class="fas fa-user-shield"></i>
+                        <div>
+                            <h3>Admin Login</h3>
+                            <p>Manage club activities and events</p>
+                        </div>
+                    </button>
+                    
+                    <button class="auth-option" onclick="showScreen('studentRegistrationScreen')">
+                        <i class="fas fa-user-plus"></i>
+                        <div>
+                            <h3>Create Account</h3>
+                            <p>New student registration</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Login Screen -->
+        <div id="studentLoginScreen" class="screen">
+            <div class="auth-form-container">
+                <div class="auth-header">
+                    <button class="btn btn-icon" onclick="showScreen('authScreen')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2>Student Login</h2>
+                </div>
+                
+                <form id="studentLoginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="studentSNumber">S-Number</label>
+                        <input type="text" id="studentSNumber" name="sNumber" placeholder="s123456" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentPassword">Password</label>
+                        <input type="password" id="studentPassword" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </button>
+                </form>
+                
+                <div class="auth-links">
+                    <button class="btn btn-link" onclick="showScreen('forgotPasswordScreen')">
+                        Forgot Password?
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Login Screen -->
+        <div id="adminLoginScreen" class="screen">
+            <div class="auth-form-container">
+                <div class="auth-header">
+                    <button class="btn btn-icon" onclick="showScreen('authScreen')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2>Admin Login</h2>
+                </div>
+                
+                <form id="adminLoginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="adminEmail">Email</label>
+                        <input type="email" id="adminEmail" name="email" placeholder="admin@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adminPassword">Password</label>
+                        <input type="password" id="adminPassword" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login as Admin
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Student Registration Screen -->
+        <div id="studentRegistrationScreen" class="screen">
+            <div class="auth-form-container">
+                <div class="auth-header">
+                    <button class="btn btn-icon" onclick="showScreen('authScreen')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2>Create Student Account</h2>
+                </div>
+                
+                <form id="studentRegistrationForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="regSNumber">S-Number</label>
+                        <input type="text" id="regSNumber" name="sNumber" placeholder="s123456" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regName">Full Name</label>
+                        <input type="text" id="regName" name="name" placeholder="John Doe" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regPassword">Password</label>
+                        <input type="password" id="regPassword" name="password" placeholder="Minimum 6 characters" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regConfirmPassword">Confirm Password</label>
+                        <input type="password" id="regConfirmPassword" name="confirmPassword" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-user-plus"></i>
+                        Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Forgot Password Screen -->
+        <div id="forgotPasswordScreen" class="screen">
+            <div class="auth-form-container">
+                <div class="auth-header">
+                    <button class="btn btn-icon" onclick="showScreen('studentLoginScreen')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2>Reset Password</h2>
+                </div>
+                
+                <form id="forgotPasswordForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="resetSNumber">S-Number</label>
+                        <input type="text" id="resetSNumber" name="sNumber" placeholder="s123456" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" name="newPassword" placeholder="Minimum 6 characters" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmNewPassword">Confirm New Password</label>
+                        <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-key"></i>
+                        Reset Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="mainApp" class="main-app hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <button id="menuToggle" class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 id="pageTitle">Key Club Hub</h1>
+            <div class="header-actions">
+                <button id="userMenuBtn" class="btn btn-icon">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sidebar Menu -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <h3 id="userName">User Name</h3>
+                        <p id="userRole">Student</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul id="menuItems">
+                    <!-- Menu items will be populated by JavaScript -->
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="mainContent" class="main-content">
+            <!-- Home Screen -->
+            <div id="homeScreen" class="screen active">
+                <div class="home-content">
+                    <div class="welcome-section">
+                        <h2 id="welcomeMessage">Welcome, Member</h2>
+                        <img src="assets/images/keyclublogo-modified.png" alt="Key Club Logo" class="home-logo">
+                        <h3>Key Club</h3>
+                        <p id="homeSubtitle">Track events, hours, and stay connected</p>
+                    </div>
+                    
+                                                    <div class="dashboard-grid">
+                                    <div id="hoursCard" class="hours-card hidden">
+                                        <div class="hours-header">
+                                            <i class="fas fa-trophy"></i>
+                                            <div class="hours-info">
+                                                <p class="hours-label">Your Progress</p>
+                                                <h4 id="hoursValue">0 / 25 hours</h4>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="progress-container">
+                                            <div class="progress-ring">
+                                                <svg width="120" height="120">
+                                                    <defs>
+                                                        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                            <stop offset="0%" stop-color="#4299e1"/>
+                                                            <stop offset="100%" stop-color="#3182ce"/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <circle cx="60" cy="60" r="55" stroke="rgba(66, 153, 225, 0.2)" stroke-width="10" fill="transparent"/>
+                                                    <circle id="progressCircle" cx="60" cy="60" r="55" stroke="url(#progressGradient)" stroke-width="10" stroke-dasharray="346" stroke-dashoffset="346" stroke-linecap="round" fill="transparent"/>
+                                                </svg>
+                                                <div class="progress-text">
+                                                    <span id="progressPercentage">0%</span>
+                                                    <small id="progressHours">0 / 25 hours</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-primary btn-full" onclick="navigateTo('hourRequest')">
+                                            <i class="fas fa-plus-circle"></i>
+                                            Request Hours
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="adminCard" class="admin-card hidden">
+                                        <h4>Admin Dashboard</h4>
+                                        
+                                        <div class="admin-actions-grid">
+                                            <button class="btn btn-primary" onclick="navigateTo('calendar')">
+                                                <i class="fas fa-calendar"></i>
+                                                Create Event
+                                            </button>
+                                            
+                                            <button class="btn btn-primary" onclick="navigateTo('adminHourManagement')">
+                                                <i class="fas fa-clock"></i>
+                                                Review Hours
+                                            </button>
+                                            
+                                            <button class="btn btn-primary" onclick="navigateTo('adminMeetingManagement')">
+                                                <i class="fas fa-users"></i>
+                                                Meeting Management
+                                            </button>
+                                            
+                                            <button class="btn btn-primary" onclick="navigateTo('adminStudentManagement')">
+                                                <i class="fas fa-user-graduate"></i>
+                                                Student Management
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                </div>
+            </div>
+
+            <!-- Calendar/Events Screen -->
+            <div id="calendarScreen" class="screen">
+                <div class="calendar-content">
+                    <div class="calendar-header">
+                        <h2>Events Calendar</h2>
+                        <button id="createEventBtn" class="btn btn-primary" onclick="showEventCreation()">
+                            <i class="fas fa-plus"></i>
+                            Create Event
+                        </button>
+                    </div>
+                    
+                    <div id="eventsList" class="events-list">
+                        <!-- Events will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Details Screen -->
+            <div id="eventScreen" class="screen">
+                <div class="event-content">
+                    <div class="event-header">
+                        <button class="btn btn-icon" onclick="goBack()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h2 id="eventTitle">Event Details</h2>
+                    </div>
+                    
+                    <div id="eventDetails" class="event-details">
+                        <!-- Event details will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Creation Screen -->
+            <div id="eventCreationScreen" class="screen">
+                <div class="form-container">
+                    <div class="form-header">
+                        <button class="btn btn-icon" onclick="goBack()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h2>Create New Event</h2>
+                    </div>
+                    
+                    <form id="eventCreationForm" class="form">
+                        <div class="form-group">
+                            <label for="eventTitle">Event Title</label>
+                            <input type="text" id="eventTitle" name="title" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="eventDescription">Description</label>
+                            <textarea id="eventDescription" name="description" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="eventDate">Date</label>
+                                <input type="date" id="eventDate" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="eventTime">Time</label>
+                                <input type="time" id="eventTime" name="time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="eventLocation">Location</label>
+                            <input type="text" id="eventLocation" name="location" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="eventCapacity">Capacity</label>
+                            <input type="number" id="eventCapacity" name="capacity" min="1" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-save"></i>
+                            Create Event
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Hour Request Screen -->
+            <div id="hourRequestScreen" class="screen">
+                <div class="form-container">
+                    <div class="form-header">
+                        <button class="btn btn-icon" onclick="goBack()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <h2>Request Hours</h2>
+                    </div>
+                    
+                    <form id="hourRequestForm" class="form">
+                        <div class="form-group">
+                            <label for="hourEventName">Event Name</label>
+                            <input type="text" id="hourEventName" name="eventName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hourEventDate">Event Date</label>
+                            <input type="date" id="hourEventDate" name="eventDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hoursRequested">Hours Requested</label>
+                            <input type="number" id="hoursRequested" name="hoursRequested" step="0.5" min="0.5" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hourDescription">Description</label>
+                            <textarea id="hourDescription" name="description" rows="4" placeholder="Describe what you did at this event..." required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hourImage">Proof Image (Optional)</label>
+                            <input type="file" id="hourImage" name="image" accept="image/*">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-paper-plane"></i>
+                            Submit Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Admin Hour Management Screen -->
+            <div id="adminHourManagementScreen" class="screen">
+                <div class="admin-content">
+                    <div class="admin-header">
+                        <h2>Hour Request Management</h2>
+                    </div>
+                    
+                    <div id="hourRequestsList" class="requests-list">
+                        <!-- Hour requests will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Announcements Screen -->
+            <div id="announcementsScreen" class="screen">
+                <div class="announcements-content">
+                    <div class="announcements-header">
+                        <h2>Announcements</h2>
+                        <button id="createAnnouncementBtn" class="btn btn-primary" onclick="showAnnouncementCreation()">
+                            <i class="fas fa-plus"></i>
+                            Create Announcement
+                        </button>
+                    </div>
+                    
+                    <div id="announcementsList" class="announcements-list">
+                        <!-- Announcements will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Officers Screen -->
+            <div id="officersScreen" class="screen">
+                <div class="officers-content">
+                    <h2>Club Officers</h2>
+                    <div id="officersGrid" class="officers-grid">
+                        <!-- Officers will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact/Help Screen -->
+            <div id="contactScreen" class="screen">
+                <div class="contact-content">
+                    <h2 id="contactTitle">Contact & Help</h2>
+                    
+                    <form id="contactForm" class="form">
+                        <div class="form-group">
+                            <label for="contactName">Name</label>
+                            <input type="text" id="contactName" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contactSNumber">S-Number</label>
+                            <input type="text" id="contactSNumber" name="sNumber" placeholder="s123456">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contactSubject">Subject</label>
+                            <input type="text" id="contactSubject" name="subject" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contactMessage">Message</label>
+                            <textarea id="contactMessage" name="message" rows="6" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+                                    <!-- Public Events Screen -->
+                        <div id="publicEventsScreen" class="screen">
+                            <div class="public-events-content">
+                                <div class="public-events-header">
+                                    <button class="btn btn-icon" onclick="goBack()">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </button>
+                                    <h2>Public Events</h2>
+                                </div>
+                                
+                                <div id="publicEventsList" class="events-list">
+                                    <!-- Public events will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Student Management Screen -->
+                        <div id="adminStudentManagementScreen" class="screen">
+                            <div class="admin-content">
+                                <div class="admin-header">
+                                    <h2>Student Management</h2>
+                                </div>
+                                
+                                <div class="admin-actions">
+                                    <button class="btn btn-primary" onclick="showStudentVerification()">
+                                        <i class="fas fa-user-check"></i>
+                                        Verify Students
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="exportStudentData()">
+                                        <i class="fas fa-download"></i>
+                                        Export Data
+                                    </button>
+                                </div>
+                                
+                                <div id="studentsList" class="students-list">
+                                    <!-- Students will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Meeting Management Screen -->
+                        <div id="adminMeetingManagementScreen" class="screen">
+                            <div class="admin-content">
+                                <div class="admin-header">
+                                    <h2>Meeting Management</h2>
+                                </div>
+                                
+                                <div class="admin-actions">
+                                    <button class="btn btn-primary" onclick="showMeetingCreation()">
+                                        <i class="fas fa-plus"></i>
+                                        Create Meeting
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="generateAttendanceCode()">
+                                        <i class="fas fa-qrcode"></i>
+                                        Generate Code
+                                    </button>
+                                </div>
+                                
+                                <div id="meetingsList" class="meetings-list">
+                                    <!-- Meetings will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Student Meeting Attendance Screen -->
+                        <div id="studentMeetingAttendanceScreen" class="screen">
+                            <div class="attendance-content">
+                                <div class="attendance-header">
+                                    <button class="btn btn-icon" onclick="goBack()">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </button>
+                                    <h2>Meeting Attendance</h2>
+                                </div>
+                                
+                                <div class="attendance-section">
+                                    <h3>Enter Attendance Code</h3>
+                                    <form id="attendanceCodeForm" class="form">
+                                        <div class="form-group">
+                                            <label for="attendanceCode">Attendance Code</label>
+                                            <input type="text" id="attendanceCode" name="code" placeholder="Enter the code provided by your admin" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-full">
+                                            <i class="fas fa-check"></i>
+                                            Submit Attendance
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <div class="attendance-history">
+                                    <h3>Your Attendance History</h3>
+                                    <div id="attendanceHistory" class="attendance-list">
+                                        <!-- Attendance history will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Student Hour Requests Screen -->
+                        <div id="studentHourRequestsScreen" class="screen">
+                            <div class="requests-content">
+                                <div class="requests-header">
+                                    <button class="btn btn-icon" onclick="goBack()">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </button>
+                                    <h2>My Hour Requests</h2>
+                                </div>
+                                
+                                <div id="myHourRequestsList" class="requests-list">
+                                    <!-- User's hour requests will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Create Announcement Screen -->
+                        <div id="createAnnouncementScreen" class="screen">
+                            <div class="form-container">
+                                <div class="form-header">
+                                    <button class="btn btn-icon" onclick="goBack()">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </button>
+                                    <h2>Create Announcement</h2>
+                                </div>
+                                
+                                <form id="createAnnouncementForm" class="form">
+                                    <div class="form-group">
+                                        <label for="announcementTitle">Title</label>
+                                        <input type="text" id="announcementTitle" name="title" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="announcementContent">Content</label>
+                                        <textarea id="announcementContent" name="content" rows="6" required></textarea>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="announcementImage">Image (Optional)</label>
+                                        <input type="file" id="announcementImage" name="image" accept="image/*">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="announcementPriority">Priority</label>
+                                        <select id="announcementPriority" name="priority">
+                                            <option value="low">Low</option>
+                                            <option value="medium" selected>Medium</option>
+                                            <option value="high">High</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary btn-full">
+                                        <i class="fas fa-bullhorn"></i>
+                                        Post Announcement
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Attendee List Screen -->
+                        <div id="attendeeListScreen" class="screen">
+                            <div class="attendees-content">
+                                <div class="attendees-header">
+                                    <button class="btn btn-icon" onclick="goBack()">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </button>
+                                    <h2 id="attendeeEventTitle">Event Attendees</h2>
+                                </div>
+                                
+                                <div class="attendees-stats">
+                                    <div class="stat-card">
+                                        <i class="fas fa-users"></i>
+                                        <div class="stat-info">
+                                            <span class="stat-number" id="totalAttendees">0</span>
+                                            <span class="stat-label">Total Attendees</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <i class="fas fa-clock"></i>
+                                        <div class="stat-info">
+                                            <span class="stat-number" id="avgHours">0</span>
+                                            <span class="stat-label">Avg Hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="attendeesList" class="attendees-list">
+                                    <!-- Attendees will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Social Media Screen -->
+                        <div id="socialMediaScreen" class="screen">
+                            <div class="social-content">
+                                <div class="social-header">
+                                    <h2>Social Media</h2>
+                                    <p>Connect with Key Club on social media</p>
+                                </div>
+                                
+                                <div class="social-links">
+                                    <a href="#" class="social-link instagram">
+                                        <i class="fab fa-instagram"></i>
+                                        <div class="social-info">
+                                            <h3>Instagram</h3>
+                                            <p>Follow us for updates and photos</p>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="social-link twitter">
+                                        <i class="fab fa-twitter"></i>
+                                        <div class="social-info">
+                                            <h3>Twitter</h3>
+                                            <p>Get real-time updates</p>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="social-link facebook">
+                                        <i class="fab fa-facebook"></i>
+                                        <div class="social-info">
+                                            <h3>Facebook</h3>
+                                            <p>Join our community</p>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="social-link youtube">
+                                        <i class="fab fa-youtube"></i>
+                                        <div class="social-info">
+                                            <h3>YouTube</h3>
+                                            <p>Watch our videos</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Modal Title</h3>
+                <button class="btn btn-icon" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modalBody" class="modal-body">
+                <!-- Modal content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/supabaseService.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/googleDrive.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/screens.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 

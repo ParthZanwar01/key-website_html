@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Club Hub - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #3182ce;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        .status.info {
+            background: #bee3f8;
+            color: #2a4365;
+        }
+    </style>
+</head>
+<body>
+    <h1>Key Club Hub - Application Test</h1>
+    
+    <div class="test-section">
+        <h2>File Structure Test</h2>
+        <p>This test verifies that all required files are present and accessible.</p>
+        <button class="test-button" onclick="testFileStructure()">Test File Structure</button>
+        <div id="fileStructureResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>JavaScript Module Test</h2>
+        <p>This test verifies that all JavaScript modules are loading correctly.</p>
+        <button class="test-button" onclick="testJavaScriptModules()">Test JavaScript Modules</button>
+        <div id="javascriptModulesResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>CSS Loading Test</h2>
+        <p>This test verifies that all CSS files are loading correctly.</p>
+        <button class="test-button" onclick="testCSSLoading()">Test CSS Loading</button>
+        <div id="cssLoadingResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Assets Test</h2>
+        <p>This test verifies that all required assets are present.</p>
+        <button class="test-button" onclick="testAssets()">Test Assets</button>
+        <div id="assetsResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Quick Navigation Test</h2>
+        <p>This test opens the main application in a new window.</p>
+        <button class="test-button" onclick="openMainApp()">Open Main Application</button>
+    </div>
+
+    <script>
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testFileStructure() {
+            const requiredFiles = [
+                'index.html',
+                'styles/main.css',
+                'styles/components.css',
+                'styles/animations.css',
+                'js/config.js',
+                'js/utils.js',
+                'js/auth.js',
+                'js/api.js',
+                'js/navigation.js',
+                'js/screens.js',
+                'js/app.js',
+                'assets/images/keyclublogo-modified.png'
+            ];
+
+            let allFilesPresent = true;
+            let results = [];
+
+            for (const file of requiredFiles) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    if (response.ok) {
+                        results.push(`✅ ${file}`);
+                    } else {
+                        results.push(`❌ ${file} - Not found`);
+                        allFilesPresent = false;
+                    }
+                } catch (error) {
+                    results.push(`❌ ${file} - Error: ${error.message}`);
+                    allFilesPresent = false;
+                }
+            }
+
+            const message = results.join('<br>');
+            const type = allFilesPresent ? 'success' : 'error';
+            showResult('fileStructureResult', message, type);
+        }
+
+        function testJavaScriptModules() {
+            const requiredModules = [
+                'CONFIG',
+                'Utils',
+                'Auth',
+                'API',
+                'Navigation',
+                'Screens',
+                'App',
+                'UI'
+            ];
+
+            let allModulesPresent = true;
+            let results = [];
+
+            for (const module of requiredModules) {
+                if (typeof window[module] !== 'undefined') {
+                    results.push(`✅ ${module} - Loaded`);
+                } else {
+                    results.push(`❌ ${module} - Not found`);
+                    allModulesPresent = false;
+                }
+            }
+
+            const message = results.join('<br>');
+            const type = allModulesPresent ? 'success' : 'error';
+            showResult('javascriptModulesResult', message, type);
+        }
+
+        function testCSSLoading() {
+            const requiredStylesheets = [
+                'styles/main.css',
+                'styles/components.css',
+                'styles/animations.css'
+            ];
+
+            let allStylesheetsPresent = true;
+            let results = [];
+
+            for (const stylesheet of requiredStylesheets) {
+                const link = document.querySelector(`link[href="${stylesheet}"]`);
+                if (link) {
+                    results.push(`✅ ${stylesheet} - Linked`);
+                } else {
+                    results.push(`❌ ${stylesheet} - Not linked`);
+                    allStylesheetsPresent = false;
+                }
+            }
+
+            const message = results.join('<br>');
+            const type = allStylesheetsPresent ? 'success' : 'error';
+            showResult('cssLoadingResult', message, type);
+        }
+
+        async function testAssets() {
+            const requiredAssets = [
+                'assets/images/keyclublogo-modified.png',
+                'assets/images/keyclublogo.png',
+                'assets/images/floral_border.png',
+                'assets/images/string_lights_bg.png'
+            ];
+
+            let allAssetsPresent = true;
+            let results = [];
+
+            for (const asset of requiredAssets) {
+                try {
+                    const response = await fetch(asset, { method: 'HEAD' });
+                    if (response.ok) {
+                        results.push(`✅ ${asset}`);
+                    } else {
+                        results.push(`❌ ${asset} - Not found`);
+                        allAssetsPresent = false;
+                    }
+                } catch (error) {
+                    results.push(`❌ ${asset} - Error: ${error.message}`);
+                    allAssetsPresent = false;
+                }
+            }
+
+            const message = results.join('<br>');
+            const type = allAssetsPresent ? 'success' : 'error';
+            showResult('assetsResult', message, type);
+        }
+
+        function openMainApp() {
+            window.open('index.html', '_blank');
+        }
+
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testFileStructure();
+                testJavaScriptModules();
+                testCSSLoading();
+                testAssets();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

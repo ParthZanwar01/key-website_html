@@ -1,125 +1,152 @@
--- Meeting Attendance System Database Schema
--- This file contains the SQL commands to create the necessary tables for the meeting attendance system
+-- Key Club Hub Database Schema for Supabase
+-- This file contains all the SQL commands needed to set up the database tables
 
--- Create meetings table
-CREATE TABLE IF NOT EXISTS meetings (
-    id SERIAL PRIMARY KEY,
-    meeting_date DATE NOT NULL,
-    meeting_type VARCHAR(50) NOT NULL DEFAULT 'both',
-    attendance_code VARCHAR(10) NOT NULL,
-    is_open BOOLEAN NOT NULL DEFAULT false,
-    created_by VARCHAR(20) NOT NULL,
+-- Enable Row Level Security (RLS)
+ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret-here';
+
+-- Create custom types
+CREATE TYPE user_role AS ENUM ('student', 'admin');
+CREATE TYPE hour_request_status AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE meeting_type AS ENUM ('morning', 'afternoon');
+CREATE TYPE announcement_priority AS ENUM ('low', 'medium', 'high');
+
+-- Students table
+CREATE TABLE students (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    s_number VARCHAR(10) UNIQUE NOT NULL CHECK (s_number ~ '^s[0-9]{6}$'),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    verified BOOLEAN DEFAULT FALSE,
+    verified_at TIMESTAMP WITH TIME ZONE,
+    total_hours DECIMAL(5,2) DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create meeting_attendance table
-CREATE TABLE IF NOT EXISTS meeting_attendance (
-    id SERIAL PRIMARY KEY,
-    meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-    student_s_number VARCHAR(20) NOT NULL,
-    attendance_code VARCHAR(10) NOT NULL,
-    session_type VARCHAR(20) DEFAULT 'both',
-    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(meeting_id, student_s_number)
-);
-
--- Create announcements table with image support
-CREATE TABLE IF NOT EXISTS announcements (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    image_url TEXT,
-    image_filename VARCHAR(255),
-    created_by VARCHAR(20) NOT NULL,
-    date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+-- Admins table
+CREATE TABLE admins (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Events table
+CREATE TABLE events (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(255),
+    date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    capacity INTEGER DEFAULT 0,
+    color VARCHAR(7) DEFAULT '#4299e1',
+    created_by UUID REFERENCES admins(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Event attendees table
+CREATE TABLE event_attendees (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    student_email VARCHAR(255) NOT NULL,
+    registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(event_id, student_id)
+);
+
+-- Hour requests table
+CREATE TABLE hour_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_s_number VARCHAR(10) REFERENCES students(s_number),
+    student_name VARCHAR(255) NOT NULL,
+    event_name VARCHAR(255) NOT NULL,
+    event_date DATE NOT NULL,
+    hours_requested DECIMAL(4,2) NOT NULL,
+    description TEXT NOT NULL,
+    status hour_request_status DEFAULT 'pending',
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    reviewed_by UUID REFERENCES admins(id),
+    admin_notes TEXT,
+    image_name VARCHAR(255)
+);
+
+-- Announcements table
+CREATE TABLE announcements (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    created_by UUID REFERENCES admins(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    image_url VARCHAR(500),
+    image_filename VARCHAR(255),
+    priority announcement_priority DEFAULT 'medium'
+);
+
+-- Meetings table
+CREATE TABLE meetings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    date DATE NOT NULL,
+    time TIME NOT NULL,
+    meeting_type meeting_type NOT NULL,
+    is_open BOOLEAN DEFAULT FALSE,
+    created_by UUID REFERENCES admins(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Attendance codes table
+CREATE TABLE attendance_codes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    code VARCHAR(10) UNIQUE NOT NULL,
+    generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+-- Meeting attendance table
+CREATE TABLE meeting_attendance (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    meeting_id UUID REFERENCES meetings(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    student_s_number VARCHAR(10) NOT NULL,
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(meeting_id, student_id)
+);
+
+-- Support questions table
+CREATE TABLE support_questions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    s_number VARCHAR(10) REFERENCES students(s_number),
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_meetings_date ON meetings(meeting_date);
-CREATE INDEX IF NOT EXISTS idx_meetings_is_open ON meetings(is_open);
-CREATE INDEX IF NOT EXISTS idx_meeting_attendance_meeting_id ON meeting_attendance(meeting_id);
-CREATE INDEX IF NOT EXISTS idx_meeting_attendance_student ON meeting_attendance(student_s_number);
-CREATE INDEX IF NOT EXISTS idx_meeting_attendance_submitted ON meeting_attendance(submitted_at);
-CREATE INDEX IF NOT EXISTS idx_announcements_date ON announcements(date);
-CREATE INDEX IF NOT EXISTS idx_announcements_created_by ON announcements(created_by);
+CREATE INDEX idx_students_s_number ON students(s_number);
+CREATE INDEX idx_students_email ON students(email);
+CREATE INDEX idx_events_date ON events(date);
+CREATE INDEX idx_hour_requests_student ON hour_requests(student_s_number);
+CREATE INDEX idx_hour_requests_status ON hour_requests(status);
+CREATE INDEX idx_meeting_attendance_meeting ON meeting_attendance(meeting_id);
+CREATE INDEX idx_meeting_attendance_student ON meeting_attendance(student_id);
+CREATE INDEX idx_attendance_codes_code ON attendance_codes(code);
+CREATE INDEX idx_attendance_codes_meeting ON attendance_codes(meeting_id);
 
--- Add comments for documentation
-COMMENT ON TABLE meetings IS 'Stores information about Key Club meetings';
-COMMENT ON TABLE meeting_attendance IS 'Stores student attendance records for meetings';
-COMMENT ON TABLE announcements IS 'Stores Key Club announcements with optional images';
-COMMENT ON COLUMN meetings.meeting_type IS 'Type of meeting: both, morning, afternoon, etc.';
-COMMENT ON COLUMN meetings.attendance_code IS '6-character code for attendance verification';
-COMMENT ON COLUMN meetings.is_open IS 'Whether the meeting is currently open for attendance submission';
-COMMENT ON COLUMN meetings.created_by IS 'S-Number of the admin who created the meeting';
-COMMENT ON COLUMN announcements.image_url IS 'URL to the uploaded image file';
-COMMENT ON COLUMN announcements.image_filename IS 'Original filename of the uploaded image';
-
--- Enable Row Level Security (RLS) for Supabase
-ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE meeting_attendance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policies for meetings table
--- Allow all authenticated users to read meetings
-CREATE POLICY "Allow authenticated users to read meetings" ON meetings
-    FOR SELECT USING (auth.role() = 'authenticated');
-
--- Allow admins to insert, update, and delete meetings
-CREATE POLICY "Allow admins to manage meetings" ON meetings
-    FOR ALL USING (
-        auth.role() = 'authenticated' AND 
-        EXISTS (
-            SELECT 1 FROM students 
-            WHERE s_number = auth.jwt() ->> 's_number' 
-            AND is_admin = true
-        )
-    );
-
--- Create RLS policies for meeting_attendance table
--- Allow students to read their own attendance records
-CREATE POLICY "Allow students to read own attendance" ON meeting_attendance
-    FOR SELECT USING (
-        auth.role() = 'authenticated' AND 
-        student_s_number = auth.jwt() ->> 's_number'
-    );
-
--- Allow students to insert their own attendance records
-CREATE POLICY "Allow students to submit attendance" ON meeting_attendance
-    FOR INSERT WITH CHECK (
-        auth.role() = 'authenticated' AND 
-        student_s_number = auth.jwt() ->> 's_number'
-    );
-
--- Allow admins to read all attendance records
-CREATE POLICY "Allow admins to read all attendance" ON meeting_attendance
-    FOR SELECT USING (
-        auth.role() = 'authenticated' AND 
-        EXISTS (
-            SELECT 1 FROM students 
-            WHERE s_number = auth.jwt() ->> 's_number' 
-            AND is_admin = true
-        )
-    );
-
--- Create RLS policies for announcements table
--- Allow all authenticated users to read announcements
-CREATE POLICY "Allow authenticated users to read announcements" ON announcements
-    FOR SELECT USING (auth.role() = 'authenticated');
-
--- Allow admins to insert, update, and delete announcements
-CREATE POLICY "Allow admins to manage announcements" ON announcements
-    FOR ALL USING (
-        auth.role() = 'authenticated' AND 
-        EXISTS (
-            SELECT 1 FROM students 
-            WHERE s_number = auth.jwt() ->> 's_number' 
-            AND is_admin = true
-        )
-    );
-
--- Create a function to automatically update the updated_at timestamp
+-- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -128,27 +155,99 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create trigger to automatically update updated_at
-CREATE TRIGGER update_meetings_updated_at 
-    BEFORE UPDATE ON meetings 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+-- Create triggers for updated_at
+CREATE TRIGGER update_students_updated_at BEFORE UPDATE ON students FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_admins_updated_at BEFORE UPDATE ON admins FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_meetings_updated_at BEFORE UPDATE ON meetings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_announcements_updated_at 
-    BEFORE UPDATE ON announcements 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+-- Insert sample admin user
+INSERT INTO admins (name, email, password) VALUES 
+('Admin User', 'admin@example.com', 'password123');
 
--- Insert some sample data for testing (optional)
--- INSERT INTO meetings (meeting_date, meeting_type, attendance_code, is_open, created_by) VALUES
---     ('2025-01-07', 'both', 'ABC123', false, 'admin'),
---     ('2025-01-14', 'both', 'DEF456', true, 'admin'),
---     ('2025-01-21', 'both', 'GHI789', false, 'admin');
+-- Insert sample students
+INSERT INTO students (name, s_number, email, password, verified, total_hours) VALUES 
+('John Doe', 's123456', 'john.doe@student.edu', 'password123', true, 15.5),
+('Jane Smith', 's789012', 'jane.smith@student.edu', 'password123', true, 22.0),
+('Mike Johnson', 's345678', 'mike.johnson@student.edu', 'password123', false, 8.0),
+('Sarah Wilson', 's901234', 'sarah.wilson@student.edu', 'password123', true, 18.5);
 
--- Grant necessary permissions (adjust as needed for your setup)
--- GRANT SELECT, INSERT, UPDATE, DELETE ON meetings TO authenticated;
--- GRANT SELECT, INSERT ON meeting_attendance TO authenticated;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON announcements TO authenticated;
--- GRANT USAGE, SELECT ON SEQUENCE meetings_id_seq TO authenticated;
--- GRANT USAGE, SELECT ON SEQUENCE meeting_attendance_id_seq TO authenticated;
--- GRANT USAGE, SELECT ON SEQUENCE announcements_id_seq TO authenticated; 
+-- Insert sample events
+INSERT INTO events (title, description, location, date, start_time, end_time, capacity, color, created_by) VALUES 
+('Community Service Day', 'Join us for a day of community service at the local park.', 'Central Park', '2024-03-15', '09:00', '15:00', 50, '#4299e1', (SELECT id FROM admins LIMIT 1)),
+('Fundraising Event', 'Help us raise funds for our community projects.', 'School Gymnasium', '2024-03-20', '18:00', '21:00', 100, '#48bb78', (SELECT id FROM admins LIMIT 1)),
+('Leadership Workshop', 'Develop your leadership skills with our interactive workshop.', 'Room 201', '2024-03-25', '14:00', '16:00', 30, '#ed8936', (SELECT id FROM admins LIMIT 1));
+
+-- Insert sample announcements
+INSERT INTO announcements (title, message, created_by, priority) VALUES 
+('Welcome to Key Club!', 'Welcome to the new school year! We have exciting events planned for this semester.', (SELECT id FROM admins LIMIT 1), 'high'),
+('Community Service Day Registration Open', 'Registration for our upcoming Community Service Day is now open. Limited spots available!', (SELECT id FROM admins LIMIT 1), 'medium');
+
+-- Insert sample meetings
+INSERT INTO meetings (title, description, date, time, meeting_type, is_open, created_by) VALUES 
+('Weekly Meeting', 'Regular weekly club meeting', '2024-03-10', '14:00', 'afternoon', false, (SELECT id FROM admins LIMIT 1)),
+('Leadership Meeting', 'Leadership team meeting', '2024-03-17', '15:00', 'afternoon', true, (SELECT id FROM admins LIMIT 1));
+
+-- Enable Row Level Security (RLS) policies
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_attendees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hour_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meeting_attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE support_questions ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies (basic policies - you may want to customize these)
+-- Students can read their own data
+CREATE POLICY "Students can view own data" ON students FOR SELECT USING (auth.uid()::text = id::text);
+
+-- Admins can read all student data
+CREATE POLICY "Admins can view all students" ON students FOR ALL USING (true);
+
+-- Anyone can read events
+CREATE POLICY "Anyone can view events" ON events FOR SELECT USING (true);
+
+-- Admins can manage events
+CREATE POLICY "Admins can manage events" ON events FOR ALL USING (true);
+
+-- Anyone can read announcements
+CREATE POLICY "Anyone can view announcements" ON announcements FOR SELECT USING (true);
+
+-- Admins can manage announcements
+CREATE POLICY "Admins can manage announcements" ON announcements FOR ALL USING (true);
+
+-- Students can view their own hour requests
+CREATE POLICY "Students can view own hour requests" ON hour_requests FOR SELECT USING (student_s_number = (SELECT s_number FROM students WHERE id::text = auth.uid()::text));
+
+-- Admins can manage all hour requests
+CREATE POLICY "Admins can manage hour requests" ON hour_requests FOR ALL USING (true);
+
+-- Anyone can read meetings
+CREATE POLICY "Anyone can view meetings" ON meetings FOR SELECT USING (true);
+
+-- Admins can manage meetings
+CREATE POLICY "Admins can manage meetings" ON meetings FOR ALL USING (true);
+
+-- Students can submit attendance
+CREATE POLICY "Students can submit attendance" ON meeting_attendance FOR INSERT WITH CHECK (student_s_number = (SELECT s_number FROM students WHERE id::text = auth.uid()::text));
+
+-- Anyone can read attendance
+CREATE POLICY "Anyone can view attendance" ON meeting_attendance FOR SELECT USING (true);
+
+-- Admins can manage attendance codes
+CREATE POLICY "Admins can manage attendance codes" ON attendance_codes FOR ALL USING (true);
+
+-- Anyone can submit support questions
+CREATE POLICY "Anyone can submit support questions" ON support_questions FOR INSERT WITH CHECK (true);
+
+-- Admins can view all support questions
+CREATE POLICY "Admins can view support questions" ON support_questions FOR SELECT USING (true);
+
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated; 

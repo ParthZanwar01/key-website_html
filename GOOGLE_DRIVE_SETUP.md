@@ -1,69 +1,221 @@
-# Google Drive Setup Guide
+# Google Drive Integration Setup Guide
 
-## Environment Variables
+This guide will help you set up Google Drive integration for file uploads in your Key Club Hub web application.
 
-To enable the "Save to Drive" functionality in the admin hour management screen, you need to set up the following environment variables:
+## Prerequisites
 
-### Required Variables
+1. Google Cloud Console account
+2. Google Drive API enabled
+3. OAuth 2.0 credentials configured
+4. Your Google Drive folder ID (already provided)
 
-1. **EXPO_PUBLIC_GOOGLE_CLIENT_ID**
-   - Google OAuth client ID (required for authentication)
-   - This is used for OAuth2 authentication with Google Drive API
+## Step 1: Google Cloud Console Setup
 
-2. **EXPO_PUBLIC_GOOGLE_CLIENT_SECRET**
-   - Google OAuth client secret (required for web platform)
-   - This is used for token exchange in the OAuth2 flow
+### 1.1 Create/Select Project
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable billing (required for API usage)
 
-3. **EXPO_PUBLIC_GOOGLE_DRIVE_FOLDER_ID**
-   - Google Drive folder ID where photos will be saved
-   - Default: `17Z64oFj5nolu4sQPYAcrdv7KvKKw967l`
+### 1.2 Enable Google Drive API
+1. Go to **APIs & Services > Library**
+2. Search for "Google Drive API"
+3. Click on it and press **Enable**
 
-### Optional Variables
+### 1.3 Configure OAuth Consent Screen
+1. Go to **APIs & Services > OAuth consent screen**
+2. Choose **External** user type
+3. Fill in the required information:
+   - App name: "Key Club Hub"
+   - User support email: Your email
+   - Developer contact information: Your email
+4. Add scopes:
+   - `https://www.googleapis.com/auth/drive.file`
+5. Add test users (your email)
+6. Save and continue
 
-4. **EXPO_PUBLIC_NETLIFY_URL**
-   - Your Netlify app URL (e.g., `https://crhskeyclubwebsite.netlify.app/`)
-   - This is used to call the Netlify function that handles Google Drive uploads (fallback method)
+### 1.4 Create OAuth 2.0 Credentials
+1. Go to **APIs & Services > Credentials**
+2. Click **Create Credentials > OAuth 2.0 Client IDs**
+3. Choose **Web application**
+4. Add authorized redirect URIs:
+   - `http://localhost:8000/auth/callback.html` (for development)
+   - `https://your-domain.com/auth/callback.html` (for production)
+5. Save the credentials
+6. Note down the **Client ID** and **Client Secret**
 
-## Setup Instructions
+## Step 2: Update Configuration
 
-1. **Set up Google Cloud Console OAuth2 credentials**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select existing one
-   - Enable the Google Drive API
-   - Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
-   - Set application type to "Web application"
-   - Add authorized redirect URIs:
-     - `https://your-app-domain.netlify.app/auth/callback`
-     - `http://localhost:19006/auth/callback` (for development)
-   - Copy the Client ID and Client Secret
+Your Google Drive credentials are already configured in `js/config.js`:
 
-2. **Create a `.env` file** in your project root with the OAuth2 credentials:
-   ```
-   EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_client_id_here
-   EXPO_PUBLIC_GOOGLE_CLIENT_SECRET=your_client_secret_here
-   EXPO_PUBLIC_GOOGLE_DRIVE_FOLDER_ID=your_folder_id_here
-   ```
+```javascript
+GOOGLE_API_KEY: 'AIzaSyCcX-uLOzgPYhJMkp5JC22fhPqU359u_kY',
+GOOGLE_CLIENT_ID: '28895447434-n468oke316vaeo8hcguue7222vijorfr.apps.googleusercontent.com',
+GOOGLE_CLIENT_SECRET: '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',
+GOOGLE_DRIVE_FOLDER_ID: '17Z64oFj5nolu4sQPYAcrdv7KvKKw967l',
+```
 
-   **Note:** The `EXPO_PUBLIC_GOOGLE_API_KEY` is no longer needed since we switched to OAuth2 authentication.
+## Step 3: Set Up Google Drive Folder
 
-3. **Deploy your app to Netlify** to get the Netlify URL
+1. Go to [Google Drive](https://drive.google.com/)
+2. Create a new folder for Key Club Hub files
+3. Right-click the folder and select **Share**
+4. Set permissions to **Anyone with the link can view**
+5. Copy the folder ID from the URL (the long string after `/folders/`)
 
-4. **Update the redirect URI** in Google Cloud Console with your actual Netlify URL
+## Step 4: Test the Integration
 
-## How It Works
+1. Start your web application: `http://localhost:8000`
+2. Log in as an admin
+3. Try to create an announcement with an image
+4. The first time you upload a file, you'll be prompted to authenticate with Google Drive
+5. Complete the OAuth flow
+6. The file should be uploaded to your Google Drive folder
 
-The "Save to Drive" button now uses OAuth2 authentication:
+## Step 5: File Upload Features
 
-1. **Primary Method**: OAuth2 → Google Drive API (direct upload)
-2. **Fallback Method**: Netlify Function → Google Apps Script → Google Drive
+### Supported File Types
+- Images: JPEG, PNG, GIF, WebP
+- Documents: PDF, DOC, DOCX
+- Maximum file size: 5MB
 
-The app will prompt users to authenticate with Google when they first try to save a photo to Drive.
+### Upload Locations
+- **Announcements**: `announcements/` folder
+- **Hour Requests**: `hour-requests/` folder
+- **General Files**: `general/` folder
 
-## Troubleshooting
+### File Naming Convention
+Files are automatically named with timestamps:
+```
+folder/1234567890_filename.jpg
+```
 
-- Check the console logs for detailed error messages
-- Ensure your OAuth2 credentials are correctly set in the `.env` file
-- Verify your Google Cloud Console project has the Drive API enabled
-- Make sure the Google Drive folder ID is correct and accessible
-- Check that your redirect URIs in Google Cloud Console match your app URLs
-- If you get "401 Unauthorized" errors, try re-authenticating by signing out and back in 
+## Step 6: OAuth Flow
+
+The application uses a popup-based OAuth flow:
+
+1. **First Upload**: User clicks upload, OAuth popup opens
+2. **Authentication**: User grants permissions to the app
+3. **Callback**: OAuth callback page handles the response
+4. **Token Storage**: Access and refresh tokens are stored securely
+5. **Upload**: File is uploaded to Google Drive
+6. **Success**: User receives confirmation and file link
+
+## Step 7: Security Considerations
+
+### Token Management
+- Access tokens are stored in localStorage (encrypted in production)
+- Refresh tokens are used to get new access tokens
+- Tokens are automatically refreshed when needed
+
+### File Permissions
+- Files are uploaded to a specific Google Drive folder
+- Folder permissions control who can access files
+- Files are organized by type and date
+
+### OAuth Scopes
+The application requests minimal permissions:
+- `https://www.googleapis.com/auth/drive.file` - Access to files created by the app
+
+## Step 8: Troubleshooting
+
+### Common Issues
+
+1. **OAuth Popup Blocked**
+   - Allow popups for your domain
+   - Check browser settings
+
+2. **Authentication Failed**
+   - Verify OAuth credentials
+   - Check redirect URIs
+   - Ensure API is enabled
+
+3. **Upload Failed**
+   - Check file size (max 5MB)
+   - Verify file type is supported
+   - Check network connection
+
+4. **Token Expired**
+   - Tokens are automatically refreshed
+   - If refresh fails, user needs to re-authenticate
+
+### Debug Information
+Check the browser console for detailed error messages:
+```javascript
+// Check Google Drive status
+console.log(GoogleDrive.getAuthStatus());
+
+// Check if authenticated
+console.log(GoogleDrive.isAuthenticated);
+```
+
+## Step 9: Production Deployment
+
+### Update Redirect URIs
+1. Go to Google Cloud Console
+2. Update OAuth 2.0 credentials
+3. Add your production domain to authorized redirect URIs
+4. Remove localhost URIs
+
+### Environment Variables
+For production, consider using environment variables:
+```javascript
+GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+```
+
+### HTTPS Required
+Google OAuth requires HTTPS in production:
+- Use a valid SSL certificate
+- Update redirect URIs to use HTTPS
+
+## Step 10: Monitoring and Usage
+
+### Google Cloud Console
+- Monitor API usage in **APIs & Services > Dashboard**
+- Check quotas and limits
+- Review OAuth consent screen analytics
+
+### File Management
+- Files are automatically organized in Google Drive
+- Use Google Drive interface to manage files
+- Set up automated backups if needed
+
+## Step 11: Advanced Features
+
+### Custom File Metadata
+You can add custom metadata to uploaded files:
+```javascript
+const metadata = {
+    description: 'Key Club event photo',
+    studentName: 'John Doe',
+    eventName: 'Community Service Day'
+};
+
+await API.uploadFile(file, 'announcements', metadata);
+```
+
+### File Organization
+Files are organized by:
+- **Type**: announcements, hour-requests, general
+- **Date**: Timestamp prefix for chronological ordering
+- **Original Name**: Preserved for easy identification
+
+## Support
+
+If you encounter issues:
+
+1. Check the browser console for error messages
+2. Verify Google Cloud Console settings
+3. Test OAuth flow manually
+4. Check file permissions in Google Drive
+5. Review API quotas and limits
+
+Your Google Drive integration is now ready to use! 🎉
+
+## Next Steps
+
+1. Test file uploads with different file types
+2. Set up automated backups if needed
+3. Monitor usage and adjust quotas
+4. Train users on the upload process
+5. Set up file management procedures 

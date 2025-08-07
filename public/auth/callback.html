@@ -1,45 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Authentication Callback</title>
-    <script>
-        // Handle OAuth callback
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            const error = urlParams.get('error');
-            
-            if (error) {
-                console.error('OAuth error:', error);
-                window.close();
-                return;
-            }
-            
-            if (code) {
-                console.log('OAuth code received:', code);
-                
-                        // Store the code in localStorage for the main app to pick up
-        localStorage.setItem('oauth_code', code);
-        localStorage.setItem('oauth_timestamp', Date.now().toString());
-        
-        // Show success message
-        document.body.innerHTML = '<div style="text-align: center; padding: 50px;"><h2>✅ Authentication Complete!</h2><p>Closing this window...</p></div>';
-        
-        // Close the popup window after a short delay
-        setTimeout(() => {
-            window.close();
-        }, 2000);
-            } else {
-                console.error('No OAuth code received');
-                window.close();
-            }
-        };
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Authentication</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success {
+            color: #4ade80;
+        }
+        .error {
+            color: #f87171;
+        }
+    </style>
 </head>
 <body>
-    <div style="text-align: center; padding: 50px;">
-        <h2>Completing Authentication...</h2>
-        <p>Please wait while we complete your Google authentication.</p>
+    <div class="container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <h2>Authenticating with Google Drive...</h2>
+            <p>Please wait while we complete the authentication process.</p>
+        </div>
+        
+        <div id="success" style="display: none;">
+            <h2 class="success">✅ Authentication Successful!</h2>
+            <p>You can now close this window and return to the application.</p>
+            <button onclick="closeWindow()" style="
+                background: white;
+                color: #667eea;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                margin-top: 1rem;
+            ">Close Window</button>
+        </div>
+        
+        <div id="error" style="display: none;">
+            <h2 class="error">❌ Authentication Failed</h2>
+            <p id="errorMessage">An error occurred during authentication.</p>
+            <button onclick="closeWindow()" style="
+                background: white;
+                color: #f87171;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                margin-top: 1rem;
+            ">Close Window</button>
+        </div>
     </div>
+
+    <script>
+        // Handle OAuth callback
+        async function handleCallback() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const state = urlParams.get('state');
+                const error = urlParams.get('error');
+
+                if (error) {
+                    throw new Error(`OAuth error: ${error}`);
+                }
+
+                if (!code) {
+                    throw new Error('No authorization code received');
+                }
+
+                // Send the auth code to the parent window
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'GOOGLE_OAUTH_CALLBACK',
+                        code: code,
+                        state: state
+                    }, window.location.origin);
+                    
+                    // Show success message
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('success').style.display = 'block';
+                    
+                    // Auto-close after 3 seconds
+                    setTimeout(() => {
+                        closeWindow();
+                    }, 3000);
+                } else {
+                    throw new Error('No parent window found');
+                }
+
+            } catch (error) {
+                console.error('OAuth callback error:', error);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        }
+
+        function closeWindow() {
+            if (window.opener) {
+                window.close();
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        // Handle the callback when page loads
+        window.addEventListener('load', handleCallback);
+    </script>
 </body>
 </html> 
